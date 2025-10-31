@@ -1,3 +1,7 @@
+'use client';
+
+import { HealthCheck } from '@/components/HealthCheck';
+
 export default function Home() {
   return (
     <div className="p-8">
@@ -5,6 +9,11 @@ export default function Home() {
         <h2 className="text-3xl font-bold text-gray-800 mb-8">
           Bem-vindo ao Diário de Classe
         </h2>
+
+        {/* Health Check da API */}
+        <div className="mb-8">
+          <HealthCheck />
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
