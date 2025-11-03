@@ -50,3 +50,10 @@ global.matchMedia =
       dispatchEvent: jest.fn(),
     };
   };
+
+// Previne problemas de memory leak e stack overflow
+global.setImmediate =
+  global.setImmediate || ((fn, ...args) => global.setTimeout(fn, 0, ...args));
+
+// Configura timeouts menores para evitar stack overflow
+jest.setTimeout(10000);

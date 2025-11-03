@@ -21,6 +21,11 @@ const customJestConfig = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
+  // Configurações para evitar stack overflow com Next.js 16
+  maxWorkers: 1,
+  forceExit: true,
+  detectOpenHandles: true,
+  workerIdleMemoryLimit: '512MB',
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
