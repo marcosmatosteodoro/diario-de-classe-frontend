@@ -20,6 +20,15 @@ export default function Professores() {
     <div className="p-5">
       <h1>Lista de professores</h1>
 
+      <div>
+        <Link
+          href="/professores/novo"
+          className="px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600 transition-colors cursor-pointer"
+        >
+          Novo Professor
+        </Link>
+      </div>
+
       <table className="table-auto">
         <thead>
           <tr>
