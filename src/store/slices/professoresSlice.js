@@ -2,15 +2,16 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { ProfessorApi } from '../api/professorApi';
+import { GetProfessorListService } from '@/services/professor/getProfessorListService';
 
 const professorApi = new ProfessorApi();
 
 // GET ALL
 export const getProfessores = createAsyncThunk(
   'professores/getAll',
-  async () => {
-    const res = await professorApi.getAll();
-    return res.data.data;
+  async (searchParam = null) => {
+    const res = await GetProfessorListService.handle(searchParam);
+    return res.data;
   }
 );
 
@@ -46,16 +47,30 @@ const professoresSlice = createSlice({
   initialState: {
     list: [],
     loading: false,
+    errors: [],
+    message: null,
+    count: 0,
   },
   extraReducers: builder => {
     builder
+      // getProfessores
       .addCase(getProfessores.pending, state => {
         state.loading = true;
+        state.errors = [];
+        state.message = null;
       })
       .addCase(getProfessores.fulfilled, (state, action) => {
         state.loading = false;
-        state.list = action.payload;
+        state.list = action.payload.data;
+        state.count = action.payload.count;
+        state.message = action.payload.message;
       })
+      .addCase(getProfessores.rejected, (state, action) => {
+        state.loading = false;
+        state.errors = action.error;
+        state.message = action.payload.message;
+      })
+      // createProfessor
       .addCase(createProfessor.fulfilled, (state, action) => {
         state.list.push(action.payload);
       })
