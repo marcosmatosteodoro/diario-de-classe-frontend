@@ -1,49 +1,18 @@
 'use client';
 
-import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createProfessor } from '@/store/slices/professoresSlice';
+import { useNovoProfessor } from '@/hooks/professores/useNovoProfessor';
 
 export default function NovoProfessor() {
-  const dispatch = useDispatch();
-  const router = useRouter();
-  const { loading, message, errors } = useSelector(state => state.professores);
-  const [formData, setFormData] = useState({
-    nome: '',
-    sobrenome: '',
-    email: '',
-    telefone: '',
-    senha: '',
-    repetirSenha: '',
-    permissao: 'professor',
-  });
-
-  const handleChange = e => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async e => {
-    e.preventDefault();
-
-    try {
-      const { repetirSenha, ...dataToSend } = formData;
-
-      const result = await dispatch(createProfessor(dataToSend));
-
-      if (createProfessor.fulfilled.match(result)) {
-        // Sucesso - redirecionar para lista
-        router.push('/professores');
-      }
-    } catch (error) {
-      console.error('Erro ao criar professor:', error);
-    }
-  };
+  const {
+    formData,
+    message,
+    errors,
+    isLoading,
+    isSubmitting,
+    handleChange,
+    handleSubmit,
+  } = useNovoProfessor();
 
   return (
     <div className="p-10 max-w-2xl mx-auto">
@@ -225,14 +194,14 @@ export default function NovoProfessor() {
         <div className="flex gap-4 mt-8">
           <button
             type="submit"
-            disabled={loading}
+            disabled={isSubmitting}
             className={`px-6 py-3 rounded-md text-white font-medium transition-colors ${
-              loading
+              isSubmitting
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-blue-500 hover:bg-blue-600'
             }`}
           >
-            {loading ? 'Criando...' : 'Criar Professor'}
+            {isLoading ? 'Criando...' : 'Criar Professor'}
           </button>
 
           <Link
