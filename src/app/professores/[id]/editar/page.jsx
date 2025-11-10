@@ -1,47 +1,47 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useMemo, use } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getProfessor, updateProfessor } from '@/store/slices/professoresSlice';
+import { updateProfessor, getProfessor } from '@/store/slices/professoresSlice';
 
 export default function EditarProfessor() {
+  const params = useParams();
   const dispatch = useDispatch();
   const router = useRouter();
-  const params = useParams();
   const { loading, message, errors, current } = useSelector(
     state => state.professores
   );
 
-  const [formData, setFormData] = useState({
-    nome: '',
-    sobrenome: '',
-    email: '',
-    telefone: '',
-    permissao: 'professor',
-  });
-
-  const [isInitialized, setIsInitialized] = useState(false);
-
-  // Carregar dados do professor quando o componente montar
-  useEffect(() => {
-    if (params.id) {
-      dispatch(getProfessor(params.id));
+  const initialFormData = useMemo(() => {
+    if (current && current.id) {
+      return {
+        nome: current.nome || '',
+        sobrenome: current.sobrenome || '',
+        email: current.email || '',
+        telefone: current.telefone || '',
+        senha: '',
+        repetirSenha: '',
+        permissao: current.permissao || 'professor',
+      };
     }
-  }, [dispatch, params.id]);
+    return {
+      nome: '',
+      sobrenome: '',
+      email: '',
+      telefone: '',
+      senha: '',
+      repetirSenha: '',
+      permissao: 'professor',
+    };
+  }, [current]);
 
-  // Inicializar o formulário quando os dados chegarem (apenas uma vez)
-  if (current && !isInitialized) {
-    setFormData({
-      nome: current.nome || '',
-      sobrenome: current.sobrenome || '',
-      email: current.email || '',
-      telefone: current.telefone || '',
-      permissao: current.permissao || 'professor',
-    });
-    setIsInitialized(true);
-  }
+  const [formData, setFormData] = useState(initialFormData);
+
+  useEffect(() => {
+    setFormData(initialFormData);
+  }, [initialFormData]);
 
   const handleChange = e => {
     const { name, value } = e.target;
@@ -55,47 +55,30 @@ export default function EditarProfessor() {
     e.preventDefault();
 
     try {
+      const { repetirSenha, ...dataToSend } = formData;
+
       const result = await dispatch(
-        updateProfessor({
-          id: params.id,
-          data: formData,
-        })
+        updateProfessor({ id: params.id, data: dataToSend })
       );
 
       if (updateProfessor.fulfilled.match(result)) {
-        // Sucesso - redirecionar para detalhes do professor
-        router.push(`/professores/${params.id}`);
+        // Sucesso - redirecionar para lista
+        router.push('/professores');
       }
     } catch (error) {
-      console.error('Erro ao atualizar professor:', error);
+      console.error('Erro ao criar professor:', error);
     }
   };
 
-  if (!current && !isInitialized) {
-    return (
-      <div className="p-10 max-w-2xl mx-auto">
-        <div className="flex items-center justify-center">
-          <p className="text-blue-600">Carregando dados do professor...</p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (params.id) {
+      dispatch(getProfessor(params.id));
+    }
+  }, [dispatch, params.id]);
 
-  if (!current) {
-    return (
-      <div className="p-10 max-w-2xl mx-auto">
-        <div className="bg-red-100 text-red-800 p-4 rounded-md">
-          <p>Professor não encontrado.</p>
-          <Link
-            href="/professores"
-            className="text-blue-600 hover:underline mt-2 inline-block"
-          >
-            ← Voltar para lista
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    console.log({ loading, message, errors, current });
+  }, [loading, message, errors, current]);
 
   return (
     <div className="p-10 max-w-2xl mx-auto">
@@ -103,26 +86,15 @@ export default function EditarProfessor() {
         <h1 className="text-2xl font-bold text-gray-800 mb-2">
           Editar Professor
         </h1>
-        <p className="text-gray-600">
-          Atualize os dados do professor{' '}
-          <span className="font-medium">
-            {current.nome} {current.sobrenome}
-          </span>
-        </p>
+        <p className="text-gray-600">Atualize os dados do professor</p>
       </div>
 
-      <div className="mb-4 flex gap-2">
-        <Link
-          href={`/professores/${params.id}`}
-          className="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-        >
-          ← Voltar para detalhes
-        </Link>
+      <div className="mb-4">
         <Link
           href="/professores"
-          className="px-4 py-2 text-sm bg-gray-400 text-white rounded hover:bg-gray-500 transition-colors"
+          className="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
         >
-          Lista de professores
+          ← Voltar para lista
         </Link>
       </div>
 
@@ -136,18 +108,6 @@ export default function EditarProfessor() {
               </li>
             ))}
           </ul>
-        </div>
-      )}
-
-      {message && !errors?.length && (
-        <div
-          className={`p-4 rounded-md mb-6 ${
-            message.includes('sucesso')
-              ? 'bg-green-100 text-green-800'
-              : 'bg-red-100 text-red-800'
-          }`}
-        >
-          {message}
         </div>
       )}
 
@@ -170,9 +130,8 @@ export default function EditarProfessor() {
               name="nome"
               value={formData.nome}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
               placeholder="Digite o nome"
-              required
             />
           </div>
 
@@ -190,9 +149,8 @@ export default function EditarProfessor() {
               name="sobrenome"
               value={formData.sobrenome}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
               placeholder="Digite o sobrenome"
-              required
             />
           </div>
 
@@ -210,9 +168,8 @@ export default function EditarProfessor() {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
               placeholder="Digite o email"
-              required
             />
           </div>
 
@@ -234,6 +191,44 @@ export default function EditarProfessor() {
               placeholder="(11) 99999-9999"
             />
           </div>
+
+          {/* Senha */}
+          <div>
+            <label
+              htmlFor="senha"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Senha *
+            </label>
+            <input
+              type="password"
+              id="senha"
+              name="senha"
+              value={formData.senha}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              placeholder="Digite a senha"
+            />
+          </div>
+
+          {/* Repetir Senha */}
+          <div>
+            <label
+              htmlFor="repetirSenha"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Repetir Senha *
+            </label>
+            <input
+              type="password"
+              id="repetirSenha"
+              name="repetirSenha"
+              value={formData.repetirSenha}
+              onChange={handleChange}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+              placeholder="Confirme a senha"
+            />
+          </div>
         </div>
 
         {/* Permissão - campo que ocupa toda a largura */}
@@ -249,8 +244,7 @@ export default function EditarProfessor() {
             name="permissao"
             value={formData.permissao}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
           >
             <option value="">Selecione uma permissão</option>
             <option value="professor">Professor</option>
@@ -260,28 +254,8 @@ export default function EditarProfessor() {
           </select>
         </div>
 
-        {/* Informações adicionais - somente leitura */}
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <h3 className="text-lg font-medium text-gray-800 mb-4">
-            Informações do Sistema
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-            <div>
-              <span className="font-medium">ID:</span> {current.id}
-            </div>
-            <div>
-              <span className="font-medium">Data de criação:</span>{' '}
-              {current.dataCriacao || 'N/A'}
-            </div>
-            <div>
-              <span className="font-medium">Última atualização:</span>{' '}
-              {current.dataAtualizacao || 'N/A'}
-            </div>
-          </div>
-        </div>
-
         {/* Botões */}
-        <div className="flex flex-wrap gap-4 mt-8">
+        <div className="flex gap-4 mt-8">
           <button
             type="submit"
             disabled={loading}
@@ -291,21 +265,14 @@ export default function EditarProfessor() {
                 : 'bg-blue-500 hover:bg-blue-600'
             }`}
           >
-            {loading ? 'Salvando...' : 'Salvar Alterações'}
+            {loading ? 'Editando...' : 'Editar Professor'}
           </button>
 
           <Link
-            href={`/professores/${params.id}`}
-            className="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-center inline-block"
+            href="/professores"
+            className="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-center"
           >
             Cancelar
-          </Link>
-
-          <Link
-            href="/professores"
-            className="px-6 py-3 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition-colors text-center inline-block"
-          >
-            Voltar à Lista
           </Link>
         </div>
       </form>
