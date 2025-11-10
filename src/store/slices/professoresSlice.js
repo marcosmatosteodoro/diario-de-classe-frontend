@@ -1,14 +1,12 @@
 'use client';
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { ProfessorApi } from '../api/professorApi';
+import { STATUS } from '@/constants';
 import { GetProfessorListService } from '@/services/professor/getProfessorListService';
 import { GetProfessorByIdService } from '@/services/professor/getProfessorByIdService';
 import { CreateProfessorService } from '@/services/professor/createProfessorService';
 import { UpdateProfessorService } from '@/services/professor/updateProfessorService';
 import { DeleteProfessorService } from '@/services/professor/deleteProfessorService';
-
-const professorApi = new ProfessorApi();
 
 // GET ALL
 export const getProfessores = createAsyncThunk(
@@ -111,6 +109,7 @@ const professoresSlice = createSlice({
     list: [],
     current: null,
     loading: false,
+    status: STATUS.IDLE,
     errors: [],
     message: null,
     count: 0,
@@ -125,89 +124,95 @@ const professoresSlice = createSlice({
     builder
       // getProfessores
       .addCase(getProfessores.pending, state => {
+        state.status = STATUS.LOADING;
         state.loading = true;
         state.errors = [];
         state.list = [];
         state.message = null;
       })
       .addCase(getProfessores.fulfilled, (state, action) => {
+        state.status = STATUS.SUCCESS;
         state.loading = false;
         state.list = action.payload.data;
         state.count = action.payload.count;
         state.message = action.payload.message;
       })
       .addCase(getProfessores.rejected, (state, action) => {
+        state.status = STATUS.FAILED;
         state.loading = false;
         state.errors = action.error;
         state.message = action.payload.message;
       })
       // getProfessor
       .addCase(getProfessor.pending, state => {
+        state.status = STATUS.LOADING;
         state.loading = true;
         state.errors = [];
         state.message = null;
         state.current = null;
       })
       .addCase(getProfessor.fulfilled, (state, action) => {
+        state.status = STATUS.SUCCESS;
         state.loading = false;
         state.current = action.payload;
       })
       .addCase(getProfessor.rejected, (state, action) => {
+        state.status = STATUS.FAILED;
         state.loading = false;
         state.errors = action.error;
         state.message = action.payload.message;
       })
       // createProfessor
       .addCase(createProfessor.pending, state => {
+        state.status = STATUS.LOADING;
         state.loading = true;
         state.errors = [];
         state.message = null;
       })
       .addCase(createProfessor.fulfilled, (state, action) => {
+        state.status = STATUS.SUCCESS;
         state.loading = false;
-        state.list.push(action.payload);
-        state.message = 'Professor criado com sucesso';
       })
       .addCase(createProfessor.rejected, (state, action) => {
+        state.status = STATUS.FAILED;
         state.loading = false;
         state.errors = action.payload?.errors || [];
         state.message = action.payload?.message || 'Erro ao criar professor';
       })
       // updateProfessor
       .addCase(updateProfessor.pending, state => {
+        state.status = STATUS.LOADING;
         state.loading = true;
         state.errors = [];
         state.message = null;
       })
       .addCase(updateProfessor.fulfilled, (state, action) => {
+        state.status = STATUS.SUCCESS;
         state.loading = false;
-        const index = state.list.findIndex(p => p.id === action.payload.id);
-        if (index !== -1) {
-          state.list[index] = action.payload;
-        }
         state.current = action.payload;
-        state.message = 'Professor atualizado com sucesso';
       })
       .addCase(updateProfessor.rejected, (state, action) => {
+        state.status = STATUS.FAILED;
         state.loading = false;
-        state.errors = action.error;
+        state.errors = action.payload?.errors || [];
         state.message =
           action.payload?.message || 'Erro ao atualizar professor';
       })
       // deleteProfessor
       .addCase(deleteProfessor.pending, state => {
+        state.status = STATUS.LOADING;
         state.loading = true;
         state.errors = [];
         state.message = null;
       })
       .addCase(deleteProfessor.fulfilled, (state, action) => {
+        state.status = STATUS.SUCCESS;
         state.loading = false;
-        state.list = state.list.filter(p => p.id !== action.payload);
-        state.message = 'Professor deletado com sucesso';
       })
       .addCase(deleteProfessor.rejected, (state, action) => {
+        state.status = STATUS.FAILED;
         state.loading = false;
-        state.errors = action.error;
+        state.errors = action.payload?.errors || [];
         state.message = action.payload?.message || 'Erro ao deletar professor';
       });
   },
