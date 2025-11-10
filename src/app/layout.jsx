@@ -1,7 +1,6 @@
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { Layout } from '@/components';
-import { QueryProvider } from '@/providers/QueryProvider';
 import { ToastProvider } from '@/providers/ToastProvider';
 import { ReduxProvider } from '@/providers/ReduxyProvider';
 
@@ -22,16 +21,14 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReduxProvider>
-          <QueryProvider>
-            <ToastProvider>
-              <Layout>{children}</Layout>
-            </ToastProvider>
-          </QueryProvider>
+          <ToastProvider>
+            <Layout>{children}</Layout>
+          </ToastProvider>
         </ReduxProvider>
       </body>
     </html>

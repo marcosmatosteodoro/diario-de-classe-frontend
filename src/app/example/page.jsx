@@ -1,6 +1,5 @@
 'use client';
 
-import { HealthCheck } from '@/components/HealthCheck';
 import { useToast } from '@/providers/ToastProvider';
 import { useSweetAlert } from '@/hooks/useSweetAlert';
 
@@ -23,11 +22,6 @@ export default function Example() {
         <h2 className="text-3xl font-bold text-gray-800 mb-8">
           Bem-vindo ao Diário de Classe
         </h2>
-
-        {/* Health Check da API */}
-        <div className="mb-8">
-          <HealthCheck />
-        </div>
 
         {/* Toast Demo */}
         <div className="mb-8">
