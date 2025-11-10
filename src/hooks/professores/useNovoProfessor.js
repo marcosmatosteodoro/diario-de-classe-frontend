@@ -50,7 +50,6 @@ export function useNovoProfessor() {
 
   return {
     formData,
-    status,
     message,
     errors,
     isLoading,
