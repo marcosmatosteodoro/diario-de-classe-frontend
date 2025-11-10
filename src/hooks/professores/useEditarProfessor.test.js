@@ -1,0 +1,400 @@
+import { renderHook, act } from '@testing-library/react';
+import { Provider } from 'react-redux';
+import { configureStore } from '@reduxjs/toolkit';
+import { useRouter } from 'next/navigation';
+import { useEditarProfessor } from './useEditarProfessor';
+import { updateProfessor, getProfessor } from '@/store/slices/professoresSlice';
+import { STATUS } from '@/constants';
+import { useToast } from '@/providers/ToastProvider';
+
+// Mock dos módulos
+jest.mock('@/store/slices/professoresSlice', () => ({
+  updateProfessor: jest.fn(),
+  getProfessor: jest.fn(),
+}));
+
+jest.mock('@/constants', () => ({
+  STATUS: {
+    IDLE: 'idle',
+    LOADING: 'loading',
+    SUCCESS: 'success',
+    FAILED: 'failed',
+  },
+}));
+
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(),
+}));
+
+jest.mock('@/providers/ToastProvider', () => ({
+  useToast: jest.fn(),
+}));
+
+// Mock store
+const createMockStore = (initialState = {}) => {
+  return configureStore({
+    reducer: {
+      professores: (state = initialState, action) => state,
+    },
+  });
+};
+
+// Wrapper para Provider
+const createWrapper = store => {
+  const Wrapper = ({ children }) => (
+    <Provider store={store}>{children}</Provider>
+  );
+  Wrapper.displayName = 'TestWrapper';
+  return Wrapper;
+};
+
+describe('useEditarProfessor', () => {
+  let mockDispatch;
+  let mockPush;
+  let mockSuccess;
+  let mockUpdateProfessor;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    // Mock do router
+    mockPush = jest.fn();
+    useRouter.mockReturnValue({
+      push: mockPush,
+    });
+
+    // Mock do toast
+    mockSuccess = jest.fn();
+    useToast.mockReturnValue({
+      success: mockSuccess,
+    });
+
+    // Mock do updateProfessor dispatch
+    mockUpdateProfessor = jest.fn();
+    mockDispatch = jest.fn().mockImplementation(action => {
+      if (typeof action === 'function') {
+        return mockUpdateProfessor(action);
+      }
+      return action;
+    });
+
+    // Mock do getProfessor action
+    getProfessor.mockImplementation(id => ({
+      type: 'professores/getProfessor',
+      payload: id,
+    }));
+  });
+
+  it('should return initial empty form data when no current professor', () => {
+    const initialState = {
+      status: STATUS.IDLE,
+      message: '',
+      errors: {},
+      current: null,
+    };
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useEditarProfessor(123), { wrapper });
+
+    expect(result.current.formData).toEqual({
+      nome: '',
+      sobrenome: '',
+      email: '',
+      telefone: '',
+      senha: '',
+      repetirSenha: '',
+      permissao: 'professor',
+    });
+  });
+
+  it('should populate form data when current professor exists', () => {
+    const mockProfessor = {
+      id: 123,
+      nome: 'João',
+      sobrenome: 'Silva',
+      email: 'joao@test.com',
+      telefone: '11999999999',
+      permissao: 'admin',
+    };
+    const initialState = {
+      status: STATUS.SUCCESS,
+      message: '',
+      errors: {},
+      current: mockProfessor,
+    };
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useEditarProfessor(123), { wrapper });
+
+    expect(result.current.formData).toEqual({
+      nome: 'João',
+      sobrenome: 'Silva',
+      email: 'joao@test.com',
+      telefone: '11999999999',
+      senha: '',
+      repetirSenha: '',
+      permissao: 'admin',
+    });
+  });
+
+  it('should dispatch getProfessor when professorId is provided', () => {
+    const initialState = {
+      status: STATUS.IDLE,
+      message: '',
+      errors: {},
+      current: null,
+    };
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    renderHook(() => useEditarProfessor(123), { wrapper });
+
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'professores/getProfessor',
+      payload: 123,
+    });
+  });
+
+  it('should not dispatch getProfessor when professorId is not provided', () => {
+    const initialState = {
+      status: STATUS.IDLE,
+      message: '',
+      errors: {},
+      current: null,
+    };
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    renderHook(() => useEditarProfessor(null), { wrapper });
+
+    expect(mockDispatch).not.toHaveBeenCalled();
+  });
+
+  it('should update form data when handleChange is called', () => {
+    const initialState = {
+      status: STATUS.IDLE,
+      message: '',
+      errors: {},
+      current: null,
+    };
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useEditarProfessor(123), { wrapper });
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'nome', value: 'Maria' },
+      });
+    });
+
+    expect(result.current.formData.nome).toBe('Maria');
+  });
+
+  it('should call preventDefault on form submission', async () => {
+    const initialState = {
+      status: STATUS.IDLE,
+      message: '',
+      errors: {},
+      current: { id: 123, nome: 'João' },
+    };
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useEditarProfessor(123), { wrapper });
+
+    // Submit do form
+    const mockEvent = { preventDefault: jest.fn() };
+    await act(async () => {
+      await result.current.handleSubmit(mockEvent);
+    });
+
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
+  });
+  it('should remove repetirSenha field from submitted data', async () => {
+    const initialState = {
+      status: STATUS.IDLE,
+      message: '',
+      errors: {},
+      current: { id: 123, nome: 'João' },
+    };
+    const store = createMockStore(initialState);
+
+    // Criar um mock mais específico para capturar o argumento
+    const mockUpdateProfessorAction = jest.fn();
+    store.dispatch = jest.fn().mockImplementation(action => {
+      mockUpdateProfessorAction(action);
+      return Promise.resolve({ type: 'success' });
+    });
+
+    // Mock do matcher fulfilled
+    const { updateProfessor } = require('@/store/slices/professoresSlice');
+    updateProfessor.fulfilled = { match: jest.fn().mockReturnValue(true) };
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useEditarProfessor(123), { wrapper });
+
+    // Preencher dados incluindo repetirSenha
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'nome', value: 'Maria' },
+      });
+      result.current.handleChange({
+        target: { name: 'repetirSenha', value: '123456' },
+      });
+    });
+
+    const mockEvent = { preventDefault: jest.fn() };
+    await act(async () => {
+      await result.current.handleSubmit(mockEvent);
+    });
+
+    // Verificar se repetirSenha foi removido dos dados enviados
+    expect(store.dispatch).toHaveBeenCalled();
+    const callArgs = store.dispatch.mock.calls[0][0];
+    expect(callArgs.payload || callArgs).not.toHaveProperty('repetirSenha');
+  });
+
+  it('should not redirect on failed form submission', async () => {
+    const initialState = {
+      status: STATUS.IDLE,
+      message: '',
+      errors: {},
+      current: { id: 123, nome: 'João' },
+    };
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    // Mock de falha
+    const mockResult = { error: true };
+    mockUpdateProfessor.mockResolvedValue(mockResult);
+    updateProfessor.fulfilled.match.mockReturnValue(false);
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useEditarProfessor(123), { wrapper });
+
+    const mockEvent = { preventDefault: jest.fn() };
+    await act(async () => {
+      await result.current.handleSubmit(mockEvent);
+    });
+
+    expect(mockSuccess).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('should return correct loading states', () => {
+    const loadingState = {
+      status: STATUS.LOADING,
+      message: '',
+      errors: {},
+      current: null,
+    };
+    const store = createMockStore(loadingState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useEditarProfessor(123), { wrapper });
+
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.isSubmitting).toBe(true);
+  });
+
+  it('should update form data when current professor changes', () => {
+    const initialState = {
+      status: STATUS.SUCCESS,
+      message: '',
+      errors: {},
+      current: null,
+    };
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result, rerender } = renderHook(() => useEditarProfessor(123), {
+      wrapper,
+    });
+
+    // Inicialmente sem dados
+    expect(result.current.formData.nome).toBe('');
+
+    // Simular mudança no current professor
+    const newState = {
+      status: STATUS.SUCCESS,
+      message: '',
+      errors: {},
+      current: { id: 123, nome: 'João', email: 'joao@test.com' },
+    };
+    const newStore = createMockStore(newState);
+    newStore.dispatch = mockDispatch;
+
+    const newWrapper = createWrapper(newStore);
+    const { result: newResult } = renderHook(() => useEditarProfessor(123), {
+      wrapper: newWrapper,
+    });
+
+    expect(newResult.current.formData.nome).toBe('João');
+    expect(newResult.current.formData.email).toBe('joao@test.com');
+  });
+
+  it('should handle form submission errors gracefully', async () => {
+    const initialState = {
+      status: STATUS.IDLE,
+      message: '',
+      errors: {},
+      current: { id: 123, nome: 'João' },
+    };
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    // Mock de erro na submissão
+    mockUpdateProfessor.mockRejectedValue(new Error('Network error'));
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useEditarProfessor(123), { wrapper });
+
+    const mockEvent = { preventDefault: jest.fn() };
+
+    // Não deve lançar erro, deve ser tratado internamente
+    await act(async () => {
+      await result.current.handleSubmit(mockEvent);
+    });
+
+    expect(mockEvent.preventDefault).toHaveBeenCalled();
+    expect(mockSuccess).not.toHaveBeenCalled();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('should return all expected properties', () => {
+    const initialState = {
+      status: STATUS.SUCCESS,
+      message: 'Success message',
+      errors: { nome: 'Nome é obrigatório' },
+      current: { id: 123, nome: 'João' },
+    };
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useEditarProfessor(123), { wrapper });
+
+    expect(result.current).toEqual({
+      formData: expect.any(Object),
+      status: STATUS.SUCCESS,
+      message: 'Success message',
+      errors: { nome: 'Nome é obrigatório' },
+      current: { id: 123, nome: 'João' },
+      isLoading: false,
+      isSubmitting: false,
+      handleChange: expect.any(Function),
+      handleSubmit: expect.any(Function),
+    });
+  });
+});
