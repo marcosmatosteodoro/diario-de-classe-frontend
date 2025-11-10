@@ -4,6 +4,9 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { ProfessorApi } from '../api/professorApi';
 import { GetProfessorListService } from '@/services/professor/getProfessorListService';
 import { GetProfessorByIdService } from '@/services/professor/getProfessorByIdService';
+import { CreateProfessorService } from '@/services/professor/createProfessorService';
+import { UpdateProfessorService } from '@/services/professor/updateProfessorService';
+import { DeleteProfessorService } from '@/services/professor/deleteProfessorService';
 
 const professorApi = new ProfessorApi();
 
@@ -44,7 +47,7 @@ export const createProfessor = createAsyncThunk(
   'professores/create',
   async (data, { rejectWithValue }) => {
     try {
-      const res = await professorApi.create(data);
+      const res = await CreateProfessorService.handle(data);
       return res.data;
     } catch (error) {
       const errorMessage =
@@ -67,14 +70,20 @@ export const updateProfessor = createAsyncThunk(
   'professores/update',
   async ({ id, data }, { rejectWithValue }) => {
     try {
-      const res = await professorApi.update(id, data);
+      const res = await UpdateProfessorService.handle(id, data);
       return res.data;
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
         error.message ||
         'Erro ao atualizar professor';
-      return rejectWithValue({ message: errorMessage });
+
+      const validationErrors = error.response?.data?.errors || [];
+
+      return rejectWithValue({
+        message: errorMessage,
+        errors: validationErrors,
+      });
     }
   }
 );
@@ -84,7 +93,7 @@ export const deleteProfessor = createAsyncThunk(
   'professores/delete',
   async (id, { rejectWithValue }) => {
     try {
-      await professorApi.delete(id);
+      await DeleteProfessorService.handle(id);
       return id;
     } catch (error) {
       const errorMessage =
