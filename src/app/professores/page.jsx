@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useProfessores } from '@/hooks/professores/useProfessores';
+import { useDeletarProfessor } from '@/hooks/professores/useDeletarProfessor';
 
 export default function Professores() {
-  const { professores, isLoading, isSuccess, isEmpty, handleDeleteProfessor } =
-    useProfessores();
+  const { professores, isLoading, isSuccess, isEmpty } = useProfessores();
+  const { handleDeleteProfessor } = useDeletarProfessor();
 
   return (
     <div className="p-5">

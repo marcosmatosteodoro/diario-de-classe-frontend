@@ -1,10 +1,7 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { STATUS } from '@/constants';
-import {
-  getProfessores,
-  deleteProfessor,
-} from '@/store/slices/professoresSlice';
+import { getProfessores } from '@/store/slices/professoresSlice';
 
 export function useProfessores() {
   const dispatch = useDispatch();
@@ -13,10 +10,6 @@ export function useProfessores() {
   useEffect(() => {
     dispatch(getProfessores());
   }, [dispatch]);
-
-  const handleDeleteProfessor = id => {
-    dispatch(deleteProfessor(id));
-  };
 
   const isLoading = status === STATUS.IDLE || status === STATUS.LOADING;
   const isSuccess = status === STATUS.SUCCESS;
@@ -28,6 +21,5 @@ export function useProfessores() {
     isLoading,
     isSuccess,
     isEmpty,
-    handleDeleteProfessor,
   };
 }
