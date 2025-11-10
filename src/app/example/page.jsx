@@ -3,7 +3,7 @@
 import { useToast } from '@/providers/ToastProvider';
 import { useSweetAlert } from '@/hooks/useSweetAlert';
 
-export default function Home() {
+export default function Example() {
   const { success, error, warning, info } = useToast();
   const {
     showSuccess,

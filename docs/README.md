@@ -91,7 +91,6 @@ src/
 │   ├── Sidebar/        # Barra lateral
 │   ├── Footer/         # Rodapé
 │   ├── Layout/         # Layout principal
-│   ├── HealthCheck/    # Verificação de status da API
 │   └── index.js        # Exportações dos componentes
 ├── hooks/              # Custom hooks
 │   ├── useHealth.js    # Hook para verificação de saúde da API
