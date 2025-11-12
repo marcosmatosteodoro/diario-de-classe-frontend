@@ -19,7 +19,7 @@ export const Layout = ({ children }) => {
         />
         <main
           className={`flex-1 transition-all duration-300 ease-in-out ${
-            sidebarExpanded ? 'ml-[700px]' : 'ml-20'
+            sidebarExpanded ? 'ml-[150px]' : 'ml-10'
           }`}
         >
           {children}

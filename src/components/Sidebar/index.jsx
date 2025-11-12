@@ -1,74 +1,117 @@
+'use client';
+import {
+  ArrowBigLeft,
+  ArrowBigRight,
+  Backpack,
+  Book,
+  ChevronLeft,
+  ChevronRight,
+  GraduationCap,
+  Home,
+  Info,
+  NotebookTabs,
+  School,
+  User,
+} from 'lucide-react';
+import Link from 'next/link';
+import { SidebarItem } from '../SidebarItem';
+import { useEffect, useState } from 'react';
+
 export const Sidebar = ({ sidebarExpanded, toggleSidebar }) => {
+  const strokeWidth = 1;
+  const sidebarItems = [
+    {
+      active: true,
+      href: '#',
+      label: 'Home',
+      icon: <Home strokeWidth={strokeWidth} />,
+    },
+    {
+      active: false,
+      href: '#',
+      label: 'Alunos',
+      icon: <GraduationCap strokeWidth={strokeWidth} />,
+    },
+    {
+      active: false,
+      href: '#',
+      label: 'Professores',
+      icon: <User strokeWidth={strokeWidth} />,
+    },
+    {
+      active: false,
+      href: '#',
+      label: 'Aulas',
+      icon: <Book strokeWidth={strokeWidth} />,
+    },
+    {
+      active: false,
+      href: '#',
+      label: 'Relatórios',
+      icon: <NotebookTabs strokeWidth={strokeWidth} />,
+    },
+    {
+      active: false,
+      href: '#',
+      label: 'Exemplos',
+      icon: <Info strokeWidth={strokeWidth} />,
+    },
+  ];
+  const [expandedClass, setExpandedClass] = useState('w-18');
+  useEffect(() => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    let className = '';
+    if (sidebarExpanded === false) {
+      className = 'w-18';
+    } else if (isMobile === true) {
+      className = 'absolute w-full';
+    } else {
+      className = 'w-[180px]';
+    }
+    // TODO: Refatorar essa gambiarra
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExpandedClass(className);
+  }, [sidebarExpanded]);
   return (
     <aside
       className={`fixed left-0 top-16 bottom-0 bg-gray-50 border-r border-gray-200 transition-all duration-300 ease-in-out z-30 ${
-        sidebarExpanded ? 'w-[700px]' : 'w-20'
+        expandedClass
       }`}
     >
       <div className="flex flex-col h-full">
         {/* Conteúdo da Sidebar */}
         <div className="flex-1 p-4">
           <nav className="space-y-2">
-            <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors">
-              <div className="w-6 h-6 bg-blue-500 rounded-md flex items-center justify-center">
-                <span className="text-white text-sm">📊</span>
-              </div>
-              {sidebarExpanded && (
-                <span className="text-gray-700 font-medium">Dashboard</span>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors">
-              <div className="w-6 h-6 bg-green-500 rounded-md flex items-center justify-center">
-                <span className="text-white text-sm">👥</span>
-              </div>
-              {sidebarExpanded && (
-                <span className="text-gray-700 font-medium">Alunos</span>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors">
-              <div className="w-6 h-6 bg-purple-500 rounded-md flex items-center justify-center">
-                <span className="text-white text-sm">📚</span>
-              </div>
-              {sidebarExpanded && (
-                <span className="text-gray-700 font-medium">Disciplinas</span>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors">
-              <div className="w-6 h-6 bg-orange-500 rounded-md flex items-center justify-center">
-                <span className="text-white text-sm">📝</span>
-              </div>
-              {sidebarExpanded && (
-                <span className="text-gray-700 font-medium">Avaliações</span>
-              )}
-            </div>
-
-            <div className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors">
-              <div className="w-6 h-6 bg-red-500 rounded-md flex items-center justify-center">
-                <span className="text-white text-sm">📋</span>
-              </div>
-              {sidebarExpanded && (
-                <span className="text-gray-700 font-medium">Frequência</span>
-              )}
-            </div>
+            {sidebarItems.map((item, index) => (
+              <SidebarItem
+                key={index}
+                href={item.href}
+                label={item.label}
+                sidebarExpanded={sidebarExpanded}
+                active={item.active}
+              >
+                {item.icon}
+              </SidebarItem>
+            ))}
           </nav>
         </div>
-
         {/* Botão Toggle fixo na parte inferior */}
         <div className="p-4 border-t border-gray-200">
           <button
             onClick={toggleSidebar}
-            className="w-full flex items-center justify-center p-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="w-full flex items-center justify-center p-2 text-black rounded-lg"
           >
             {sidebarExpanded ? (
               <>
-                <span className="mr-2">◀</span>
+                <span className="mr-2">
+                  <ChevronLeft strokeWidth={strokeWidth} />
+                </span>
                 <span>Recolher</span>
               </>
             ) : (
-              <span>▶</span>
+              <span>
+                <ChevronRight strokeWidth={strokeWidth} />
+              </span>
             )}
           </button>
         </div>
