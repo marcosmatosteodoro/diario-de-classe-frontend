@@ -1,8 +1,5 @@
 'use client';
 import {
-  ArrowBigLeft,
-  ArrowBigRight,
-  Backpack,
   Book,
   ChevronLeft,
   ChevronRight,
@@ -10,56 +7,55 @@ import {
   Home,
   Info,
   NotebookTabs,
-  School,
   User,
 } from 'lucide-react';
-import Link from 'next/link';
 import { SidebarItem } from '../SidebarItem';
 import { useEffect, useState } from 'react';
+import { isMobileFunction } from '@/utils/isMobileFunction';
 
 export const Sidebar = ({ sidebarExpanded, toggleSidebar }) => {
   const strokeWidth = 1;
   const sidebarItems = [
     {
       active: true,
-      href: '#',
+      href: '/',
       label: 'Home',
       icon: <Home strokeWidth={strokeWidth} />,
     },
     {
       active: false,
-      href: '#',
+      href: '/alunos',
       label: 'Alunos',
       icon: <GraduationCap strokeWidth={strokeWidth} />,
     },
     {
       active: false,
-      href: '#',
+      href: '/professores',
       label: 'Professores',
       icon: <User strokeWidth={strokeWidth} />,
     },
     {
       active: false,
-      href: '#',
+      href: '/aulas',
       label: 'Aulas',
       icon: <Book strokeWidth={strokeWidth} />,
     },
     {
       active: false,
-      href: '#',
+      href: '/relatorios',
       label: 'Relatórios',
       icon: <NotebookTabs strokeWidth={strokeWidth} />,
     },
     {
       active: false,
-      href: '#',
+      href: '/exemple',
       label: 'Exemplos',
       icon: <Info strokeWidth={strokeWidth} />,
     },
   ];
   const [expandedClass, setExpandedClass] = useState('w-18');
   useEffect(() => {
-    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    const isMobile = isMobileFunction();
     let className = '';
     if (sidebarExpanded === false) {
       className = 'w-18';
@@ -74,9 +70,7 @@ export const Sidebar = ({ sidebarExpanded, toggleSidebar }) => {
   }, [sidebarExpanded]);
   return (
     <aside
-      className={`fixed left-0 top-16 bottom-0 bg-gray-50 border-r border-gray-200 transition-all duration-300 ease-in-out z-30 ${
-        expandedClass
-      }`}
+      className={`fixed left-0 top-16 bottom-0 bg-gray-50 border-r border-gray-200 transition-all duration-300 ease-in-out z-30 ${expandedClass}`}
     >
       <div className="flex flex-col h-full">
         {/* Conteúdo da Sidebar */}
