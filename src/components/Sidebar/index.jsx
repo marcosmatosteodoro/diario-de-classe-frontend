@@ -1,3 +1,4 @@
+'use client';
 import {
   ArrowBigLeft,
   ArrowBigRight,
@@ -14,9 +15,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { SidebarItem } from '../SidebarItem';
+import { useEffect, useState } from 'react';
 
 export const Sidebar = ({ sidebarExpanded, toggleSidebar }) => {
-  const strokeWidth = 1.5;
+  const strokeWidth = 1;
   const sidebarItems = [
     {
       active: true,
@@ -55,10 +57,25 @@ export const Sidebar = ({ sidebarExpanded, toggleSidebar }) => {
       icon: <Info strokeWidth={strokeWidth} />,
     },
   ];
+  const [expandedClass, setExpandedClass] = useState('w-18');
+  useEffect(() => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    let className = '';
+    if (sidebarExpanded === false) {
+      className = 'w-18';
+    } else if (isMobile === true) {
+      className = 'absolute w-full';
+    } else {
+      className = 'w-[180px]';
+    }
+    // TODO: Refatorar essa gambiarra
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExpandedClass(className);
+  }, [sidebarExpanded]);
   return (
     <aside
       className={`fixed left-0 top-16 bottom-0 bg-gray-50 border-r border-gray-200 transition-all duration-300 ease-in-out z-30 ${
-        sidebarExpanded ? 'w-[200px]' : 'w-18'
+        expandedClass
       }`}
     >
       <div className="flex flex-col h-full">

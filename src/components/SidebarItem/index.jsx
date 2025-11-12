@@ -15,7 +15,7 @@ export const SidebarItem = ({
         <span className="text-black text-sm">{children}</span>
       </div>
       {sidebarExpanded && (
-        <Link href={href} className="text-gray-700 font-medium">
+        <Link href={href} className="text-gray-700 text-xs font-medium">
           {label}
         </Link>
       )}
