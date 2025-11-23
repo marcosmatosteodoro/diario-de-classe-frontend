@@ -13,7 +13,7 @@ export function useProfessores() {
 
   const isLoading = status === STATUS.IDLE || status === STATUS.LOADING;
   const isSuccess = status === STATUS.SUCCESS;
-  const isEmpty = isSuccess && list.length === 0;
+  const isEmpty = isSuccess && list && list.length === 0;
 
   return {
     professores: list,
