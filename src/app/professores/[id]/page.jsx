@@ -21,11 +21,31 @@ export default function Professor() {
         >
           Voltar
         </Link>
+
         <Link
           href={`/professores/${params.id}/editar`}
           className="ml-2 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors cursor-pointer"
         >
           Editar
+        </Link>
+
+        <Link
+          href={`/professores/${params.id}/disponibilidade`}
+          className="ml-2 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors cursor-pointer"
+        >
+          Disponibilidade
+        </Link>
+        <Link
+          href={`/professores/${params.id}/alunos`}
+          className="ml-2 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors cursor-pointer"
+        >
+          Alunos
+        </Link>
+        <Link
+          href={`/professores/${params.id}/aulas`}
+          className="ml-2 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors cursor-pointer"
+        >
+          Aulas
         </Link>
       </div>
 
