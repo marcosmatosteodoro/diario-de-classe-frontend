@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useNovoProfessor } from '@/hooks/professores/useNovoProfessor';
+import { useProfessorForm } from '@/hooks/professores/useProfessorForm';
 import { isAdmin } from '@/utils/isAdmin';
 import {
   ButtonGroup,
@@ -9,9 +10,8 @@ import {
   PageContent,
   PageSubTitle,
   PageTitle,
+  ProfessorForm,
 } from '@/components';
-import { useProfessorForm } from '@/hooks/professores/useProfessorForm';
-import { ProfessorForm } from '@/components/app/form/ProfessorForm';
 
 export default function NovoProfessor() {
   const { message, errors, isLoading, isSubmitting, submit } =
