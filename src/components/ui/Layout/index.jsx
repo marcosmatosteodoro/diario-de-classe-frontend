@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Header, Sidebar, Footer } from '..';
+import { Header, Sidebar, Footer } from '../..';
 import { isMobileFunction } from '@/utils/isMobileFunction';
 
 export const Layout = ({ children }) => {
