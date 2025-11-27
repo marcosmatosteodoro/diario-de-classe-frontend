@@ -8,3 +8,5 @@ export * from './Table';
 export * from './Container';
 export * from './PageTitle';
 export * from './ButtonGroup';
+export * from './PageSubTitle';
+export * from './PageContent';

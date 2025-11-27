@@ -2,8 +2,14 @@
 
 import Link from 'next/link';
 import { useNovoProfessor } from '@/hooks/professores/useNovoProfessor';
-import { ButtonGroup, Container, PageTitle } from '@/components';
 import { isAdmin } from '@/utils/isAdmin';
+import {
+  ButtonGroup,
+  Container,
+  PageContent,
+  PageSubTitle,
+  PageTitle,
+} from '@/components';
 
 export default function NovoProfessor() {
   const {
@@ -20,20 +26,20 @@ export default function NovoProfessor() {
 
   return (
     <Container>
-      <div className="mb-6">
+      <PageContent>
         <PageTitle>Novo Professor</PageTitle>
 
-        <p className="text-gray-600">
+        <PageSubTitle>
           Preencha os dados para criar um novo professor
-        </p>
-      </div>
+        </PageSubTitle>
+      </PageContent>
 
       <ButtonGroup>
         <Link
           href="/professores"
           className="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
         >
-          ← Voltar para lista
+          ← Voltar
         </Link>
       </ButtonGroup>
 
