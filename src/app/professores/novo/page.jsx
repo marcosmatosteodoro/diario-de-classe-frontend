@@ -24,7 +24,6 @@ export default function NovoProfessor() {
     errors,
     isLoading,
     isSubmitting,
-    isError,
     isSenhaError,
     handleChange,
     handleSubmit,
@@ -48,7 +47,6 @@ export default function NovoProfessor() {
 
       <Form handleSubmit={handleSubmit}>
         <FormError
-          isError={isError}
           title={message || (isSenhaError ? 'As senhas não coincidem' : '')}
           errors={errors}
         />

@@ -119,6 +119,12 @@ const professoresSlice = createSlice({
       state.errors = [];
       state.message = null;
     },
+    clearStatus: state => {
+      state.status = STATUS.IDLE;
+    },
+    clearCurrent: state => {
+      state.current = null;
+    },
   },
   extraReducers: builder => {
     builder
@@ -172,6 +178,7 @@ const professoresSlice = createSlice({
       .addCase(createProfessor.fulfilled, (state, action) => {
         state.status = STATUS.SUCCESS;
         state.loading = false;
+        state.current = action.payload;
       })
       .addCase(createProfessor.rejected, (state, action) => {
         state.status = STATUS.FAILED;
@@ -218,4 +225,6 @@ const professoresSlice = createSlice({
   },
 });
 
+export const { clearErrors, clearStatus, clearCurrent } =
+  professoresSlice.actions;
 export default professoresSlice.reducer;
