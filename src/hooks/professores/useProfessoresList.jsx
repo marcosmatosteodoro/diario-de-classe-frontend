@@ -68,21 +68,21 @@ export function useProfessoresList({
         <div className="flex gap-2">
           <Link
             href={`/professores/${prof.id}`}
-            className="px-2 py-1 text-sm border border-blue-500 text-blue-500 rounded hover:bg-blue-50 transition-colors cursor-pointer"
+            className="btn-outline btn-outline-primary"
           >
             <Eye {...iconParams} stroke="blue" />
           </Link>
 
           <Link
             href={`/professores/${prof.id}/editar`}
-            className="px-2 py-1 text-sm border border-gray-500 text-gray-500 rounded hover:bg-gray-50 transition-colors cursor-pointer"
+            className="btn-outline btn-outline-secondary"
           >
             <Pencil {...iconParams} stroke="gray" />
           </Link>
 
           <button
             onClick={() => handleDeleteProfessor(prof.id)}
-            className="px-2 py-1 text-sm border border-red-500 text-red-500 rounded hover:bg-red-50 transition-colors cursor-pointer"
+            className="btn-outline btn-outline-danger"
           >
             <Trash2 {...iconParams} stroke="red" />
           </button>

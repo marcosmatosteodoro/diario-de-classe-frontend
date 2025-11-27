@@ -35,10 +35,7 @@ export default function NovoProfessor() {
       </PageContent>
 
       <ButtonGroup>
-        <Link
-          href="/professores"
-          className="px-4 py-2 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-        >
+        <Link href="/professores" className="btn btn-secondary">
           ← Voltar
         </Link>
       </ButtonGroup>
@@ -215,19 +212,12 @@ export default function NovoProfessor() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className={`px-6 py-3 rounded-md text-white font-medium transition-colors ${
-              isSubmitting
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-500 hover:bg-blue-600'
-            }`}
+            className={`btn btn-primary ${isSubmitting && 'blocked'}`}
           >
             {isLoading ? 'Criando...' : 'Salvar'}
           </button>
 
-          <Link
-            href="/professores"
-            className="px-6 py-3 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors text-center"
-          >
+          <Link href="/professores" className="btn btn-secondary">
             Cancelar
           </Link>
         </div>
