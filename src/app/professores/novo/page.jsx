@@ -6,6 +6,7 @@ import { isAdmin } from '@/utils/isAdmin';
 import {
   ButtonGroup,
   Container,
+  Form,
   PageContent,
   PageSubTitle,
   PageTitle,
@@ -55,10 +56,7 @@ export default function NovoProfessor() {
         </div>
       )}
 
-      <form
-        onSubmit={handleSubmit}
-        className="bg-white shadow-md rounded-lg p-6"
-      >
+      <Form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Nome */}
           <div>
@@ -221,7 +219,7 @@ export default function NovoProfessor() {
             Cancelar
           </Link>
         </div>
-      </form>
+      </Form>
     </Container>
   );
 }
