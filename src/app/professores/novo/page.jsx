@@ -5,8 +5,10 @@ import { useNovoProfessor } from '@/hooks/professores/useNovoProfessor';
 import { isAdmin } from '@/utils/isAdmin';
 import {
   ButtonGroup,
+  ButtonsFields,
   Container,
   Form,
+  FormGroup,
   InputField,
   PageContent,
   PageSubTitle,
@@ -59,7 +61,7 @@ export default function NovoProfessor() {
       )}
 
       <Form onSubmit={handleSubmit}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <FormGroup>
           {/* Nome */}
           <InputField
             required
@@ -147,22 +149,14 @@ export default function NovoProfessor() {
               ]}
             />
           )}
-        </div>
+        </FormGroup>
 
         {/* Botões */}
-        <div className="flex gap-4 mt-8">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`btn btn-primary ${isSubmitting && 'blocked'}`}
-          >
-            {isLoading ? 'Criando...' : 'Salvar'}
-          </button>
-
-          <Link href="/professores" className="btn btn-secondary">
-            Cancelar
-          </Link>
-        </div>
+        <ButtonsFields
+          isSubmitting={isSubmitting}
+          isLoading={isLoading}
+          href="/professores"
+        />
       </Form>
     </Container>
   );
