@@ -52,7 +52,6 @@ export const InputField = ({
   props,
 }) => {
   type ||= 'text';
-  label = required ? `${label} *` : label;
   className ||= classNameDefault;
   return (
     <BaseField

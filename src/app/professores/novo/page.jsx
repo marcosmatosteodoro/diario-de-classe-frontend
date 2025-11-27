@@ -60,7 +60,7 @@ export default function NovoProfessor() {
         </div>
       )}
 
-      <Form onSubmit={handleSubmit}>
+      <Form handleSubmit={handleSubmit}>
         <FormGroup>
           {/* Nome */}
           <InputField
