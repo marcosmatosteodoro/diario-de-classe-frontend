@@ -58,6 +58,11 @@ export const refreshToken = createAsyncThunk(
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
+    accessToken: null,
+    refreshToken: null,
+    tokenType: null,
+    expiresIn: null,
+    user: null,
     current: null,
     loading: false,
     status: STATUS.IDLE,
@@ -73,9 +78,6 @@ const authSlice = createSlice({
     clearStatus: state => {
       state.status = STATUS.IDLE;
     },
-    clearCurrent: state => {
-      state.current = null;
-    },
   },
   extraReducers: builder => {
     builder
@@ -90,7 +92,11 @@ const authSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.status = STATUS.SUCCESS;
         state.loading = false;
-        state.current = action.payload;
+        state.accessToken = action.payload.accessToken;
+        state.refreshToken = action.payload.refreshToken;
+        state.tokenType = action.payload.tokenType;
+        state.expiresIn = action.payload.expiresIn;
+        state.user = action.payload.user;
       })
       .addCase(login.rejected, (state, action) => {
         state.status = STATUS.FAILED;
@@ -109,7 +115,11 @@ const authSlice = createSlice({
       .addCase(logout.fulfilled, (state, action) => {
         state.status = STATUS.SUCCESS;
         state.loading = false;
-        state.current = null;
+        state.accessToken = null;
+        state.refreshToken = null;
+        state.tokenType = null;
+        state.expiresIn = null;
+        state.user = null;
       })
       .addCase(logout.rejected, (state, action) => {
         state.status = STATUS.FAILED;
@@ -128,7 +138,7 @@ const authSlice = createSlice({
       .addCase(refreshToken.fulfilled, (state, action) => {
         state.status = STATUS.SUCCESS;
         state.loading = false;
-        state.current = action.payload;
+        state.user = null;
       })
       .addCase(refreshToken.rejected, (state, action) => {
         state.status = STATUS.FAILED;
@@ -141,5 +151,4 @@ const authSlice = createSlice({
 
 export const clearErrors = authSlice.actions.clearErrors;
 export const clearStatus = authSlice.actions.clearStatus;
-export const clearCurrent = authSlice.actions.clearCurrent;
 export default authSlice.reducer;
