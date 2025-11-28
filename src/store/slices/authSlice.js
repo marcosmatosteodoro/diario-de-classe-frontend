@@ -63,7 +63,6 @@ const authSlice = createSlice({
     tokenType: null,
     expiresIn: null,
     user: null,
-    current: null,
     loading: false,
     status: STATUS.IDLE,
     action: null,
