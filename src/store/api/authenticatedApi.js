@@ -7,8 +7,9 @@ export class AuthenticatedApi extends BaseApi {
   }
 
   addTokenInterceptor() {
+    this.token = localStorage.getItem('token');
     this.api.interceptors.request.use(config => {
-      const token = localStorage.getItem('token');
+      const token = this.token;
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -17,7 +18,6 @@ export class AuthenticatedApi extends BaseApi {
   }
 
   isAuthenticated() {
-    const token = localStorage.getItem('token') || true; // TODO implementar verificação correta do token
-    return !!token;
+    return Boolean(this.token);
   }
 }
