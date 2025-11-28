@@ -14,6 +14,34 @@ describe('Form', () => {
     expect(handleSubmit).toHaveBeenCalled();
   });
 
+  it('applies default className if none is provided', () => {
+    const { getByTestId } = render(
+      <Form
+        handleSubmit={() => {}}
+        props={{ 'data-testid': 'form-default-class' }}
+      >
+        <div>Teste</div>
+      </Form>
+    );
+    const form = getByTestId('form-default-class');
+    expect(form).toHaveClass('bg-white', 'shadow-md', 'rounded-lg', 'p-6');
+  });
+
+  it('uses custom className if provided', () => {
+    const { getByTestId } = render(
+      <Form
+        handleSubmit={() => {}}
+        className="custom-class"
+        props={{ 'data-testid': 'form-custom-class' }}
+      >
+        <div>Teste</div>
+      </Form>
+    );
+    const form = getByTestId('form-custom-class');
+    expect(form).toHaveClass('custom-class');
+    expect(form).not.toHaveClass('bg-white');
+  });
+
   it('passes extra props to the form element', () => {
     const { getByTestId } = render(
       <Form
