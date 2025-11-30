@@ -1,36 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { isMobileFunction } from '@/utils/isMobileFunction';
-import { Header, Sidebar, Footer } from '@/components';
+import { useApplicationLayout } from './useApplicationLayout';
+import { Header, Sidebar, Footer, Loading } from '@/components';
 
 export default function ApplicationLayout({ children }) {
-  const [sidebarExpanded, setSidebarExpanded] = useState({
-    mainClass: 'ml-18',
-    sidebarClass: 'w-18',
-    isExpanded: false,
-  });
-
-  const toggleSidebar = () => {
-    const isMobile = isMobileFunction();
-    let mainClass = 'ml-18';
-    let sidebarClass = 'w-18';
-
-    if (!sidebarExpanded.isExpanded) {
-      if (isMobile === true) {
-        sidebarClass = 'absolute w-full';
-      } else {
-        sidebarClass = 'w-[180px]';
-        mainClass = 'ml-[150px]';
-      }
-    }
-
-    setSidebarExpanded({
-      mainClass: mainClass,
-      sidebarClass: sidebarClass,
-      isExpanded: !sidebarExpanded.isExpanded,
-    });
-  };
+  const { isLoading, sidebarExpanded, toggleSidebar } = useApplicationLayout();
 
   return (
     <div className="min-h-screen bg-white">
@@ -44,7 +18,7 @@ export default function ApplicationLayout({ children }) {
         <main
           className={`flex-1 transition-all duration-300 ease-in-out ${sidebarExpanded.mainClass}`}
         >
-          {children}
+          {isLoading ? <Loading /> : children}
         </main>
       </div>
       <Footer />
