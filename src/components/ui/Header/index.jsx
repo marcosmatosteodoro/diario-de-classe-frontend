@@ -1,7 +1,8 @@
-import Link from 'next/link';
+import { useLogout } from '@/hooks/auth/useLogout';
 import Image from 'next/image';
 
 export const Header = () => {
+  const { logoutUser } = useLogout();
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 shadow-sm z-40">
       <div className="flex items-center justify-between h-full px-6">
@@ -20,12 +21,12 @@ export const Header = () => {
           </h1>
         </div>
         <nav className="flex space-x-6">
-          <Link
-            href="#"
-            className="text-gray-600 hover:text-gray-800 transition-colors"
+          <button
+            onClick={logoutUser}
+            className="text-gray-600 hover:text-gray-800 transition-colors cursor-pointer"
           >
             Sair
-          </Link>
+          </button>
         </nav>
       </div>
     </header>
