@@ -1,63 +1,76 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import {
-  setToken,
-  getToken,
-  removeToken as removeTokenUtil,
-} from '@/utils/token';
+import React, { createContext, useContext, useState } from 'react';
 
 const UserAuthContext = createContext();
 
 export function UserAuthProvider({ children }) {
-  const initialToken = getToken();
-  const [auth, setAuth] = useState({
-    accessToken: initialToken?.accessToken || null,
-    refreshToken: initialToken?.refreshToken || null,
-    tokenType: initialToken?.tokenType || null,
-    expiresIn: initialToken?.expiresIn || null,
-    currentUser: initialToken?.user || null,
+  const [auth, setAuth] = useState(() => {
+    const tokenString = localStorage.getItem('token');
+    if (tokenString) {
+      const token = JSON.parse(tokenString);
+      return {
+        accessToken: token.accessToken || null,
+        refreshToken: token.refreshToken || null,
+        tokenType: token.tokenType || null,
+        expiresIn: token.expiresIn || null,
+        currentUser: token.currentUser || null,
+      };
+    }
+    return {
+      accessToken: null,
+      refreshToken: null,
+      tokenType: null,
+      expiresIn: null,
+      currentUser: null,
+    };
   });
 
-  const saveToken = ({
+  const authenticate = ({
     accessToken,
     refreshToken,
     tokenType,
     expiresIn,
     currentUser,
   }) => {
-    setToken({
+    const token = {
       accessToken,
       refreshToken,
       tokenType,
       expiresIn,
-      user: currentUser,
-    });
-    setAuth({ accessToken, refreshToken, tokenType, expiresIn, currentUser });
+      currentUser,
+    };
+
+    localStorage.setItem('token', JSON.stringify(token));
+    setAuth(token);
   };
 
-  const removeToken = () => {
-    removeTokenUtil();
-    setAuth({
+  const removeAuthenticate = () => {
+    const token = {
       accessToken: null,
       refreshToken: null,
       tokenType: null,
       expiresIn: null,
       currentUser: null,
-    });
+    };
+    localStorage.setItem('token', JSON.stringify(token));
+    setAuth(token);
   };
 
-  const isUserLogin = () => Boolean(auth.currentUser);
+  const isAuthenticated = async () => {
+    return auth.currentUser !== null && auth.accessToken !== null;
+  };
+
   const isAdmin = () =>
-    Boolean(auth.currentUser) && auth.currentUser.permissao === 'admin';
+    auth.currentUser && auth.currentUser.permissao === 'admin';
 
   return (
     <UserAuthContext.Provider
       value={{
         currentUser: auth.currentUser,
-        removeToken,
-        saveToken,
-        isUserLogin,
+        authenticate,
+        removeAuthenticate,
+        isAuthenticated,
         isAdmin,
       }}
     >

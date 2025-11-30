@@ -58,12 +58,7 @@ export const refreshToken = createAsyncThunk(
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
-    accessToken: null,
-    refreshToken: null,
-    tokenType: null,
-    expiresIn: null,
-    user: null,
-    loading: false,
+    data: null,
     status: STATUS.IDLE,
     action: null,
     message: null,
@@ -90,58 +85,42 @@ const authSlice = createSlice({
       })
       .addCase(login.fulfilled, (state, action) => {
         state.status = STATUS.SUCCESS;
-        state.loading = false;
-        state.accessToken = action.payload.accessToken;
-        state.refreshToken = action.payload.refreshToken;
-        state.tokenType = action.payload.tokenType;
-        state.expiresIn = action.payload.expiresIn;
-        state.user = action.payload.user;
+        state.data = action.payload;
       })
       .addCase(login.rejected, (state, action) => {
         state.status = STATUS.FAILED;
-        state.loading = false;
         state.errors = action.payload?.errors || [];
         state.message = action.payload?.message || 'Erro ao logar';
       })
       // logout
       .addCase(logout.pending, state => {
         state.status = STATUS.LOADING;
-        state.loading = true;
         state.errors = [];
         state.message = null;
         state.action = 'logout';
       })
       .addCase(logout.fulfilled, (state, action) => {
         state.status = STATUS.SUCCESS;
-        state.loading = false;
-        state.accessToken = null;
-        state.refreshToken = null;
-        state.tokenType = null;
-        state.expiresIn = null;
-        state.user = null;
+        state.data = null;
       })
       .addCase(logout.rejected, (state, action) => {
         state.status = STATUS.FAILED;
-        state.loading = false;
         state.errors = action.payload?.errors || [];
         state.message = action.payload?.message || 'Erro ao deslogar';
       })
       // refreshToken
       .addCase(refreshToken.pending, state => {
         state.status = STATUS.LOADING;
-        state.loading = true;
         state.errors = [];
         state.message = null;
         state.action = 'refreshToken';
       })
       .addCase(refreshToken.fulfilled, (state, action) => {
         state.status = STATUS.SUCCESS;
-        state.loading = false;
-        state.user = null;
+        state.data = null;
       })
       .addCase(refreshToken.rejected, (state, action) => {
         state.status = STATUS.FAILED;
-        state.loading = false;
         state.errors = action.payload?.errors || [];
         state.message = action.payload?.message || 'Erro ao atualizar token';
       });

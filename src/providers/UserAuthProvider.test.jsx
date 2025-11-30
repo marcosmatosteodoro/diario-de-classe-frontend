@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, act } from '@testing-library/react';
+import { render, act, waitFor } from '@testing-library/react';
 import { UserAuthProvider, useUserAuth } from './UserAuthProvider';
 
 beforeAll(() => {
@@ -26,17 +26,28 @@ beforeAll(() => {
 });
 
 function TestComponent() {
-  const { currentUser, saveToken, isUserLogin, isAdmin, removeToken } =
-    useUserAuth();
+  const {
+    currentUser,
+    authenticate,
+    isAuthenticated,
+    isAdmin,
+    removeAuthenticate,
+  } = useUserAuth();
+  const [isLogin, setIsLogin] = React.useState(false);
+  React.useEffect(() => {
+    (async () => {
+      setIsLogin(await isAuthenticated());
+    })();
+  }, [currentUser, isAuthenticated]);
   return (
     <div>
       <span data-testid="user">{currentUser ? currentUser.nome : 'none'}</span>
-      <span data-testid="isUserLogin">{isUserLogin() ? 'true' : 'false'}</span>
+      <span data-testid="isUserLogin">{isLogin ? 'true' : 'false'}</span>
       <span data-testid="isAdmin">{isAdmin() ? 'true' : 'false'}</span>
       <button
         data-testid="save"
         onClick={() =>
-          saveToken({
+          authenticate({
             accessToken: 'token',
             refreshToken: 'refresh',
             tokenType: 'Bearer',
@@ -47,7 +58,7 @@ function TestComponent() {
       >
         Save
       </button>
-      <button data-testid="remove" onClick={removeToken}>
+      <button data-testid="remove" onClick={removeAuthenticate}>
         Remove
       </button>
     </div>
@@ -70,7 +81,7 @@ describe('UserAuthProvider', () => {
     expect(getByTestId('isAdmin').textContent).toBe('false');
   });
 
-  it('should save token and update user', () => {
+  it('should save token and update user', async () => {
     const { getByTestId } = render(
       <UserAuthProvider>
         <TestComponent />
@@ -79,9 +90,11 @@ describe('UserAuthProvider', () => {
     act(() => {
       getByTestId('save').click();
     });
-    expect(getByTestId('user').textContent).toBe('Marcos');
-    expect(getByTestId('isUserLogin').textContent).toBe('true');
-    expect(getByTestId('isAdmin').textContent).toBe('true');
+    await waitFor(() => {
+      expect(getByTestId('user').textContent).toBe('Marcos');
+      expect(getByTestId('isUserLogin').textContent).toBe('true');
+      expect(getByTestId('isAdmin').textContent).toBe('true');
+    });
   });
 
   it('should remove token and reset user', () => {
