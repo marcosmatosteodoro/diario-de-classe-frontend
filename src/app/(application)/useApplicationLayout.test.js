@@ -5,18 +5,35 @@ jest.mock('next/navigation', () => ({ useRouter: jest.fn() }));
 jest.mock('@/providers/UserAuthProvider', () => ({ useUserAuth: jest.fn() }));
 jest.mock('@/providers/ToastProvider', () => ({ useToast: jest.fn() }));
 jest.mock('@/utils/isMobileFunction', () => ({ isMobileFunction: jest.fn() }));
+const dispatchMock = jest.fn();
+jest.mock('react-redux', () => ({
+  useSelector: jest.fn(),
+  useDispatch: jest.fn(() => dispatchMock),
+}));
+jest.mock('@/store/slices/authSlice', () => ({
+  logout: jest.fn(() => 'LOGOUT_ACTION'),
+}));
 
 describe('useApplicationLayout', () => {
-  let routerMock, isAuthenticatedMock, errorMock, isMobileFunctionMock;
+  let routerMock,
+    isAuthenticatedMock,
+    errorMock,
+    isMobileFunctionMock,
+    useSelectorMock,
+    removeAuthenticateMock;
 
   beforeEach(() => {
     routerMock = { push: jest.fn() };
     isAuthenticatedMock = jest.fn();
     errorMock = jest.fn();
     isMobileFunctionMock = jest.fn();
+    removeAuthenticateMock = jest.fn();
+    useSelectorMock = require('react-redux').useSelector;
+    useSelectorMock.mockImplementation(fn => fn({ professores: {} }));
     require('next/navigation').useRouter.mockReturnValue(routerMock);
     require('@/providers/UserAuthProvider').useUserAuth.mockReturnValue({
       isAuthenticated: isAuthenticatedMock,
+      removeAuthenticate: removeAuthenticateMock,
     });
     require('@/providers/ToastProvider').useToast.mockReturnValue({
       error: errorMock,
@@ -74,5 +91,17 @@ describe('useApplicationLayout', () => {
     expect(result.current.sidebarExpanded.sidebarClass).toBe('w-[180px]');
     expect(result.current.sidebarExpanded.mainClass).toBe('ml-[150px]');
     expect(result.current.sidebarExpanded.isExpanded).toBe(true);
+  });
+
+  it('deve chamar dispatch(logout), removeAuthenticate, error e router.push se statusError for 401', () => {
+    const { logout } = require('@/store/slices/authSlice');
+    useSelectorMock.mockImplementation(fn =>
+      fn({ professores: { statusError: '401' } })
+    );
+    renderHook(() => useApplicationLayout());
+    expect(dispatchMock).toHaveBeenCalledWith(logout());
+    expect(removeAuthenticateMock).toHaveBeenCalled();
+    expect(errorMock).toHaveBeenCalledWith('Sua sessão expirou.');
+    expect(routerMock.push).toHaveBeenCalledWith('/login');
   });
 });

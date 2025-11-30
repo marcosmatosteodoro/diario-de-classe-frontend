@@ -1,21 +1,28 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useToast } from '@/providers/ToastProvider';
 import { isMobileFunction } from '@/utils/isMobileFunction';
+import { logout } from '@/store/slices/authSlice';
 
 export function useApplicationLayout() {
   const router = useRouter();
-  const { isAuthenticated } = useUserAuth();
+  const dispatch = useDispatch();
+  const { isAuthenticated, removeAuthenticate } = useUserAuth();
   const { error } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState({
     mainClass: 'ml-18',
     sidebarClass: 'w-18',
     isExpanded: false,
   });
+
+  const professoresState = useSelector(state => state.professores);
+  const states = useMemo(() => [professoresState], [professoresState]);
 
   const toggleSidebar = () => {
     const isMobile = isMobileFunction();
@@ -53,5 +60,23 @@ export function useApplicationLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { isLoading, sidebarExpanded, toggleSidebar };
+  useEffect(() => {
+    const statusErrors = states.map(state => String(state.statusError));
+
+    if (!isUnauthorized && statusErrors.includes('401')) {
+      setIsUnauthorized(true);
+      dispatch(logout());
+      removeAuthenticate();
+      error('Sua sessão expirou.');
+      router.push('/login');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [states]);
+
+  return {
+    isUnauthorized,
+    isLoading,
+    sidebarExpanded,
+    toggleSidebar,
+  };
 }
