@@ -1,6 +1,7 @@
 'use client';
 import {
   Book,
+  CircleUser,
   GraduationCap,
   Home,
   Info,
@@ -19,29 +20,34 @@ export function useSidebar() {
       icon: <Home strokeWidth={strokeWidth} />,
     },
     {
-      href: '/alunos',
-      label: 'Alunos',
-      icon: <GraduationCap strokeWidth={strokeWidth} />,
-    },
-    {
       href: '/professores',
       label: 'Professores',
       icon: <User strokeWidth={strokeWidth} />,
     },
+    // {
+    //   href: '/alunos',
+    //   label: 'Alunos',
+    //   icon: <GraduationCap strokeWidth={strokeWidth} />,
+    // },
+    // {
+    //   href: '/aulas',
+    //   label: 'Aulas',
+    //   icon: <Book strokeWidth={strokeWidth} />,
+    // },
+    // {
+    //   href: '/relatorios',
+    //   label: 'Relatórios',
+    //   icon: <NotebookTabs strokeWidth={strokeWidth} />,
+    // },
+    // {
+    //   href: '/exemple',
+    //   label: 'Exemplos',
+    //   icon: <Info strokeWidth={strokeWidth} />,
+    // },
     {
-      href: '/aulas',
-      label: 'Aulas',
-      icon: <Book strokeWidth={strokeWidth} />,
-    },
-    {
-      href: '/relatorios',
-      label: 'Relatórios',
-      icon: <NotebookTabs strokeWidth={strokeWidth} />,
-    },
-    {
-      href: '/exemple',
-      label: 'Exemplos',
-      icon: <Info strokeWidth={strokeWidth} />,
+      href: '/meu-perfil',
+      label: 'Meu perfil',
+      icon: <CircleUser strokeWidth={1} />,
     },
   ];
   const isActive = href => {

@@ -19,7 +19,8 @@ describe('useSidebar', () => {
         expect.objectContaining({ href: '/', label: 'Home' }),
       ])
     );
-    expect(result.current.sidebarItems).toHaveLength(6);
+    // Atualmente o hook define Home, Professores e Meu perfil
+    expect(result.current.sidebarItems).toHaveLength(3);
   });
 
   it('deve retornar true para isActive quando o href for igual ao pathname', () => {
