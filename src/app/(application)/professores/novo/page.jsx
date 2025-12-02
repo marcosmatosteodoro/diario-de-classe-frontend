@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useNovoProfessor } from '@/hooks/professores/useNovoProfessor';
 import { useProfessorForm } from '@/hooks/professores/useProfessorForm';
-import { isAdmin } from '@/utils/isAdmin';
 import {
   ButtonGroup,
   Container,
@@ -38,7 +37,6 @@ export default function NovoProfessor() {
       <ProfessorForm
         handleSubmit={handleSubmit}
         handleChange={handleChange}
-        isAdmin={isAdmin}
         formData={formData}
         isSenhaError={isSenhaError}
         isSubmitting={isSubmitting}

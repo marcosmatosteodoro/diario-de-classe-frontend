@@ -14,7 +14,6 @@ export const ProfessorForm = ({
   errors,
   handleChange,
   formData,
-  isAdmin,
   isSubmitting,
   isLoading,
 }) => {
@@ -98,20 +97,18 @@ export const ProfessorForm = ({
           value={formData.repetirSenha}
         />
 
-        {/* Permissão — apenas administradores podem ver */}
-        {isAdmin() && (
-          <SelectField
-            required
-            htmlFor="permissao"
-            label="Permissão"
-            onChange={handleChange}
-            value={formData.permissao}
-            options={[
-              { value: 'professor', label: 'Professor' },
-              { value: 'admin', label: 'Administrador' },
-            ]}
-          />
-        )}
+        {/* Permissão */}
+        <SelectField
+          required
+          htmlFor="permissao"
+          label="Permissão"
+          onChange={handleChange}
+          value={formData.permissao}
+          options={[
+            { value: 'professor', label: 'Professor' },
+            { value: 'admin', label: 'Administrador' },
+          ]}
+        />
       </FormGroup>
 
       {/* Botões */}
