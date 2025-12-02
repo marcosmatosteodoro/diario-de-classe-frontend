@@ -11,6 +11,6 @@ describe('ButtonGroup', () => {
     );
 
     expect(getByText('Click me')).toBeInTheDocument();
-    expect(container.firstChild).toHaveClass('pb-3');
+    expect(container.firstChild).toHaveClass('flex flex-wrap gap-2 mb-3');
   });
 });
