@@ -9,7 +9,7 @@ import { STATUS } from '@/constants';
 
 export function useProfessor(id) {
   const dispatch = useDispatch();
-  const { current, aulas, alunos, message, status } = useSelector(
+  const { current, aulas, alunos, message, status, statusError } = useSelector(
     state => state.professores
   );
   const isLoading = status === STATUS.IDLE || status === STATUS.LOADING;
@@ -32,5 +32,6 @@ export function useProfessor(id) {
     isLoading,
     isSuccess,
     isFailed,
+    statusError,
   };
 }
