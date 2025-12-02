@@ -1,24 +1,33 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getProfessor } from '@/store/slices/professoresSlice';
+import {
+  getProfessor,
+  getAulasProfessor,
+  getAlunosProfessor,
+} from '@/store/slices/professoresSlice';
 import { STATUS } from '@/constants';
 
 export function useProfessor(id) {
   const dispatch = useDispatch();
-  const { current, message, status } = useSelector(state => state.professores);
-
-  useEffect(() => {
-    if (id) {
-      dispatch(getProfessor(id));
-    }
-  }, [dispatch, id]);
-
+  const { current, aulas, alunos, message, status } = useSelector(
+    state => state.professores
+  );
   const isLoading = status === STATUS.IDLE || status === STATUS.LOADING;
   const isSuccess = status === STATUS.SUCCESS;
   const isFailed = status === STATUS.FAILED;
 
+  useEffect(() => {
+    if (id) {
+      dispatch(getProfessor(id));
+      dispatch(getAulasProfessor(id));
+      dispatch(getAlunosProfessor(id));
+    }
+  }, [dispatch, id]);
+
   return {
     professor: current,
+    aulas,
+    alunos,
     message,
     isLoading,
     isSuccess,

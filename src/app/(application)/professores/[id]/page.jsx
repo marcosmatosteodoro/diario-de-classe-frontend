@@ -15,9 +15,7 @@ import { useFormater } from '@/hooks/useFormater';
 
 export default function Professor() {
   const params = useParams();
-  const { professor, message, isLoading, isSuccess, isFailed } = useProfessor(
-    params.id
-  );
+  const { professor, aulas, alunos, isLoading } = useProfessor(params.id);
   const { telefoneFormatter, dataFormatter } = useFormater();
 
   return (
