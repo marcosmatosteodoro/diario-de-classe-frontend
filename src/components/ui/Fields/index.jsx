@@ -1,7 +1,7 @@
 const classNameDefault =
   'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500';
 
-const LabelField = ({ props, className, children }) => {
+const LabelField = ({ className, children, ...props }) => {
   className ||= 'block text-sm font-medium text-gray-700 mb-2';
   return (
     <label {...props} className={className}>
@@ -49,7 +49,7 @@ export const InputField = ({
   inputGroupClass,
   labelClass,
   className,
-  props,
+  ...props
 }) => {
   type ||= 'text';
   className ||= classNameDefault;
@@ -62,15 +62,15 @@ export const InputField = ({
       labelClass={labelClass}
     >
       <input
-        {...props}
         type={type}
         id={htmlFor}
         name={htmlFor}
         required={required}
-        value={value}
+        value={value || ''}
         onChange={onChange}
         className={className}
         placeholder={placeholder}
+        {...props}
       />
     </BaseField>
   );
@@ -86,7 +86,7 @@ export const TextAreaField = ({
   inputGroupClass,
   labelClass,
   className,
-  props,
+  ...props
 }) => {
   className ||= classNameDefault;
   return (
@@ -98,7 +98,6 @@ export const TextAreaField = ({
       labelClass={labelClass}
     >
       <textarea
-        {...props}
         id={htmlFor}
         name={htmlFor}
         required={required}
@@ -106,6 +105,7 @@ export const TextAreaField = ({
         onChange={onChange}
         className={className}
         placeholder={placeholder}
+        {...props}
       />
     </BaseField>
   );
@@ -121,8 +121,8 @@ export const SelectField = ({
   inputGroupClass,
   labelClass,
   className,
-  options,
-  props,
+  options = [],
+  ...props
 }) => {
   className ||= classNameDefault;
   return (
@@ -134,13 +134,13 @@ export const SelectField = ({
       labelClass={labelClass}
     >
       <select
-        {...props}
         id={htmlFor}
         name={htmlFor}
         required={required}
         value={value}
         onChange={onChange}
         className={className}
+        {...props}
       >
         {placeholder && <OptionField value="" label={placeholder} />}
         {options.map(option => (

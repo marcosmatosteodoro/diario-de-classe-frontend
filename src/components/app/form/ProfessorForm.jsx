@@ -15,8 +15,8 @@ export const ProfessorForm = ({
   errors,
   handleChange,
   formData,
-  isSubmitting,
   isLoading,
+  isEdit = false,
 }) => {
   return (
     <Form handleSubmit={handleSubmit}>
@@ -74,7 +74,7 @@ export const ProfessorForm = ({
 
         {/* Senha */}
         <InputField
-          required
+          required={!isEdit}
           type="password"
           htmlFor="senha"
           label="Senha"
@@ -83,11 +83,12 @@ export const ProfessorForm = ({
           maxLength={100}
           onChange={handleChange}
           value={formData.senha}
+          autoComplete={isEdit ? 'off' : 'new-password'}
         />
 
         {/* Repetir Senha */}
         <InputField
-          required
+          required={!isEdit}
           type="password"
           htmlFor="repetirSenha"
           label="Repetir Senha"
@@ -96,6 +97,7 @@ export const ProfessorForm = ({
           maxLength={100}
           onChange={handleChange}
           value={formData.repetirSenha}
+          autoComplete={'off'}
         />
 
         {/* Permissão */}
@@ -113,11 +115,7 @@ export const ProfessorForm = ({
       </FormGroup>
 
       {/* Botões */}
-      <ButtonsFields
-        isSubmitting={isSubmitting}
-        isLoading={isLoading}
-        href="/professores"
-      />
+      <ButtonsFields isLoading={isLoading} href="/professores" />
     </Form>
   );
 };

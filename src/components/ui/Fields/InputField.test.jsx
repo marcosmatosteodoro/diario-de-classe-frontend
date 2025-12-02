@@ -4,7 +4,7 @@ import { InputField } from './index';
 describe('InputField', () => {
   it('renders label and input with correct props', () => {
     const handleChange = jest.fn();
-    const { getByTestId } = render(
+    const { getByLabelText } = render(
       <InputField
         htmlFor="nome"
         label="Nome"
@@ -15,10 +15,10 @@ describe('InputField', () => {
         inputGroupClass="group-class"
         labelClass="label-class"
         className="custom-class"
-        props={{ 'data-testid': 'input-test', type: 'text' }}
+        props={{ type: 'text' }}
       />
     );
-    const input = getByTestId('input-test');
+    const input = getByLabelText(/nome/i);
     expect(input).toHaveAttribute('id', 'nome');
     expect(input).toHaveAttribute('name', 'nome');
     expect(input).toHaveAttribute('required');

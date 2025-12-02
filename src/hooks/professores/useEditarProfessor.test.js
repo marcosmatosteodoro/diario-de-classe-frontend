@@ -261,7 +261,6 @@ describe('useEditarProfessor', () => {
     const { result } = renderHook(() => useEditarProfessor(123), { wrapper });
 
     expect(result.current.isLoading).toBe(true);
-    expect(result.current.isSubmitting).toBe(true);
   });
 
   it('should update form data when current professor changes', () => {
@@ -338,7 +337,6 @@ describe('useEditarProfessor', () => {
       message: 'Success message',
       errors: { nome: 'Nome é obrigatório' },
       isLoading: false,
-      isSubmitting: false,
       current: { id: 123, nome: 'João' },
       submit: expect.any(Function),
     });

@@ -30,8 +30,12 @@ describe('useProfessorForm', () => {
       permissao: 'admin',
     };
     const { result } = renderHook(() =>
-      useProfessorForm({ professor, submit: jest.fn() })
+      useProfessorForm({ submit: jest.fn() })
     );
+    // setFormData is exposed by the hook; use it to initialize form data
+    act(() => {
+      result.current.setFormData(professor);
+    });
     expect(result.current.formData).toEqual(professor);
   });
 

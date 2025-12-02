@@ -8,7 +8,7 @@ describe('SelectField', () => {
       { value: 'a', label: 'Opção A' },
       { value: 'b', label: 'Opção B' },
     ];
-    const { getByTestId, getByText } = render(
+    const { getByLabelText, getByText } = render(
       <SelectField
         htmlFor="tipo"
         label="Tipo"
@@ -20,10 +20,9 @@ describe('SelectField', () => {
         labelClass="label-class"
         className="custom-class"
         options={options}
-        props={{ 'data-testid': 'select-test' }}
       />
     );
-    const select = getByTestId('select-test');
+    const select = getByLabelText(/tipo/i);
     expect(select).toHaveAttribute('id', 'tipo');
     expect(select).toHaveAttribute('name', 'tipo');
     expect(select).toHaveAttribute('required');

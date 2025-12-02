@@ -28,10 +28,8 @@ describe('ButtonsFields', () => {
   });
 
   it('disables submit button when isSubmitting', () => {
-    render(
-      <ButtonsFields isSubmitting={true} isLoading={false} href="/test" />
-    );
-    expect(screen.getByRole('button', { name: /salvar/i })).toBeDisabled();
+    render(<ButtonsFields isLoading={true} href="/test" />);
+    expect(screen.getByRole('button', { name: /criando/i })).toBeDisabled();
   });
 
   it('cancel link navigates to href', () => {

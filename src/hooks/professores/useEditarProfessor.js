@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { STATUS } from '@/constants';
@@ -10,9 +10,10 @@ export function useEditarProfessor(professorId) {
   const dispatch = useDispatch();
   const router = useRouter();
   const { success } = useToast();
-  const { status, message, errors, current } = useSelector(
+  const { status, message, errors, current, action } = useSelector(
     state => state.professores
   );
+  const isLoading = status === STATUS.LOADING;
 
   useEffect(() => {
     dispatch(clearStatus());
@@ -25,27 +26,22 @@ export function useEditarProfessor(professorId) {
   }, [dispatch, professorId]);
 
   useEffect(() => {
-    if (status === STATUS.SUCCESS && current) {
+    if (status === STATUS.SUCCESS && current && action === 'updateProfessor') {
       dispatch(clearCurrent());
       dispatch(clearStatus());
       success('Operação realizada com sucesso!');
       router.push('/professores');
     }
-  }, [status, router, success, current, dispatch]);
+  }, [status, router, success, current, action, dispatch]);
 
   const submit = ({ id, dataToSend }) => {
     dispatch(updateProfessor({ id: id, data: dataToSend }));
   };
 
-  // Estados computados para facilitar o uso
-  const isLoading = status === STATUS.LOADING;
-  const isSubmitting = status === STATUS.IDLE || status === STATUS.LOADING;
-
   return {
     message,
     errors,
     isLoading,
-    isSubmitting,
     current,
     submit,
   };

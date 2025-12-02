@@ -1,20 +1,18 @@
 import { PERMISSAO } from '@/constants';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-export function useProfessorForm({ id = null, professor = null, submit }) {
+export function useProfessorForm({ id = null, isEdit = false, submit }) {
   const [isSenhaError, setIsSenhaError] = useState(false);
 
-  const [formData, setFormData] = useState(
-    professor || {
-      nome: '',
-      sobrenome: '',
-      email: '',
-      telefone: '',
-      senha: '',
-      repetirSenha: '',
-      permissao: PERMISSAO.MEMBER,
-    }
-  );
+  const [formData, setFormData] = useState({
+    nome: '',
+    sobrenome: '',
+    email: '',
+    telefone: '',
+    senha: '',
+    repetirSenha: '',
+    permissao: PERMISSAO.MEMBER,
+  });
 
   const handleChange = e => {
     const { name, value } = e.target;
@@ -40,8 +38,9 @@ export function useProfessorForm({ id = null, professor = null, submit }) {
 
   return {
     isSenhaError,
+    formData,
     handleSubmit,
     handleChange,
-    formData,
+    setFormData,
   };
 }

@@ -4,7 +4,7 @@ import { TextAreaField } from './index';
 describe('TextAreaField', () => {
   it('renders label and textarea with correct props', () => {
     const handleChange = jest.fn();
-    const { getByTestId } = render(
+    const { getByLabelText } = render(
       <TextAreaField
         htmlFor="descricao"
         label="Descrição"
@@ -15,10 +15,10 @@ describe('TextAreaField', () => {
         inputGroupClass="group-class"
         labelClass="label-class"
         className="custom-class"
-        props={{ 'data-testid': 'textarea-test' }}
+        props={{}}
       />
     );
-    const textarea = getByTestId('textarea-test');
+    const textarea = getByLabelText(/descrição/i);
     expect(textarea).toHaveAttribute('id', 'descricao');
     expect(textarea).toHaveAttribute('name', 'descricao');
     expect(textarea).toHaveAttribute('required');
