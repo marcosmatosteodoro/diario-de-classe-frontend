@@ -1,5 +1,5 @@
+import { useState } from 'react';
 import { PERMISSAO } from '@/constants';
-import { useEffect, useState } from 'react';
 
 export function useProfessorForm({ id = null, isEdit = false, submit }) {
   const [isSenhaError, setIsSenhaError] = useState(false);

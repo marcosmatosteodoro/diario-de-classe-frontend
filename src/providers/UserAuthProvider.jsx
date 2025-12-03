@@ -6,6 +6,17 @@ const UserAuthContext = createContext();
 
 export function UserAuthProvider({ children }) {
   const [auth, setAuth] = useState(() => {
+    // Check if we're in the browser before accessing localStorage
+    if (typeof window === 'undefined') {
+      return {
+        accessToken: null,
+        refreshToken: null,
+        tokenType: null,
+        expiresIn: null,
+        currentUser: null,
+      };
+    }
+
     const tokenString = localStorage.getItem('token');
     if (tokenString) {
       const token = JSON.parse(tokenString);
@@ -41,7 +52,9 @@ export function UserAuthProvider({ children }) {
       currentUser,
     };
 
-    localStorage.setItem('token', JSON.stringify(token));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('token', JSON.stringify(token));
+    }
     setAuth(token);
   };
 
@@ -53,7 +66,9 @@ export function UserAuthProvider({ children }) {
       expiresIn: null,
       currentUser: null,
     };
-    localStorage.setItem('token', JSON.stringify(token));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('token', JSON.stringify(token));
+    }
     setAuth(token);
   };
 
