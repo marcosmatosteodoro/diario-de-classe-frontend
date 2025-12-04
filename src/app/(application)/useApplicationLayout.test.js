@@ -21,6 +21,7 @@ describe('useApplicationLayout', () => {
     isMobileFunctionMock,
     useSelectorMock,
     removeAuthenticateMock;
+  const mockRefreshToken = 'test-refresh-token-123';
 
   beforeEach(() => {
     routerMock = { push: jest.fn() };
@@ -36,6 +37,7 @@ describe('useApplicationLayout', () => {
     require('@/providers/UserAuthProvider').useUserAuth.mockReturnValue({
       isAuthenticated: isAuthenticatedMock,
       removeAuthenticate: removeAuthenticateMock,
+      refreshToken: mockRefreshToken,
     });
     require('@/providers/ToastProvider').useToast.mockReturnValue({
       error: errorMock,
@@ -101,7 +103,7 @@ describe('useApplicationLayout', () => {
       fn({ professores: { statusError: '401' }, alunos: {} })
     );
     renderHook(() => useApplicationLayout());
-    expect(dispatchMock).toHaveBeenCalledWith(logout());
+    expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
     expect(removeAuthenticateMock).toHaveBeenCalled();
     expect(errorMock).toHaveBeenCalledWith('Sua sessão expirou.');
     expect(routerMock.push).toHaveBeenCalledWith('/login');
@@ -113,7 +115,7 @@ describe('useApplicationLayout', () => {
       fn({ professores: {}, alunos: { statusError: '401' } })
     );
     renderHook(() => useApplicationLayout());
-    expect(dispatchMock).toHaveBeenCalledWith(logout());
+    expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
     expect(removeAuthenticateMock).toHaveBeenCalled();
     expect(errorMock).toHaveBeenCalledWith('Sua sessão expirou.');
     expect(routerMock.push).toHaveBeenCalledWith('/login');
@@ -129,7 +131,7 @@ describe('useApplicationLayout', () => {
     );
     renderHook(() => useApplicationLayout());
     expect(dispatchMock).toHaveBeenCalledTimes(1);
-    expect(dispatchMock).toHaveBeenCalledWith(logout());
+    expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
     expect(removeAuthenticateMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(routerMock.push).toHaveBeenCalledTimes(1);
@@ -168,7 +170,7 @@ describe('useApplicationLayout', () => {
     rerender();
 
     await waitFor(() => {
-      expect(dispatchMock).toHaveBeenCalledWith(logout());
+      expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
     });
   });
 });
