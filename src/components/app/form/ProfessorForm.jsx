@@ -4,6 +4,7 @@ import {
   FormError,
   FormGroup,
   InputField,
+  PasswordField,
   SelectField,
 } from '@/components';
 import { PERMISSAO } from '@/constants';
@@ -73,9 +74,8 @@ export const ProfessorForm = ({
         />
 
         {/* Senha */}
-        <InputField
+        <PasswordField
           required={!isEdit}
-          type="password"
           htmlFor="senha"
           label="Senha"
           placeholder="Digite a senha"
@@ -87,9 +87,8 @@ export const ProfessorForm = ({
         />
 
         {/* Repetir Senha */}
-        <InputField
+        <PasswordField
           required={!isEdit}
-          type="password"
           htmlFor="repetirSenha"
           label="Repetir Senha"
           placeholder="Confirme a senha"

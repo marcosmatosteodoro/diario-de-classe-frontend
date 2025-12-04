@@ -1,6 +1,6 @@
 'use client';
 
-import { Form, FormGroup, InputField } from '@/components';
+import { Form, FormGroup, InputField, PasswordField } from '@/components';
 import { useLogin } from '@/hooks/auth/useLogin';
 
 export default function Login() {
@@ -19,10 +19,9 @@ export default function Login() {
           onChange={handleChange}
           value={formData.email}
         />
-        <InputField
+        <PasswordField
           htmlFor="senha"
           label="Senha"
-          type="password"
           autoComplete="current-password"
           maxLength={200}
           minLength={3}
