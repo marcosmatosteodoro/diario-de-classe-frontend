@@ -6,12 +6,15 @@ import { useDeletarProfessor } from '@/hooks/professores/useDeletarProfessor';
 import { useFormater } from '@/hooks/useFormater';
 import { useProfessoresList } from '@/hooks/professores/useProfessoresList';
 import { ButtonGroup, Container, PageTitle, Table } from '@/components';
+import { useUserAuth } from '@/providers/UserAuthProvider';
 
 export default function Professores() {
+  const { currentUser } = useUserAuth();
   const { professores, isLoading } = useProfessores();
   const { handleDeleteProfessor } = useDeletarProfessor();
   const { telefoneFormatter, dataFormatter } = useFormater();
   const { columns, data } = useProfessoresList({
+    currentUser,
     professores,
     telefoneFormatter,
     dataFormatter,
