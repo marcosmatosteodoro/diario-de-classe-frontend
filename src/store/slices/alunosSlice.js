@@ -7,6 +7,9 @@ import { GetAlunoByIdService } from '@/services/aluno/getAlunoByIdService';
 import { CreateAlunoService } from '@/services/aluno/createAlunoService';
 import { UpdateAlunoService } from '@/services/aluno/updateAlunoService';
 import { DeleteAlunoService } from '@/services/aluno/deleteAlunoService';
+import { GetAulasByAlunoService } from '@/services/aluno/getAulasByAlunoService';
+import { GetDiasAulasByAlunoService } from '@/services/aluno/getDiasAulasByAlunoService';
+import { GetContratoByAlunoService } from '@/services/aluno/getContratoByAlunoService';
 
 // GET ALL
 export const getAlunos = createAsyncThunk(
@@ -112,11 +115,74 @@ export const deleteAluno = createAsyncThunk(
   }
 );
 
+// GET AULAS
+export const getAulasAluno = createAsyncThunk(
+  'alunos/getAulas',
+  async (id, { rejectWithValue }) => {
+    try {
+      const res = await GetAulasByAlunoService.handle(id);
+      return res.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao buscar aulas do aluno';
+      return rejectWithValue({
+        message: errorMessage,
+        statusError: error.response?.status,
+      });
+    }
+  }
+);
+
+// GET DIAS AULAS
+export const getDiasAulasAluno = createAsyncThunk(
+  'alunos/getDiasAulas',
+  async (id, { rejectWithValue }) => {
+    try {
+      const res = await GetDiasAulasByAlunoService.handle(id);
+      return res.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao buscar dias de aulas do aluno';
+      return rejectWithValue({
+        message: errorMessage,
+        statusError: error.response?.status,
+      });
+    }
+  }
+);
+
+// GET CONTRATO
+export const getContratoAluno = createAsyncThunk(
+  'alunos/getContrato',
+  async (id, { rejectWithValue }) => {
+    try {
+      const res = await GetContratoByAlunoService.handle(id);
+      return res.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao buscar contrato do aluno';
+      return rejectWithValue({
+        message: errorMessage,
+        statusError: error.response?.status,
+      });
+    }
+  }
+);
+
 const alunosSlice = createSlice({
   name: 'alunos',
   initialState: {
     list: [],
     current: null,
+    aulas: [],
+    diasAulas: [],
+    contrato: null,
     status: STATUS.IDLE,
     statusError: null,
     action: null,
@@ -250,6 +316,64 @@ const alunosSlice = createSlice({
         state.errors = action.payload?.errors || [];
         state.message = action.payload?.message || 'Erro ao deletar aluno';
         state.statusError = action.payload.statusError;
+      })
+      // getAulasAluno
+      .addCase(getAulasAluno.pending, state => {
+        state.status = STATUS.LOADING;
+        state.errors = [];
+        state.message = null;
+        state.aulas = [];
+        state.statusError = null;
+        state.action = 'getAulasAluno';
+      })
+      .addCase(getAulasAluno.fulfilled, (state, action) => {
+        state.status = STATUS.SUCCESS;
+        state.aulas = action.payload || [];
+      })
+      .addCase(getAulasAluno.rejected, (state, action) => {
+        state.status = STATUS.FAILED;
+        state.errors = action.error;
+        state.message = action.payload?.message || 'Erro ao buscar aulas';
+        state.statusError = action.payload?.statusError;
+      })
+      // getDiasAulasAluno
+      .addCase(getDiasAulasAluno.pending, state => {
+        state.status = STATUS.LOADING;
+        state.errors = [];
+        state.message = null;
+        state.diasAulas = [];
+        state.statusError = null;
+        state.action = 'getDiasAulasAluno';
+      })
+      .addCase(getDiasAulasAluno.fulfilled, (state, action) => {
+        state.status = STATUS.SUCCESS;
+        state.diasAulas = action.payload || [];
+      })
+      .addCase(getDiasAulasAluno.rejected, (state, action) => {
+        state.status = STATUS.FAILED;
+        state.errors = action.error;
+        state.message =
+          action.payload?.message || 'Erro ao buscar dias de aulas';
+        state.statusError = action.payload?.statusError;
+      })
+      // getContratoAluno
+      .addCase(getContratoAluno.pending, state => {
+        state.status = STATUS.LOADING;
+        state.errors = [];
+        state.message = null;
+        state.contrato = null;
+        state.statusError = null;
+        state.action = 'getContratoAluno';
+      })
+      .addCase(getContratoAluno.fulfilled, (state, action) => {
+        state.status = STATUS.SUCCESS;
+        state.contrato = action.payload || null;
+      })
+      .addCase(getContratoAluno.rejected, (state, action) => {
+        state.status = STATUS.FAILED;
+        state.errors = action.error;
+        state.message = action.payload?.message || 'Erro ao buscar contrato';
+        state.statusError = action.payload?.statusError;
       });
   },
 });
