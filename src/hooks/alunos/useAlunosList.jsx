@@ -4,7 +4,7 @@ export function useAlunosList({
   alunos,
   telefoneFormatter,
   dataFormatter,
-  handleDeleteProfessor,
+  handleDeleteAluno,
 }) {
   const columns = [
     {
