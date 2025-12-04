@@ -15,6 +15,11 @@ export const SelectField = ({
   ...props
 }) => {
   className ||= classNameDefault;
+
+  if (placeholder) {
+    options = [{ value: '', label: placeholder }, ...options];
+  }
+
   return (
     <BaseField
       htmlFor={htmlFor}
@@ -33,7 +38,6 @@ export const SelectField = ({
           className={`${className} pr-10 appearance-none`}
           {...props}
         >
-          {placeholder && <OptionField value="" label={placeholder} />}
           {options.map(option => (
             <OptionField
               key={option.value}
