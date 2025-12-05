@@ -40,10 +40,6 @@ export default function Professor() {
   });
 
   useEffect(() => {
-    if (aulas) console.log('aulas', aulas);
-  }, [aulas]);
-
-  useEffect(() => {
     if (
       statusError === STATUS_ERROR.BAD_REQUEST ||
       statusError === STATUS_ERROR.NOT_FOUND
