@@ -27,6 +27,13 @@ jest.mock('@/constants', () => ({
   },
 }));
 
+jest.mock('@/constants/statusError', () => ({
+  STATUS_ERROR: {
+    BAD_REQUEST: '400',
+    NOT_FOUND: '404',
+  },
+}));
+
 // Mock store
 const createMockStore = (initialState = {}) => {
   return configureStore({
@@ -98,9 +105,9 @@ describe('useAluno', () => {
     });
   });
 
-  it.skip('dispatches all four actions when id is provided', () => {
+  it('dispatches all four actions when id and current are provided', () => {
     const initialState = {
-      current: null,
+      current: { id: 123, nome: 'João', sobrenome: 'Silva' },
       aulas: [],
       diasAulas: [],
       contrato: null,
@@ -115,7 +122,7 @@ describe('useAluno', () => {
     const wrapper = createWrapper(store);
     renderHook(() => useAluno(123), { wrapper });
 
-    expect(mockDispatch).toHaveBeenCalledTimes(1);
+    expect(mockDispatch).toHaveBeenCalledTimes(4);
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'alunos/getAluno',
       payload: 123,
@@ -171,7 +178,7 @@ describe('useAluno', () => {
       isLoading: true,
       isSuccess: false,
       isFailed: false,
-      statusError: null,
+      isNotFound: false,
     });
   });
 
@@ -248,10 +255,9 @@ describe('useAluno', () => {
     expect(result.current.isFailed).toBe(true);
     expect(result.current.isSuccess).toBe(false);
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.statusError).toBe('404');
   });
 
-  it('should return statusError when present', () => {
+  it('should return isNotFound when statusError is present', () => {
     const initialState = {
       current: null,
       aulas: [],
@@ -268,7 +274,7 @@ describe('useAluno', () => {
     const wrapper = createWrapper(store);
     const { result } = renderHook(() => useAluno(999), { wrapper });
 
-    expect(result.current.statusError).toBe('404');
+    expect(result.current.isNotFound).toBe(true);
   });
 
   it('should handle undefined state gracefully', () => {
@@ -453,5 +459,89 @@ describe('useAluno', () => {
     expect(result.current.contrato).toEqual(mockContrato);
     expect(result.current.message).toBe('Loaded successfully');
     expect(result.current.isSuccess).toBe(true);
+  });
+
+  it('returns isNotFound true when statusError is 404 and no current aluno', () => {
+    const initialState = {
+      current: null,
+      aulas: [],
+      diasAulas: [],
+      contrato: null,
+      message: 'Not found',
+      status: STATUS.FAILED,
+      statusError: '404',
+    };
+
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useAluno(999), { wrapper });
+
+    expect(result.current.isNotFound).toBe(true);
+    expect(result.current.aluno).toBeNull();
+  });
+
+  it('returns isNotFound true when statusError is 400 and no current aluno', () => {
+    const initialState = {
+      current: null,
+      aulas: [],
+      diasAulas: [],
+      contrato: null,
+      message: 'Bad request',
+      status: STATUS.FAILED,
+      statusError: '400',
+    };
+
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useAluno(999), { wrapper });
+
+    expect(result.current.isNotFound).toBe(true);
+    expect(result.current.aluno).toBeNull();
+  });
+
+  it('returns isNotFound false when aluno exists even with error status', () => {
+    const initialState = {
+      current: { id: 5, nome: 'Ana' },
+      aulas: [],
+      diasAulas: [],
+      contrato: null,
+      message: 'Some error',
+      status: STATUS.FAILED,
+      statusError: '404',
+    };
+
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useAluno(5), { wrapper });
+
+    expect(result.current.isNotFound).toBe(false);
+    expect(result.current.aluno).toEqual({ id: 5, nome: 'Ana' });
+  });
+
+  it('returns isNotFound false when statusError is not 400 or 404', () => {
+    const initialState = {
+      current: null,
+      aulas: [],
+      diasAulas: [],
+      contrato: null,
+      message: 'Server error',
+      status: STATUS.FAILED,
+      statusError: '500',
+    };
+
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useAluno(999), { wrapper });
+
+    expect(result.current.isNotFound).toBe(false);
+    expect(result.current.isFailed).toBe(true);
   });
 });

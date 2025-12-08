@@ -21,7 +21,7 @@ import { useAulasList } from '@/hooks/aulas/useAulasList';
 
 export default function Professor() {
   const params = useParams();
-  const { professor, aulas, alunos, isLoading, statusError } = useProfessor(
+  const { professor, aulas, alunos, isLoading, isNotFound } = useProfessor(
     params.id
   );
   const { telefoneFormatter, dataFormatter } = useFormater();
@@ -40,14 +40,10 @@ export default function Professor() {
   });
 
   useEffect(() => {
-    if (
-      statusError === STATUS_ERROR.BAD_REQUEST ||
-      statusError === STATUS_ERROR.NOT_FOUND
-    ) {
+    if (isNotFound) {
       return notFound();
     }
-  }, [statusError]);
-
+  }, [isNotFound]);
   if (isLoading || !professor) {
     return <Loading />;
   }

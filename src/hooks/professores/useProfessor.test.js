@@ -25,6 +25,13 @@ jest.mock('@/constants', () => ({
   },
 }));
 
+jest.mock('@/constants/statusError', () => ({
+  STATUS_ERROR: {
+    BAD_REQUEST: '400',
+    NOT_FOUND: '404',
+  },
+}));
+
 // Mock store
 const createMockStore = (initialState = {}) => {
   return configureStore({
@@ -131,6 +138,7 @@ describe('useProfessor', () => {
       isLoading: false,
       isSuccess: true,
       isFailed: false,
+      isNotFound: false,
     });
 
     // Loading state
@@ -158,5 +166,65 @@ describe('useProfessor', () => {
     expect(failedResult.current.isFailed).toBe(true);
     expect(failedResult.current.isSuccess).toBe(false);
     expect(failedResult.current.isLoading).toBe(false);
+  });
+
+  it('returns isNotFound true when statusError is 404 and no current professor', () => {
+    const initialState = {
+      current: null,
+      aulas: [],
+      alunos: [],
+      message: 'Not found',
+      status: STATUS.FAILED,
+      statusError: '404',
+    };
+
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useProfessor(999), { wrapper });
+
+    expect(result.current.isNotFound).toBe(true);
+    expect(result.current.professor).toBeNull();
+  });
+
+  it('returns isNotFound true when statusError is 400 and no current professor', () => {
+    const initialState = {
+      current: null,
+      aulas: [],
+      alunos: [],
+      message: 'Bad request',
+      status: STATUS.FAILED,
+      statusError: '400',
+    };
+
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useProfessor(999), { wrapper });
+
+    expect(result.current.isNotFound).toBe(true);
+    expect(result.current.professor).toBeNull();
+  });
+
+  it('returns isNotFound false when professor exists even with error status', () => {
+    const initialState = {
+      current: { id: 5, nome: 'Ana' },
+      aulas: [],
+      alunos: [],
+      message: 'Some error',
+      status: STATUS.FAILED,
+      statusError: '404',
+    };
+
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useProfessor(5), { wrapper });
+
+    expect(result.current.isNotFound).toBe(false);
+    expect(result.current.professor).toEqual({ id: 5, nome: 'Ana' });
   });
 });

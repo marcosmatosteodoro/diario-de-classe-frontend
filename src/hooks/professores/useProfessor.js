@@ -6,6 +6,7 @@ import {
   getAlunosProfessor,
 } from '@/store/slices/professoresSlice';
 import { STATUS } from '@/constants';
+import { STATUS_ERROR } from '@/constants/statusError';
 
 export function useProfessor(id) {
   const dispatch = useDispatch();
@@ -15,14 +16,22 @@ export function useProfessor(id) {
   const isLoading = status === STATUS.IDLE || status === STATUS.LOADING;
   const isSuccess = status === STATUS.SUCCESS;
   const isFailed = status === STATUS.FAILED;
+  const isNotFound =
+    [STATUS_ERROR.BAD_REQUEST, STATUS_ERROR.NOT_FOUND].includes(statusError) &&
+    !current;
 
   useEffect(() => {
     if (id) {
       dispatch(getProfessor(id));
+    }
+  }, [dispatch, id]);
+
+  useEffect(() => {
+    if (id && current) {
       dispatch(getAulasProfessor(id));
       dispatch(getAlunosProfessor(id));
     }
-  }, [dispatch, id]);
+  }, [dispatch, id, current]);
 
   return {
     professor: current,
@@ -32,6 +41,6 @@ export function useProfessor(id) {
     isLoading,
     isSuccess,
     isFailed,
-    statusError,
+    isNotFound,
   };
 }
