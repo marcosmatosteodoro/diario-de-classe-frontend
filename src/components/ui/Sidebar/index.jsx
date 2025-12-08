@@ -3,10 +3,17 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { SidebarItem } from '../SidebarItem';
 import { useSidebar } from './useSidebar';
 import { useUserAuth } from '@/providers/UserAuthProvider';
+import { useState, useEffect } from 'react';
 
 export const Sidebar = ({ sidebarExpanded, toggleSidebar, sidebarClass }) => {
   const { isAdmin } = useUserAuth();
+  const [mounted, setMounted] = useState(false);
   const { strokeWidth, sidebarItems, isActive } = useSidebar(isAdmin);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true);
+  }, []);
 
   return (
     <aside
@@ -18,20 +25,21 @@ export const Sidebar = ({ sidebarExpanded, toggleSidebar, sidebarClass }) => {
         <div className="flex-1 p-4">
           <nav>
             <ul className="space-y-2">
-              {sidebarItems.map(item =>
-                item.show ? (
-                  <li key={item.href}>
-                    <SidebarItem
-                      href={item.href}
-                      label={item.label}
-                      sidebarExpanded={sidebarExpanded}
-                      active={isActive(item.href)}
-                    >
-                      {item.icon}
-                    </SidebarItem>
-                  </li>
-                ) : null
-              )}
+              {mounted &&
+                sidebarItems.map(item =>
+                  item.show ? (
+                    <li key={item.href}>
+                      <SidebarItem
+                        href={item.href}
+                        label={item.label}
+                        sidebarExpanded={sidebarExpanded}
+                        active={isActive(item.href)}
+                      >
+                        {item.icon}
+                      </SidebarItem>
+                    </li>
+                  ) : null
+                )}
             </ul>
           </nav>
         </div>
