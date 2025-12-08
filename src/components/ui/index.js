@@ -21,3 +21,4 @@ export * from './Badge';
 export * from './BadgeGroup';
 export * from './InfoCard';
 export * from './InfoCardGroup';
+export * from './SectionTitle';
