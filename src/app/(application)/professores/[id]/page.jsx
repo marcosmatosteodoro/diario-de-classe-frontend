@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
-import { STATUS_ERROR } from '@/constants/statusError';
 import { useFormater } from '@/hooks/useFormater';
 import { useProfessor } from '@/hooks/professores/useProfessor';
 import {
@@ -15,7 +14,7 @@ import {
   Loading,
   Section,
   Table,
-  Avatar,
+  Section1,
 } from '@/components';
 import { useAlunosList } from '@/hooks/alunos/useAlunosList';
 import { useAulasList } from '@/hooks/aulas/useAulasList';
@@ -73,15 +72,7 @@ export default function Professor() {
         <Section>
           <div>
             {/* Header: avatar + name/email */}
-            <div className="flex items-center gap-4 mb-3">
-              <Avatar text={`${professor.nome} ${professor.sobrenome}`} />
-              <div>
-                <div className="text-xl font-semibold">
-                  {professor.nome} {professor.sobrenome}
-                </div>
-                <div className="text-sm text-gray-600">{professor.email}</div>
-              </div>
-            </div>
+            <Section1 entity={professor} />
 
             {/* Stats badges */}
             <div className="flex flex-wrap gap-2 mb-4">
