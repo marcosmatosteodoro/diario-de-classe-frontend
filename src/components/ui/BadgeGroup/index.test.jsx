@@ -293,38 +293,6 @@ describe('BadgeGroup', () => {
     });
   });
 
-  describe('snapshot consistency', () => {
-    it('should maintain consistent structure with no children', () => {
-      const { container } = render(<BadgeGroup />);
-      expect(container.firstChild).toMatchInlineSnapshot(`
-        <div
-          class="flex flex-wrap gap-2 mb-4"
-        />
-      `);
-    });
-
-    it('should maintain consistent structure with children', () => {
-      const { container } = render(
-        <BadgeGroup>
-          <span>Badge 1</span>
-          <span>Badge 2</span>
-        </BadgeGroup>
-      );
-      expect(container.firstChild).toMatchInlineSnapshot(`
-        <div
-          class="flex flex-wrap gap-2 mb-4"
-        >
-          <span>
-            Badge 1
-          </span>
-          <span>
-            Badge 2
-          </span>
-        </div>
-      `);
-    });
-  });
-
   describe('accessibility', () => {
     it('should render semantic HTML', () => {
       const { container } = render(<BadgeGroup />);

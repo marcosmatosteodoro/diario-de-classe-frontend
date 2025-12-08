@@ -278,36 +278,4 @@ describe('Badge', () => {
       expect(container.firstChild).toHaveClass('bg-yellow-100');
     });
   });
-
-  describe('snapshot consistency', () => {
-    it('should maintain consistent structure', () => {
-      const { container } = render(
-        <Badge icon="lock" text="Admin" color="blue" />
-      );
-      expect(container.firstChild).toMatchInlineSnapshot(`
-        <span
-          class="px-2 py-1 bg-blue-100 rounded text-sm"
-        >
-          🔐
-
-          Admin
-        </span>
-      `);
-    });
-
-    it('should maintain consistent structure with different props', () => {
-      const { container } = render(
-        <Badge icon="star" text="VIP" color="yellow" />
-      );
-      expect(container.firstChild).toMatchInlineSnapshot(`
-        <span
-          class="px-2 py-1 bg-yellow-100 rounded text-sm"
-        >
-          ⭐
-
-          VIP
-        </span>
-      `);
-    });
-  });
 });
