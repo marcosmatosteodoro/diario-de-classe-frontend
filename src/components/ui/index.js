@@ -16,3 +16,4 @@ export * from './FormGroup';
 export * from './FormError';
 export * from './Loading';
 export * from './Section';
+export * from './Avatar';
