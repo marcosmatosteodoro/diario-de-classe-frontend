@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { notFound, useParams } from 'next/navigation';
 import { useFormater } from '@/hooks/useFormater';
 import { useProfessor } from '@/hooks/professores/useProfessor';
+import { useAlunosList } from '@/hooks/alunos/useAlunosList';
+import { useAulasList } from '@/hooks/aulas/useAulasList';
 import {
   Container,
   PageContent,
@@ -15,9 +17,9 @@ import {
   Section,
   Table,
   Section1,
+  Badge,
+  BadgeGroup,
 } from '@/components';
-import { useAlunosList } from '@/hooks/alunos/useAlunosList';
-import { useAulasList } from '@/hooks/aulas/useAulasList';
 
 export default function Professor() {
   const params = useParams();
@@ -44,6 +46,7 @@ export default function Professor() {
       return notFound();
     }
   }, [isNotFound]);
+
   if (isLoading || !professor) {
     return <Loading />;
   }
@@ -75,17 +78,15 @@ export default function Professor() {
             <Section1 entity={professor} />
 
             {/* Stats badges */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="px-2 py-1 bg-gray-100 rounded text-sm">
-                📅{' '}
-                {(professor.disponibilidades || []).filter(d => d.ativo).length}{' '}
-                aulas por semana
-              </span>
+            <BadgeGroup>
+              <Badge
+                icon="calendar"
+                color="gray"
+                text={`${(professor.disponibilidades || []).filter(d => d.ativo).length} aulas por semana`}
+              />
 
-              <span className="px-2 py-1 bg-blue-100 rounded text-sm">
-                🔐 {professor.permissao}
-              </span>
-            </div>
+              <Badge icon="lock" color="blue" text={professor.permissao} />
+            </BadgeGroup>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Contato */}
