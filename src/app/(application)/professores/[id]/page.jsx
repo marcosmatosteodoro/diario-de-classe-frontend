@@ -15,6 +15,7 @@ import {
   Loading,
   Section,
   Table,
+  Avatar,
 } from '@/components';
 import { useAlunosList } from '@/hooks/alunos/useAlunosList';
 import { useAulasList } from '@/hooks/aulas/useAulasList';
@@ -73,10 +74,7 @@ export default function Professor() {
           <div>
             {/* Header: avatar + name/email */}
             <div className="flex items-center gap-4 mb-3">
-              <div className="w-14 h-14 rounded-full bg-indigo-500 text-white flex items-center justify-center text-lg font-bold">
-                {professor.nome?.charAt(0) || '-'}
-                {professor.sobrenome?.charAt(0) || ''}
-              </div>
+              <Avatar text={`${professor.nome} ${professor.sobrenome}`} />
               <div>
                 <div className="text-xl font-semibold">
                   {professor.nome} {professor.sobrenome}

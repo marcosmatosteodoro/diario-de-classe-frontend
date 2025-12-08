@@ -36,11 +36,11 @@ export function useAulasList({ aulas, dataFormatter }) {
   ];
   const data = useMemo(() => {
     if (!aulas) return [];
-    return aulas.map(aula => ({
+    return aulas.map((aula, index) => ({
+      id: index + 1,
       dataCriacao: dataFormatter(aula.dataCriacao),
       horaFinal: aula.horaFinal,
       horaInicial: aula.horaInicial,
-      id: dataFormatter(aula.dataAula),
       status: aula.status,
       tipo: aula.tipo,
     }));

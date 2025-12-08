@@ -410,7 +410,8 @@ describe('Professor Page', () => {
 
     render(<Professor />);
 
-    const avatar = screen.getByText('-');
+    // O avatar gera 'NN' para 'null null' (primeira letra de cada palavra em uppercase)
+    const avatar = screen.getByText('NN');
     expect(avatar).toBeInTheDocument();
   });
 });
