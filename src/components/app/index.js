@@ -1,2 +1,2 @@
 export * from './form/ProfessorForm';
-export * from './details/Section1';
+export * from './details/HeaderAvatar';

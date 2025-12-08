@@ -1,6 +1,6 @@
 import { Avatar } from '@/components/ui';
 
-export const Section1 = ({ entity }) => {
+export const HeaderAvatar = ({ entity }) => {
   const nomeCompleto = `${entity.nome} ${entity.sobrenome}`;
   const { email } = entity;
   return (

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { Section1 } from './Section1';
+import { HeaderAvatar } from './HeaderAvatar';
 import { Avatar } from '@/components/ui';
 
 // Mock do componente Avatar
@@ -9,7 +9,7 @@ jest.mock('@/components/ui', () => ({
   )),
 }));
 
-describe('Section1', () => {
+describe('HeaderAvatar', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -26,7 +26,7 @@ describe('Section1', () => {
       email: 'joao.silva@example.com',
     };
 
-    render(<Section1 entity={entity} />);
+    render(<HeaderAvatar entity={entity} />);
 
     expect(getNameElement('João Silva')).toBeInTheDocument();
     expect(screen.getByText('joao.silva@example.com')).toBeInTheDocument();
@@ -39,7 +39,7 @@ describe('Section1', () => {
       email: 'maria@example.com',
     };
 
-    render(<Section1 entity={entity} />);
+    render(<HeaderAvatar entity={entity} />);
 
     expect(Avatar).toHaveBeenCalledWith(
       {
@@ -56,7 +56,7 @@ describe('Section1', () => {
       email: 'pedro@example.com',
     };
 
-    render(<Section1 entity={entity} />);
+    render(<HeaderAvatar entity={entity} />);
 
     const avatar = screen.getByTestId('avatar-mock');
     expect(avatar).toHaveAttribute('aria-label', 'Avatar for Pedro Costa');
@@ -69,7 +69,7 @@ describe('Section1', () => {
       email: 'ana@example.com',
     };
 
-    render(<Section1 entity={entity} />);
+    render(<HeaderAvatar entity={entity} />);
 
     const nameElement = getNameElement('Ana Oliveira');
     expect(nameElement).toHaveClass('text-xl');
@@ -83,7 +83,7 @@ describe('Section1', () => {
       email: 'carlos.lima@example.com',
     };
 
-    render(<Section1 entity={entity} />);
+    render(<HeaderAvatar entity={entity} />);
 
     const emailElement = screen.getByText('carlos.lima@example.com');
     expect(emailElement).toHaveClass('text-sm');
@@ -97,7 +97,7 @@ describe('Section1', () => {
       email: 'laura@example.com',
     };
 
-    const { container } = render(<Section1 entity={entity} />);
+    const { container } = render(<HeaderAvatar entity={entity} />);
 
     const wrapper = container.firstChild;
     expect(wrapper).toHaveClass('flex');
@@ -113,7 +113,7 @@ describe('Section1', () => {
       email: '',
     };
 
-    render(<Section1 entity={entity} />);
+    render(<HeaderAvatar entity={entity} />);
 
     // Verifica que o Avatar foi chamado com string vazia
     expect(Avatar).toHaveBeenCalledWith({ text: ' ' }, undefined);
@@ -130,7 +130,7 @@ describe('Section1', () => {
       email: 'roberto@example.com',
     };
 
-    render(<Section1 entity={entity} />);
+    render(<HeaderAvatar entity={entity} />);
 
     // Busca apenas no div com classe específica para evitar duplicação
     const nameElement = screen.getByText('Roberto Alves', {
@@ -153,7 +153,7 @@ describe('Section1', () => {
       email: 'fernanda@example.com',
     };
 
-    const { rerender } = render(<Section1 entity={entity1} />);
+    const { rerender } = render(<HeaderAvatar entity={entity1} />);
 
     expect(getNameElement('Fernanda Souza')).toBeInTheDocument();
     expect(screen.getByText('fernanda@example.com')).toBeInTheDocument();
@@ -164,7 +164,7 @@ describe('Section1', () => {
       email: 'gabriel@example.com',
     };
 
-    rerender(<Section1 entity={entity2} />);
+    rerender(<HeaderAvatar entity={entity2} />);
 
     expect(getNameElement('Gabriel Martins')).toBeInTheDocument();
     expect(screen.getByText('gabriel@example.com')).toBeInTheDocument();
@@ -178,7 +178,7 @@ describe('Section1', () => {
       email: 'thiago@example.com',
     };
 
-    render(<Section1 entity={entity} />);
+    render(<HeaderAvatar entity={entity} />);
 
     expect(Avatar).toHaveBeenCalledTimes(1);
   });
@@ -190,7 +190,7 @@ describe('Section1', () => {
       email: 'jose.goncalves@example.com',
     };
 
-    render(<Section1 entity={entity} />);
+    render(<HeaderAvatar entity={entity} />);
 
     expect(getNameElement('José Gonçalves')).toBeInTheDocument();
     expect(screen.getByText('jose.goncalves@example.com')).toBeInTheDocument();
@@ -203,7 +203,7 @@ describe('Section1', () => {
       email: 'beatriz+test@example.com',
     };
 
-    render(<Section1 entity={entity} />);
+    render(<HeaderAvatar entity={entity} />);
 
     expect(getNameElement('Beatriz Costa')).toBeInTheDocument();
     expect(screen.getByText('beatriz+test@example.com')).toBeInTheDocument();
@@ -216,7 +216,7 @@ describe('Section1', () => {
       email: 'ana.carolina@example.com',
     };
 
-    render(<Section1 entity={entity} />);
+    render(<HeaderAvatar entity={entity} />);
 
     expect(
       getNameElement('Ana Carolina Beatriz dos Santos Silva Oliveira')
@@ -230,7 +230,7 @@ describe('Section1', () => {
       email: 'rafael@example.com',
     };
 
-    const { container } = render(<Section1 entity={entity} />);
+    const { container } = render(<HeaderAvatar entity={entity} />);
 
     const wrapper = container.firstChild;
     expect(wrapper).toHaveClass('gap-4'); // Verifica o espaçamento
@@ -244,7 +244,7 @@ describe('Section1', () => {
         email: 'teste@example.com',
       };
 
-      render(<Section1 entity={entity} />);
+      render(<HeaderAvatar entity={entity} />);
 
       expect(getNameElement('Teste Nome')).toBeInTheDocument();
     });
@@ -256,7 +256,7 @@ describe('Section1', () => {
         email: 'teste@example.com',
       };
 
-      render(<Section1 entity={entity} />);
+      render(<HeaderAvatar entity={entity} />);
 
       expect(getNameElement('Teste Sobrenome')).toBeInTheDocument();
     });
@@ -268,7 +268,7 @@ describe('Section1', () => {
         email: 'teste.email@example.com',
       };
 
-      render(<Section1 entity={entity} />);
+      render(<HeaderAvatar entity={entity} />);
 
       expect(screen.getByText('teste.email@example.com')).toBeInTheDocument();
     });
@@ -282,7 +282,7 @@ describe('Section1', () => {
         email: 'mariana@example.com',
       };
 
-      const { container } = render(<Section1 entity={entity} />);
+      const { container } = render(<HeaderAvatar entity={entity} />);
 
       const wrapper = container.firstChild;
       expect(wrapper.className).toContain('flex');
@@ -298,7 +298,7 @@ describe('Section1', () => {
         email: 'lucas@example.com',
       };
 
-      render(<Section1 entity={entity} />);
+      render(<HeaderAvatar entity={entity} />);
 
       const nameElement = getNameElement('Lucas Rodrigues');
       expect(nameElement.className).toContain('text-xl');
@@ -312,7 +312,7 @@ describe('Section1', () => {
         email: 'camila@example.com',
       };
 
-      render(<Section1 entity={entity} />);
+      render(<HeaderAvatar entity={entity} />);
 
       const emailElement = screen.getByText('camila@example.com');
       expect(emailElement.className).toContain('text-sm');
