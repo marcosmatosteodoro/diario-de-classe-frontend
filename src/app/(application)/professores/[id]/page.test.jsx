@@ -1,10 +1,11 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { notFound, useParams } from 'next/navigation';
 import Professor from './page';
 import { useProfessor } from '@/hooks/professores/useProfessor';
 import { useFormater } from '@/hooks/useFormater';
 import { useAlunosList } from '@/hooks/alunos/useAlunosList';
 import { useAulasList } from '@/hooks/aulas/useAulasList';
+import { useEditarDisponibilidadeProfessor } from '@/hooks/professores/useEditarDisponibilidadeProfessor';
 
 // Mocks
 jest.mock('next/navigation', () => ({
@@ -16,6 +17,7 @@ jest.mock('@/hooks/professores/useProfessor');
 jest.mock('@/hooks/useFormater');
 jest.mock('@/hooks/alunos/useAlunosList');
 jest.mock('@/hooks/aulas/useAulasList');
+jest.mock('@/hooks/professores/useEditarDisponibilidadeProfessor');
 
 describe('Professor Page', () => {
   const mockProfessor = {
@@ -68,6 +70,19 @@ describe('Professor Page', () => {
 
     useAlunosList.mockReturnValue(mockAlunosListData);
     useAulasList.mockReturnValue(mockAulasListData);
+
+    useEditarDisponibilidadeProfessor.mockReturnValue({
+      editMode: false,
+      formData: {},
+      message: '',
+      errors: [],
+      setDisponibilidadesHandle: jest.fn(),
+      handleChange: jest.fn(),
+      handleCheckboxChange: jest.fn(),
+      handleSubmit: jest.fn(),
+      setEditMode: jest.fn(),
+      isLoading: false,
+    });
   });
 
   it('should render loading state when isLoading is true', () => {
@@ -413,5 +428,346 @@ describe('Professor Page', () => {
     // O avatar gera 'NN' para 'null null' (primeira letra de cada palavra em uppercase)
     const avatar = screen.getByText('NN');
     expect(avatar).toBeInTheDocument();
+  });
+
+  describe('Edit Disponibilidade Mode', () => {
+    it('should render edit disponibilidade button', () => {
+      useProfessor.mockReturnValue({
+        professor: mockProfessor,
+        aulas: [],
+        alunos: [],
+        isLoading: false,
+        isNotFound: false,
+      });
+
+      render(<Professor />);
+
+      const editDispButton = screen.getByRole('button', {
+        name: /editar disponibilidade/i,
+      });
+      expect(editDispButton).toBeInTheDocument();
+    });
+
+    it('should call setEditMode(true) when edit disponibilidade button is clicked', () => {
+      const mockSetEditMode = jest.fn();
+      useEditarDisponibilidadeProfessor.mockReturnValue({
+        editMode: false,
+        formData: {},
+        message: '',
+        errors: [],
+        setDisponibilidadesHandle: jest.fn(),
+        handleChange: jest.fn(),
+        handleCheckboxChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        setEditMode: mockSetEditMode,
+        isLoading: false,
+      });
+
+      useProfessor.mockReturnValue({
+        professor: mockProfessor,
+        aulas: [],
+        alunos: [],
+        isLoading: false,
+        isNotFound: false,
+      });
+
+      render(<Professor />);
+
+      const editDispButton = screen.getByRole('button', {
+        name: /editar disponibilidade/i,
+      });
+      fireEvent.click(editDispButton);
+
+      expect(mockSetEditMode).toHaveBeenCalledWith(true);
+    });
+
+    it('should render edit mode with correct title and subtitle', () => {
+      useEditarDisponibilidadeProfessor.mockReturnValue({
+        editMode: true,
+        formData: {},
+        message: '',
+        errors: [],
+        setDisponibilidadesHandle: jest.fn(),
+        handleChange: jest.fn(),
+        handleCheckboxChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        setEditMode: jest.fn(),
+        isLoading: false,
+      });
+
+      useProfessor.mockReturnValue({
+        professor: mockProfessor,
+        aulas: [],
+        alunos: [],
+        isLoading: false,
+        isNotFound: false,
+      });
+
+      render(<Professor />);
+
+      expect(screen.getByText('Editar Disponibilidade')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Atualize os dados da disponibilidade para dar aula do professor'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('should not render professor details in edit mode', () => {
+      useEditarDisponibilidadeProfessor.mockReturnValue({
+        editMode: true,
+        formData: {},
+        message: '',
+        errors: [],
+        setDisponibilidadesHandle: jest.fn(),
+        handleChange: jest.fn(),
+        handleCheckboxChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        setEditMode: jest.fn(),
+        isLoading: false,
+      });
+
+      useProfessor.mockReturnValue({
+        professor: mockProfessor,
+        aulas: [],
+        alunos: [],
+        isLoading: false,
+        isNotFound: false,
+      });
+
+      render(<Professor />);
+
+      expect(
+        screen.queryByText('Detalhes do professor')
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Contato')).not.toBeInTheDocument();
+      expect(screen.queryByText('Acesso')).not.toBeInTheDocument();
+    });
+
+    it('should render back button in edit mode', () => {
+      useEditarDisponibilidadeProfessor.mockReturnValue({
+        editMode: true,
+        formData: {},
+        message: '',
+        errors: [],
+        setDisponibilidadesHandle: jest.fn(),
+        handleChange: jest.fn(),
+        handleCheckboxChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        setEditMode: jest.fn(),
+        isLoading: false,
+      });
+
+      useProfessor.mockReturnValue({
+        professor: mockProfessor,
+        aulas: [],
+        alunos: [],
+        isLoading: false,
+        isNotFound: false,
+      });
+
+      render(<Professor />);
+
+      const backButton = screen.getByRole('button', { name: /← voltar/i });
+      expect(backButton).toBeInTheDocument();
+    });
+
+    it('should call setEditMode(false) when back button is clicked in edit mode', () => {
+      const mockSetEditMode = jest.fn();
+      useEditarDisponibilidadeProfessor.mockReturnValue({
+        editMode: true,
+        formData: {},
+        message: '',
+        errors: [],
+        setDisponibilidadesHandle: jest.fn(),
+        handleChange: jest.fn(),
+        handleCheckboxChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        setEditMode: mockSetEditMode,
+        isLoading: false,
+      });
+
+      useProfessor.mockReturnValue({
+        professor: mockProfessor,
+        aulas: [],
+        alunos: [],
+        isLoading: false,
+        isNotFound: false,
+      });
+
+      render(<Professor />);
+
+      const backButton = screen.getByRole('button', { name: /← voltar/i });
+      fireEvent.click(backButton);
+
+      expect(mockSetEditMode).toHaveBeenCalledWith(false);
+    });
+
+    it('should render DisponibilidadeForm in edit mode', () => {
+      useEditarDisponibilidadeProfessor.mockReturnValue({
+        editMode: true,
+        formData: {},
+        message: '',
+        errors: [],
+        setDisponibilidadesHandle: jest.fn(),
+        handleChange: jest.fn(),
+        handleCheckboxChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        setEditMode: jest.fn(),
+        isLoading: false,
+      });
+
+      useProfessor.mockReturnValue({
+        professor: mockProfessor,
+        aulas: [],
+        alunos: [],
+        isLoading: false,
+        isNotFound: false,
+      });
+
+      render(<Professor />);
+
+      expect(screen.getByTestId('disponibilidade-form')).toBeInTheDocument();
+    });
+
+    it('should pass correct props to DisponibilidadeForm', () => {
+      const mockHandleSubmit = jest.fn();
+      const mockHandleChange = jest.fn();
+      const mockHandleCheckboxChange = jest.fn();
+      const mockSetEditMode = jest.fn();
+      const mockFormData = { SEGUNDA: { ativo: true } };
+
+      useEditarDisponibilidadeProfessor.mockReturnValue({
+        editMode: true,
+        formData: mockFormData,
+        message: 'Erro teste',
+        errors: ['Erro 1'],
+        setDisponibilidadesHandle: jest.fn(),
+        handleChange: mockHandleChange,
+        handleCheckboxChange: mockHandleCheckboxChange,
+        handleSubmit: mockHandleSubmit,
+        setEditMode: mockSetEditMode,
+        isLoading: true,
+      });
+
+      useProfessor.mockReturnValue({
+        professor: mockProfessor,
+        aulas: [],
+        alunos: [],
+        isLoading: false,
+        isNotFound: false,
+      });
+
+      render(<Professor />);
+
+      const form = screen.getByTestId('disponibilidade-form');
+      expect(form).toBeInTheDocument();
+    });
+  });
+
+  describe('setDisponibilidadesHandle effect', () => {
+    it('should call setDisponibilidadesHandle when professor has disponibilidades', () => {
+      const mockSetDisponibilidades = jest.fn();
+      useEditarDisponibilidadeProfessor.mockReturnValue({
+        editMode: false,
+        formData: {},
+        message: '',
+        errors: [],
+        setDisponibilidadesHandle: mockSetDisponibilidades,
+        handleChange: jest.fn(),
+        handleCheckboxChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        setEditMode: jest.fn(),
+        isLoading: false,
+      });
+
+      useProfessor.mockReturnValue({
+        professor: mockProfessor,
+        aulas: [],
+        alunos: [],
+        isLoading: false,
+        isNotFound: false,
+      });
+
+      render(<Professor />);
+
+      expect(mockSetDisponibilidades).toHaveBeenCalledWith(
+        mockProfessor.disponibilidades
+      );
+    });
+
+    it('should not call setDisponibilidadesHandle when professor has no disponibilidades', () => {
+      const mockSetDisponibilidades = jest.fn();
+      useEditarDisponibilidadeProfessor.mockReturnValue({
+        editMode: false,
+        formData: {},
+        message: '',
+        errors: [],
+        setDisponibilidadesHandle: mockSetDisponibilidades,
+        handleChange: jest.fn(),
+        handleCheckboxChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        setEditMode: jest.fn(),
+        isLoading: false,
+      });
+
+      useProfessor.mockReturnValue({
+        professor: { ...mockProfessor, disponibilidades: [] },
+        aulas: [],
+        alunos: [],
+        isLoading: false,
+        isNotFound: false,
+      });
+
+      render(<Professor />);
+
+      expect(mockSetDisponibilidades).not.toHaveBeenCalled();
+    });
+
+    it('should not call setDisponibilidadesHandle when professor is null', () => {
+      const mockSetDisponibilidades = jest.fn();
+      useEditarDisponibilidadeProfessor.mockReturnValue({
+        editMode: false,
+        formData: {},
+        message: '',
+        errors: [],
+        setDisponibilidadesHandle: mockSetDisponibilidades,
+        handleChange: jest.fn(),
+        handleCheckboxChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        setEditMode: jest.fn(),
+        isLoading: false,
+      });
+
+      useProfessor.mockReturnValue({
+        professor: null,
+        aulas: [],
+        alunos: [],
+        isLoading: false,
+        isNotFound: false,
+      });
+
+      render(<Professor />);
+
+      expect(mockSetDisponibilidades).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('useEditarDisponibilidadeProfessor hook', () => {
+    it('should call useEditarDisponibilidadeProfessor with professor', () => {
+      useProfessor.mockReturnValue({
+        professor: mockProfessor,
+        aulas: [],
+        alunos: [],
+        isLoading: false,
+        isNotFound: false,
+      });
+
+      render(<Professor />);
+
+      expect(useEditarDisponibilidadeProfessor).toHaveBeenCalledWith(
+        mockProfessor
+      );
+    });
   });
 });

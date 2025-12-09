@@ -18,7 +18,10 @@ export const DisponibilidadeForm = ({
   setEditMode,
 }) => {
   return (
-    <Form handleSubmit={handleSubmit}>
+    <Form
+      handleSubmit={handleSubmit}
+      props={{ 'data-testid': 'disponibilidade-form' }}
+    >
       <FormError title={message} errors={errors} />
       {Object.keys(formData).map(diaSemana => (
         <div key={diaSemana} className="mb-4">

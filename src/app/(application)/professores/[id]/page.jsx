@@ -7,6 +7,7 @@ import { useFormater } from '@/hooks/useFormater';
 import { useProfessor } from '@/hooks/professores/useProfessor';
 import { useAlunosList } from '@/hooks/alunos/useAlunosList';
 import { useAulasList } from '@/hooks/aulas/useAulasList';
+import { useEditarDisponibilidadeProfessor } from '@/hooks/professores/useEditarDisponibilidadeProfessor';
 import {
   Container,
   PageContent,
@@ -23,6 +24,7 @@ import {
   InfoCardGroup,
   SectionTitle,
   BlockQuoteInfo,
+  DisponibilidadeForm,
 } from '@/components';
 
 export default function Professor() {
@@ -45,6 +47,29 @@ export default function Professor() {
     dataFormatter,
   });
 
+  const {
+    editMode,
+    formData,
+    message,
+    errors,
+    setDisponibilidadesHandle,
+    handleChange,
+    handleCheckboxChange,
+    handleSubmit,
+    setEditMode,
+  } = useEditarDisponibilidadeProfessor(professor);
+
+  useEffect(() => {
+    if (
+      professor &&
+      professor.disponibilidades &&
+      professor.disponibilidades.length > 0
+    ) {
+      setDisponibilidadesHandle(professor.disponibilidades);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [professor]);
+
   useEffect(() => {
     if (isNotFound) {
       return notFound();
@@ -53,6 +78,39 @@ export default function Professor() {
 
   if (isLoading || !professor) {
     return <Loading />;
+  }
+
+  if (editMode) {
+    return (
+      <Container>
+        <PageContent>
+          <PageTitle>Editar Disponibilidade</PageTitle>
+
+          <PageSubTitle>
+            Atualize os dados da disponibilidade para dar aula do professor
+          </PageSubTitle>
+        </PageContent>
+        <ButtonGroup>
+          <button
+            onClick={() => setEditMode(false)}
+            className="btn btn-secondary"
+          >
+            ← Voltar
+          </button>
+        </ButtonGroup>
+
+        <DisponibilidadeForm
+          handleSubmit={handleSubmit}
+          message={message}
+          errors={errors}
+          formData={formData}
+          handleCheckboxChange={handleCheckboxChange}
+          handleChange={handleChange}
+          isLoading={isLoading}
+          setEditMode={setEditMode}
+        />
+      </Container>
+    );
   }
 
   return (
@@ -73,6 +131,9 @@ export default function Professor() {
         >
           Editar
         </Link>
+        <button onClick={() => setEditMode(true)} className="btn btn-primary">
+          Editar Disponibilidade
+        </button>
       </ButtonGroup>
 
       <div className="mt-4 space-y-8">
