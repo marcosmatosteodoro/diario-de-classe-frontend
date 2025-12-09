@@ -1,44 +1,114 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useRouter } from 'next/navigation';
 import { STATUS } from '@/constants';
 import { useToast } from '@/providers/ToastProvider';
 import { updateDisponibilidadeProfessor } from '@/store/slices/professoresSlice';
-import { clearStatus, clearCurrent } from '@/store/slices/professoresSlice';
+import { clearStatus } from '@/store/slices/professoresSlice';
 
-export function useEditarDisponibilidadeProfessor(professorId) {
+export function useEditarDisponibilidadeProfessor(professor) {
   const dispatch = useDispatch();
-  const router = useRouter();
   const { success } = useToast();
   const { status, message, errors, action } = useSelector(
     state => state.professores
   );
+  const dias = [
+    'SEGUNDA',
+    'TERCA',
+    'QUARTA',
+    'QUINTA',
+    'SEXTA',
+    'SABADO',
+    'DOMINGO',
+  ];
+  const isLoading = status === STATUS.LOADING;
+  const [editMode, setEditMode] = useState(false);
+  const [formData, setFormData] = useState(() => {
+    const disponibilidadesMap = {};
+    dias.forEach(dia => {
+      disponibilidadesMap[dia] = {
+        id: null,
+        diaSemana: dia,
+        horaInicial: null,
+        horaFinal: null,
+        ativo: null,
+        userId: null,
+      };
+    });
+    return disponibilidadesMap;
+  });
+
+  const setDisponibilidadesHandle = disponibilidades => {
+    const disponibilidadesMap = {};
+
+    dias.forEach(dia => {
+      const disponibilidade =
+        disponibilidades.find(disp => disp.diaSemana === dia) || {};
+
+      disponibilidadesMap[dia] = {
+        id: disponibilidade.id,
+        diaSemana: dia,
+        horaInicial: disponibilidade.horaInicial,
+        horaFinal: disponibilidade.horaFinal,
+        ativo: disponibilidade.ativo,
+        userId: disponibilidade.userId,
+      };
+    });
+
+    setFormData(disponibilidadesMap);
+  };
+
+  const changeForm = (name, value) => {
+    const array = name.split('.');
+    setFormData(prev => ({
+      ...prev,
+      [array[0]]: {
+        ...prev[array[0]],
+        [array[1]]: value,
+      },
+    }));
+  };
+
+  const handleChange = e => {
+    const { name, value } = e.target;
+    changeForm(name, value);
+  };
+
+  const handleCheckboxChange = e => {
+    const { name, checked } = e.target;
+    changeForm(name, checked);
+  };
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    const id = professor.id;
+    const dataToSend = Object.values(formData);
+    dispatch(updateDisponibilidadeProfessor({ id: id, data: dataToSend }));
+  };
 
   useEffect(() => {
     if (
       status === STATUS.SUCCESS &&
       action === 'updateDisponibilidadeProfessor'
     ) {
-      dispatch(clearCurrent());
       dispatch(clearStatus());
       success('Operação realizada com sucesso!');
-      router.push(`/professores/${professorId}`);
+      queueMicrotask(() => {
+        setEditMode(false);
+      });
     }
-  }, [status, router, success, action, professorId, dispatch]);
-
-  const submit = ({ id, dataToSend }) => {
-    dispatch(updateDisponibilidadeProfessor({ id: id, data: dataToSend }));
-  };
-
-  // Estados computados para facilitar o uso
-  const isLoading = status === STATUS.LOADING;
-  const isSubmitting = status === STATUS.IDLE || status === STATUS.LOADING;
+  }, [status, success, action, dispatch]);
 
   return {
     message,
     errors,
     isLoading,
-    isSubmitting,
-    submit,
+    editMode,
+    formData,
+    setDisponibilidadesHandle,
+    setEditMode,
+    setFormData,
+    handleChange,
+    handleCheckboxChange,
+    handleSubmit,
   };
 }
