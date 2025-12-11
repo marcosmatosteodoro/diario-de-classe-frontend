@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { ProfessorForm } from './ProfessorForm';
+import { ProfessorForm } from '.';
 import { PERMISSAO } from '@/constants';
 
 // Mock dos componentes

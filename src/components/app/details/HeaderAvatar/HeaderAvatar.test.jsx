@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { HeaderAvatar } from './HeaderAvatar';
+import { HeaderAvatar } from '.';
 import { Avatar } from '@/components/ui';
 
 // Mock do componente Avatar
