@@ -17,9 +17,15 @@ import {
 
 export default function Aluno() {
   const params = useParams();
-  const { aluno, aulas, diasAulas, contrato, isLoading, isNotFound } = useAluno(
-    params.id
-  );
+  const {
+    aluno,
+    aulas,
+    diasAulas,
+    contrato,
+    contratos,
+    isLoading,
+    isNotFound,
+  } = useAluno(params.id);
   const { telefoneFormatter, dataFormatter } = useFormater();
 
   useEffect(() => {

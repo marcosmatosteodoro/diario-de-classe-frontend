@@ -20,4 +20,8 @@ export class AlunoApi extends AbstractEntityApi {
   async getContratoByAluno(id) {
     return this.get(`${this.baseEndpoint}/${id}/contrato`);
   }
+
+  async getContratosByAluno(id) {
+    return this.get(`${this.baseEndpoint}/${id}/contratos`);
+  }
 }

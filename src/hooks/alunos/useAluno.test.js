@@ -7,6 +7,7 @@ import {
   getAulasAluno,
   getDiasAulasAluno,
   getContratoAluno,
+  getContratosAluno,
 } from '@/store/slices/alunosSlice';
 import { STATUS } from '@/constants';
 
@@ -16,6 +17,7 @@ jest.mock('@/store/slices/alunosSlice', () => ({
   getAulasAluno: jest.fn(),
   getDiasAulasAluno: jest.fn(),
   getContratoAluno: jest.fn(),
+  getContratosAluno: jest.fn(),
 }));
 
 jest.mock('@/constants', () => ({
@@ -79,6 +81,11 @@ describe('useAluno', () => {
       payload: id,
     }));
 
+    getContratosAluno.mockImplementation(id => ({
+      type: 'alunos/getContratosAluno',
+      payload: id,
+    }));
+
     mockDispatch = jest.fn();
   });
 
@@ -88,6 +95,7 @@ describe('useAluno', () => {
       aulas: [],
       diasAulas: [],
       contrato: null,
+      contratos: [],
       message: 'ok',
       status: STATUS.IDLE,
       statusError: null,
@@ -105,12 +113,13 @@ describe('useAluno', () => {
     });
   });
 
-  it('dispatches all four actions when id and current are provided', () => {
+  it('dispatches all five actions when id and current are provided', () => {
     const initialState = {
       current: { id: 123, nome: 'João', sobrenome: 'Silva' },
       aulas: [],
       diasAulas: [],
       contrato: null,
+      contratos: [],
       message: '',
       status: STATUS.IDLE,
       statusError: null,
@@ -122,7 +131,7 @@ describe('useAluno', () => {
     const wrapper = createWrapper(store);
     renderHook(() => useAluno(123), { wrapper });
 
-    expect(mockDispatch).toHaveBeenCalledTimes(4);
+    expect(mockDispatch).toHaveBeenCalledTimes(5);
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'alunos/getAluno',
       payload: 123,
@@ -137,6 +146,10 @@ describe('useAluno', () => {
     });
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'alunos/getContratoAluno',
+      payload: 123,
+    });
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'alunos/getContratosAluno',
       payload: 123,
     });
   });
@@ -158,6 +171,7 @@ describe('useAluno', () => {
       aulas: [{ id: 1, titulo: 'Aula 1' }],
       diasAulas: [{ dia: 'Segunda', horario: '08:00' }],
       contrato: { id: 1, numero: 'CONT-001' },
+      contratos: [{ id: 1, numero: 'CONT-001' }],
       message: 'all good',
       status: STATUS.IDLE,
       statusError: null,
@@ -174,6 +188,7 @@ describe('useAluno', () => {
       aulas: initialState.aulas,
       diasAulas: initialState.diasAulas,
       contrato: initialState.contrato,
+      contratos: initialState.contratos,
       message: initialState.message,
       isLoading: true,
       isSuccess: false,
@@ -188,6 +203,7 @@ describe('useAluno', () => {
       aulas: [],
       diasAulas: [],
       contrato: null,
+      contratos: [],
       message: '',
       status: STATUS.LOADING,
       statusError: null,
@@ -216,6 +232,10 @@ describe('useAluno', () => {
         { dia: 'Quarta', horario: '10:00' },
       ],
       contrato: { id: 10, numero: 'CONT-010', valor: 1500 },
+      contratos: [
+        { id: 10, numero: 'CONT-010', valor: 1500 },
+        { id: 9, numero: 'CONT-009', valor: 1200 },
+      ],
       message: 'success',
       status: STATUS.SUCCESS,
       statusError: null,
@@ -233,6 +253,7 @@ describe('useAluno', () => {
     expect(result.current.aulas).toHaveLength(2);
     expect(result.current.diasAulas).toHaveLength(2);
     expect(result.current.contrato).toEqual(initialState.contrato);
+    expect(result.current.contratos).toHaveLength(2);
   });
 
   it('returns correct flags for FAILED status', () => {
@@ -241,6 +262,7 @@ describe('useAluno', () => {
       aulas: [],
       diasAulas: [],
       contrato: null,
+      contratos: [],
       message: 'error message',
       status: STATUS.FAILED,
       statusError: '404',
@@ -263,6 +285,7 @@ describe('useAluno', () => {
       aulas: [],
       diasAulas: [],
       contrato: null,
+      contratos: [],
       message: 'Not found',
       status: STATUS.FAILED,
       statusError: '404',
@@ -297,6 +320,7 @@ describe('useAluno', () => {
       aulas: [],
       diasAulas: [],
       contrato: null,
+      contratos: [],
       message: '',
       status: STATUS.SUCCESS,
       statusError: null,
@@ -324,6 +348,10 @@ describe('useAluno', () => {
       type: 'alunos/getContratoAluno',
       payload: 'abc123',
     });
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'alunos/getContratosAluno',
+      payload: 'abc123',
+    });
   });
 
   it('should return empty arrays and null contrato when data is not loaded', () => {
@@ -332,6 +360,7 @@ describe('useAluno', () => {
       aulas: [],
       diasAulas: [],
       contrato: null,
+      contratos: [],
       message: '',
       status: STATUS.SUCCESS,
       statusError: null,
@@ -346,6 +375,7 @@ describe('useAluno', () => {
     expect(result.current.aulas).toEqual([]);
     expect(result.current.diasAulas).toEqual([]);
     expect(result.current.contrato).toBeNull();
+    expect(result.current.contratos).toEqual([]);
   });
 
   it('should return populated aulas array when available', () => {
@@ -359,6 +389,7 @@ describe('useAluno', () => {
       aulas: mockAulas,
       diasAulas: [],
       contrato: null,
+      contratos: [],
       message: '',
       status: STATUS.SUCCESS,
       statusError: null,
@@ -386,6 +417,7 @@ describe('useAluno', () => {
       aulas: [],
       diasAulas: mockDiasAulas,
       contrato: null,
+      contratos: [],
       message: '',
       status: STATUS.SUCCESS,
       statusError: null,
@@ -416,6 +448,7 @@ describe('useAluno', () => {
       aulas: [],
       diasAulas: [],
       contrato: mockContrato,
+      contratos: [],
       message: '',
       status: STATUS.SUCCESS,
       statusError: null,
@@ -431,17 +464,62 @@ describe('useAluno', () => {
     expect(result.current.contrato.numero).toBe('CONT-2024-001');
   });
 
+  it('should return contratos array when available', () => {
+    const mockContratos = [
+      {
+        id: 1,
+        numero: 'CONT-2024-001',
+        dataInicio: '2024-01-01',
+        dataFim: '2024-12-31',
+        valor: 2000.0,
+        status: 'ativo',
+      },
+      {
+        id: 2,
+        numero: 'CONT-2023-002',
+        dataInicio: '2023-01-01',
+        dataFim: '2023-12-31',
+        valor: 1500.0,
+        status: 'finalizado',
+      },
+    ];
+
+    const initialState = {
+      current: { id: 1, nome: 'João' },
+      aulas: [],
+      diasAulas: [],
+      contrato: mockContratos[0],
+      contratos: mockContratos,
+      message: '',
+      status: STATUS.SUCCESS,
+      statusError: null,
+    };
+
+    const store = createMockStore(initialState);
+    store.dispatch = mockDispatch;
+
+    const wrapper = createWrapper(store);
+    const { result } = renderHook(() => useAluno(1), { wrapper });
+
+    expect(result.current.contratos).toEqual(mockContratos);
+    expect(result.current.contratos).toHaveLength(2);
+    expect(result.current.contratos[0].numero).toBe('CONT-2024-001');
+    expect(result.current.contratos[1].status).toBe('finalizado');
+  });
+
   it('should return all data populated when fully loaded', () => {
     const mockAluno = { id: 1, nome: 'João', sobrenome: 'Silva' };
     const mockAulas = [{ id: 1, titulo: 'Aula 1' }];
     const mockDiasAulas = [{ dia: 'Segunda', horario: '08:00' }];
     const mockContrato = { id: 1, numero: 'CONT-001' };
+    const mockContratos = [{ id: 1, numero: 'CONT-001' }];
 
     const initialState = {
       current: mockAluno,
       aulas: mockAulas,
       diasAulas: mockDiasAulas,
       contrato: mockContrato,
+      contratos: mockContratos,
       message: 'Loaded successfully',
       status: STATUS.SUCCESS,
       statusError: null,
@@ -457,6 +535,7 @@ describe('useAluno', () => {
     expect(result.current.aulas).toEqual(mockAulas);
     expect(result.current.diasAulas).toEqual(mockDiasAulas);
     expect(result.current.contrato).toEqual(mockContrato);
+    expect(result.current.contratos).toEqual(mockContratos);
     expect(result.current.message).toBe('Loaded successfully');
     expect(result.current.isSuccess).toBe(true);
   });
@@ -467,6 +546,7 @@ describe('useAluno', () => {
       aulas: [],
       diasAulas: [],
       contrato: null,
+      contratos: [],
       message: 'Not found',
       status: STATUS.FAILED,
       statusError: '404',
@@ -488,6 +568,7 @@ describe('useAluno', () => {
       aulas: [],
       diasAulas: [],
       contrato: null,
+      contratos: [],
       message: 'Bad request',
       status: STATUS.FAILED,
       statusError: '400',
@@ -509,6 +590,7 @@ describe('useAluno', () => {
       aulas: [],
       diasAulas: [],
       contrato: null,
+      contratos: [],
       message: 'Some error',
       status: STATUS.FAILED,
       statusError: '404',

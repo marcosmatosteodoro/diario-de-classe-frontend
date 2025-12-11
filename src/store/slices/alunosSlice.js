@@ -10,6 +10,7 @@ import { DeleteAlunoService } from '@/services/aluno/deleteAlunoService';
 import { GetAulasByAlunoService } from '@/services/aluno/getAulasByAlunoService';
 import { GetDiasAulasByAlunoService } from '@/services/aluno/getDiasAulasByAlunoService';
 import { GetContratoByAlunoService } from '@/services/aluno/getContratoByAlunoService';
+import { GetContratosByAlunoService } from '@/services/aluno/getContratosByAlunoService';
 
 // GET ALL
 export const getAlunos = createAsyncThunk(
@@ -175,6 +176,26 @@ export const getContratoAluno = createAsyncThunk(
   }
 );
 
+// GET CONTRATOS
+export const getContratosAluno = createAsyncThunk(
+  'alunos/getContratos',
+  async (id, { rejectWithValue }) => {
+    try {
+      const res = await GetContratosByAlunoService.handle(id);
+      return res.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao buscar contratos do aluno';
+      return rejectWithValue({
+        message: errorMessage,
+        statusError: error.response?.status,
+      });
+    }
+  }
+);
+
 const alunosSlice = createSlice({
   name: 'alunos',
   initialState: {
@@ -182,6 +203,7 @@ const alunosSlice = createSlice({
     current: null,
     aulas: [],
     diasAulas: [],
+    contratos: [],
     contrato: null,
     status: STATUS.IDLE,
     statusError: null,
@@ -373,6 +395,25 @@ const alunosSlice = createSlice({
         state.status = STATUS.FAILED;
         state.errors = action.error;
         state.message = action.payload?.message || 'Erro ao buscar contrato';
+        state.statusError = action.payload?.statusError;
+      })
+      //getContratosAluno
+      .addCase(getContratosAluno.pending, state => {
+        state.status = STATUS.LOADING;
+        state.errors = [];
+        state.message = null;
+        state.contratos = [];
+        state.statusError = null;
+        state.action = 'getContratosAluno';
+      })
+      .addCase(getContratosAluno.fulfilled, (state, action) => {
+        state.status = STATUS.SUCCESS;
+        state.contratos = action.payload || [];
+      })
+      .addCase(getContratosAluno.rejected, (state, action) => {
+        state.status = STATUS.FAILED;
+        state.errors = action.error;
+        state.message = action.payload?.message || 'Erro ao buscar contratos';
         state.statusError = action.payload?.statusError;
       });
   },

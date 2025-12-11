@@ -61,4 +61,10 @@ describe('AlunoApi', () => {
     await api.getContratoByAluno(3);
     expect(api.get).toHaveBeenCalledWith('/alunos/3/contrato');
   });
+
+  it('should call getContratosByAluno with correct endpoint', async () => {
+    api.get = jest.fn();
+    await api.getContratosByAluno(4);
+    expect(api.get).toHaveBeenCalledWith('/alunos/4/contratos');
+  });
 });
