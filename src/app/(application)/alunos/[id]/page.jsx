@@ -47,15 +47,6 @@ export default function Aluno() {
         <Link href={`/alunos/${params.id}/editar`} className="btn btn-primary">
           Editar
         </Link>
-
-        {!isLoading && (
-          <Link
-            href={`/alunos/${params.id}/contrato`}
-            className="btn btn-primary"
-          >
-            {contrato ? 'Editar contrato' : 'Gerar contrato'}
-          </Link>
-        )}
       </ButtonGroup>
 
       <div className="mt-4 space-y-8">
