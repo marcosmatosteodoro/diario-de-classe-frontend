@@ -1,0 +1,326 @@
+import { ContratoApi } from './contratoApi';
+
+describe('ContratoApi', () => {
+  let api;
+
+  beforeEach(() => {
+    api = new ContratoApi();
+  });
+
+  it('should create an instance of ContratoApi', () => {
+    expect(api).toBeInstanceOf(ContratoApi);
+  });
+
+  it('should inherit from AbstractEntityApi', () => {
+    expect(api.get).toBeDefined();
+    expect(api.post).toBeDefined();
+    expect(api.put).toBeDefined();
+    expect(api.destroy).toBeDefined();
+  });
+
+  it('should have getAll method', () => {
+    expect(api.getAll).toBeDefined();
+    expect(typeof api.getAll).toBe('function');
+  });
+
+  it('should have getById method', () => {
+    expect(api.getById).toBeDefined();
+    expect(typeof api.getById).toBe('function');
+  });
+
+  it('should have create method', () => {
+    expect(api.create).toBeDefined();
+    expect(typeof api.create).toBe('function');
+  });
+
+  it('should have update method', () => {
+    expect(api.update).toBeDefined();
+    expect(typeof api.update).toBe('function');
+  });
+
+  it('should have delete method', () => {
+    expect(api.delete).toBeDefined();
+    expect(typeof api.delete).toBe('function');
+  });
+
+  it('should call getAll with correct params', async () => {
+    const params = { page: 1, limit: 10 };
+    api.get = jest.fn().mockResolvedValue({ data: [] });
+
+    await api.getAll(params);
+
+    expect(api.get).toHaveBeenCalledWith(api.baseEndpoint, params);
+  });
+
+  it('should call getById with correct id', async () => {
+    const testId = 123;
+    api.get = jest.fn().mockResolvedValue({ data: { id: testId } });
+
+    await api.getById(testId);
+
+    expect(api.get).toHaveBeenCalledWith(`${api.baseEndpoint}/${testId}`);
+  });
+
+  it('should call create with correct data', async () => {
+    const testData = {
+      numero: 'CONT-001',
+      dataInicio: '2024-01-01',
+      dataFim: '2024-12-31',
+      valor: 1000,
+    };
+    api.post = jest.fn().mockResolvedValue({ data: testData });
+
+    await api.create(testData);
+
+    expect(api.post).toHaveBeenCalledWith(api.baseEndpoint, testData);
+  });
+
+  it('should call update with correct id and data', async () => {
+    const testId = 456;
+    const testData = {
+      numero: 'CONT-002',
+      valor: 2000,
+    };
+    api.put = jest.fn().mockResolvedValue({ data: testData });
+
+    await api.update(testId, testData);
+
+    expect(api.put).toHaveBeenCalledWith(
+      `${api.baseEndpoint}/${testId}`,
+      testData
+    );
+  });
+
+  it('should call delete with correct id', async () => {
+    const testId = 789;
+    api.destroy = jest.fn().mockResolvedValue({ success: true });
+
+    await api.delete(testId);
+
+    expect(api.destroy).toHaveBeenCalledWith(`${api.baseEndpoint}/${testId}`);
+  });
+
+  it('should handle getAll with empty params', async () => {
+    api.get = jest.fn().mockResolvedValue({ data: [] });
+
+    await api.getAll();
+
+    expect(api.get).toHaveBeenCalled();
+  });
+
+  it('should handle getById with string id', async () => {
+    const testId = 'abc123';
+    api.get = jest.fn().mockResolvedValue({ data: { id: testId } });
+
+    await api.getById(testId);
+
+    expect(api.get).toHaveBeenCalledWith(`${api.baseEndpoint}/${testId}`);
+  });
+
+  it('should handle create with minimal data', async () => {
+    const minimalData = { numero: 'CONT-MIN' };
+    api.post = jest.fn().mockResolvedValue({ data: minimalData });
+
+    await api.create(minimalData);
+
+    expect(api.post).toHaveBeenCalledWith(api.baseEndpoint, minimalData);
+  });
+
+  it('should handle update with partial data', async () => {
+    const testId = 999;
+    const partialData = { valor: 5000 };
+    api.put = jest.fn().mockResolvedValue({ data: partialData });
+
+    await api.update(testId, partialData);
+
+    expect(api.put).toHaveBeenCalledWith(
+      `${api.baseEndpoint}/${testId}`,
+      partialData
+    );
+  });
+
+  it('should handle errors from getAll', async () => {
+    const error = new Error('Network error');
+    api.get = jest.fn().mockRejectedValue(error);
+
+    await expect(api.getAll()).rejects.toThrow('Network error');
+  });
+
+  it('should handle errors from getById', async () => {
+    const error = new Error('Not found');
+    api.get = jest.fn().mockRejectedValue(error);
+
+    await expect(api.getById(123)).rejects.toThrow('Not found');
+  });
+
+  it('should handle errors from create', async () => {
+    const error = new Error('Validation error');
+    api.post = jest.fn().mockRejectedValue(error);
+
+    await expect(api.create({})).rejects.toThrow('Validation error');
+  });
+
+  it('should handle errors from update', async () => {
+    const error = new Error('Update failed');
+    api.put = jest.fn().mockRejectedValue(error);
+
+    await expect(api.update(123, {})).rejects.toThrow('Update failed');
+  });
+
+  it('should handle errors from delete', async () => {
+    const error = new Error('Delete failed');
+    api.destroy = jest.fn().mockRejectedValue(error);
+
+    await expect(api.delete(123)).rejects.toThrow('Delete failed');
+  });
+
+  it('should return response from getAll', async () => {
+    const mockResponse = {
+      data: [
+        { id: 1, numero: 'CONT-001' },
+        { id: 2, numero: 'CONT-002' },
+      ],
+    };
+    api.get = jest.fn().mockResolvedValue(mockResponse);
+
+    const result = await api.getAll();
+
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('should return response from getById', async () => {
+    const mockResponse = {
+      data: {
+        id: 1,
+        numero: 'CONT-001',
+        valor: 1000,
+      },
+    };
+    api.get = jest.fn().mockResolvedValue(mockResponse);
+
+    const result = await api.getById(1);
+
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('should return response from create', async () => {
+    const inputData = { numero: 'CONT-NEW', valor: 3000 };
+    const mockResponse = {
+      data: {
+        id: 100,
+        ...inputData,
+      },
+    };
+    api.post = jest.fn().mockResolvedValue(mockResponse);
+
+    const result = await api.create(inputData);
+
+    expect(result).toEqual(mockResponse);
+    expect(result.data.id).toBe(100);
+  });
+
+  it('should return response from update', async () => {
+    const inputData = { valor: 4000 };
+    const mockResponse = {
+      data: {
+        id: 50,
+        numero: 'CONT-050',
+        ...inputData,
+      },
+    };
+    api.put = jest.fn().mockResolvedValue(mockResponse);
+
+    const result = await api.update(50, inputData);
+
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('should return response from delete', async () => {
+    const mockResponse = { success: true, message: 'Deleted' };
+    api.destroy = jest.fn().mockResolvedValue(mockResponse);
+
+    const result = await api.delete(999);
+
+    expect(result).toEqual(mockResponse);
+  });
+
+  it('should work with multiple consecutive calls', async () => {
+    api.get = jest
+      .fn()
+      .mockResolvedValueOnce({ data: { id: 1 } })
+      .mockResolvedValueOnce({ data: { id: 2 } })
+      .mockResolvedValueOnce({ data: { id: 3 } });
+
+    const result1 = await api.getById(1);
+    const result2 = await api.getById(2);
+    const result3 = await api.getById(3);
+
+    expect(result1.data.id).toBe(1);
+    expect(result2.data.id).toBe(2);
+    expect(result3.data.id).toBe(3);
+    expect(api.get).toHaveBeenCalledTimes(3);
+  });
+
+  it('should handle concurrent calls', async () => {
+    api.get = jest
+      .fn()
+      .mockResolvedValueOnce({ data: { id: 1 } })
+      .mockResolvedValueOnce({ data: { id: 2 } })
+      .mockResolvedValueOnce({ data: { id: 3 } });
+
+    const [result1, result2, result3] = await Promise.all([
+      api.getById(1),
+      api.getById(2),
+      api.getById(3),
+    ]);
+
+    expect(result1.data.id).toBe(1);
+    expect(result2.data.id).toBe(2);
+    expect(result3.data.id).toBe(3);
+  });
+
+  it('should handle complex contrato data', async () => {
+    const complexData = {
+      numero: 'CONT-2024-001',
+      dataInicio: '2024-01-01',
+      dataFim: '2024-12-31',
+      valor: 15000.5,
+      status: 'ativo',
+      modalidade: 'presencial',
+      cargaHoraria: 120,
+      observacoes: 'Contrato de curso intensivo',
+      alunoId: 123,
+      professorId: 456,
+    };
+    api.post = jest.fn().mockResolvedValue({ data: complexData });
+
+    const result = await api.create(complexData);
+
+    expect(result.data).toEqual(complexData);
+    expect(api.post).toHaveBeenCalledWith(api.baseEndpoint, complexData);
+  });
+
+  it('should handle zero as id', async () => {
+    api.get = jest.fn().mockResolvedValue({ data: { id: 0 } });
+
+    await api.getById(0);
+
+    expect(api.get).toHaveBeenCalledWith(`${api.baseEndpoint}/0`);
+  });
+
+  it('should handle negative id', async () => {
+    api.get = jest.fn().mockResolvedValue({ data: { id: -1 } });
+
+    await api.getById(-1);
+
+    expect(api.get).toHaveBeenCalledWith(`${api.baseEndpoint}/-1`);
+  });
+
+  it('should preserve baseEndpoint value', () => {
+    const firstCheck = api.baseEndpoint;
+    api.getAll();
+    const secondCheck = api.baseEndpoint;
+
+    expect(firstCheck).toBe(secondCheck);
+  });
+});
