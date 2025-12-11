@@ -2,10 +2,12 @@
 import {
   Book,
   CircleUser,
+  ClipboardClock,
   GraduationCap,
   Home,
   Info,
   NotebookTabs,
+  Settings,
   User,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
@@ -33,6 +35,12 @@ export function useSidebar(isAdmin) {
       show: true,
     },
     {
+      href: '/contratos',
+      label: 'Contratos',
+      icon: <ClipboardClock strokeWidth={strokeWidth} />,
+      show: true,
+    },
+    {
       href: '/aulas',
       label: 'Aulas',
       icon: <Book strokeWidth={strokeWidth} />,
@@ -53,7 +61,13 @@ export function useSidebar(isAdmin) {
     {
       href: '/meu-perfil',
       label: 'Meu perfil',
-      icon: <CircleUser strokeWidth={1} />,
+      icon: <CircleUser strokeWidth={strokeWidth} />,
+      show: false,
+    },
+    {
+      href: '/configuracoes',
+      label: 'Configurações',
+      icon: <Settings strokeWidth={strokeWidth} />,
       show: false,
     },
   ];
