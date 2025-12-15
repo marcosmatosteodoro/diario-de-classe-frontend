@@ -26,7 +26,7 @@ export default function Contratos() {
       <PageTitle>Lista de Contratos</PageTitle>
 
       <ButtonGroup>
-        <Link href="/contratos/novo" className="btn btn-primary">
+        <Link href="/contratos/formulario" className="btn btn-primary">
           Novo contrato
         </Link>
       </ButtonGroup>

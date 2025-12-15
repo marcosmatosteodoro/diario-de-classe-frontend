@@ -35,8 +35,6 @@ export default function Contrato() {
     return <Loading />;
   }
 
-  console.log(contrato);
-
   return (
     <Container>
       <PageContent>
@@ -50,7 +48,7 @@ export default function Contrato() {
         </Link>
 
         <Link
-          href={`/contratos/${params.id}/editar`}
+          href={`/contratos/formulario/?id=${params.id}&mode=edit&backUrl=/contratos/${params.id}`}
           className="btn btn-primary"
         >
           Editar
