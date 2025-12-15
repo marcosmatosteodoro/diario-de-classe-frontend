@@ -7,6 +7,8 @@ import { GetDiaAulaByIdService } from '@/services/diaAula/getDiaAulaByIdService'
 import { CreateDiaAulaService } from '@/services/diaAula/createDiaAulaService';
 import { UpdateDiaAulaService } from '@/services/diaAula/updateDiaAulaService';
 import { DeleteDiaAulaService } from '@/services/diaAula/deleteDiaAulaService';
+import { CreateGroupDiaAulaService } from '@/services/diaAula/createGroupDiaAulaService';
+import { UpdateGroupDiaAulaService } from '@/services/diaAula/updateGroupDiaAulaService';
 
 // GET ALL
 export const getDiasAulas = createAsyncThunk(
@@ -108,6 +110,54 @@ export const deleteDiaAula = createAsyncThunk(
         'Erro ao deletar dia de aula';
       return rejectWithValue({
         message: errorMessage,
+        statusError: error.response?.status,
+      });
+    }
+  }
+);
+
+// CREATE GROUP
+export const createGroupDiaAula = createAsyncThunk(
+  'diasAulas/createGroup',
+  async (data, { rejectWithValue }) => {
+    try {
+      const res = await CreateGroupDiaAulaService.handle(data);
+      return res.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao criar dias de aula em grupo';
+
+      const validationErrors = error.response?.data?.errors || [];
+
+      return rejectWithValue({
+        message: errorMessage,
+        errors: validationErrors,
+        statusError: error.response?.status,
+      });
+    }
+  }
+);
+
+// UPDATE GROUP
+export const updateGroupDiaAula = createAsyncThunk(
+  'diasAulas/updateGroup',
+  async ({ id, data }, { rejectWithValue }) => {
+    try {
+      const res = await UpdateGroupDiaAulaService.handle(id, data);
+      return res.data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao atualizar dias de aula em grupo';
+
+      const validationErrors = error.response?.data?.errors || [];
+
+      return rejectWithValue({
+        message: errorMessage,
+        errors: validationErrors,
         statusError: error.response?.status,
       });
     }
@@ -253,6 +303,60 @@ const diasAulasSlice = createSlice({
         state.errors = action.payload?.errors || [];
         state.message =
           action.payload?.message || 'Erro ao deletar dia de aula';
+        state.statusError = action.payload.statusError;
+      })
+      // createGroupDiaAula
+      .addCase(createGroupDiaAula.pending, state => {
+        state.status = STATUS.LOADING;
+        state.errors = [];
+        state.message = null;
+        state.statusError = null;
+        state.action = 'createGroupDiaAula';
+      })
+      .addCase(createGroupDiaAula.fulfilled, (state, action) => {
+        state.status = STATUS.SUCCESS;
+        // action.payload é um array de dias de aula criados
+        if (Array.isArray(action.payload)) {
+          if (!Array.isArray(state.list)) state.list = [];
+          state.list.push(...action.payload);
+          state.count = (state.count || 0) + action.payload.length;
+        }
+      })
+      .addCase(createGroupDiaAula.rejected, (state, action) => {
+        state.status = STATUS.FAILED;
+        state.errors = action.payload?.errors || [];
+        state.message =
+          action.payload?.message || 'Erro ao criar dias de aula em grupo';
+        state.statusError = action.payload.statusError;
+      })
+      // updateGroupDiaAula
+      .addCase(updateGroupDiaAula.pending, state => {
+        state.status = STATUS.LOADING;
+        state.errors = [];
+        state.message = null;
+        state.statusError = null;
+        state.action = 'updateGroupDiaAula';
+      })
+      .addCase(updateGroupDiaAula.fulfilled, (state, action) => {
+        state.status = STATUS.SUCCESS;
+        // action.payload é um array de dias de aula atualizados
+        if (Array.isArray(action.payload) && Array.isArray(state.list)) {
+          // Atualizar cada item na lista
+          action.payload.forEach(updatedItem => {
+            const index = state.list.findIndex(
+              item => item && item.id === updatedItem.id
+            );
+            if (index !== -1) {
+              state.list[index] = updatedItem;
+            }
+          });
+        }
+      })
+      .addCase(updateGroupDiaAula.rejected, (state, action) => {
+        state.status = STATUS.FAILED;
+        state.errors = action.payload?.errors || [];
+        state.message =
+          action.payload?.message || 'Erro ao atualizar dias de aula em grupo';
         state.statusError = action.payload.statusError;
       });
   },
