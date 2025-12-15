@@ -1,6 +1,6 @@
 import { AbstractEntityApi } from './abstractEntityApi';
 
-export class AlunoApi extends AbstractEntityApi {
+export class DiaAulaApi extends AbstractEntityApi {
   constructor() {
     super();
   }

@@ -1,10 +1,10 @@
-import { AlunoApi } from './diaAulaApi';
+import { DiaAulaApi } from './diaAulaApi';
 
 describe('DiaAulaApi', () => {
   let api;
 
   beforeEach(() => {
-    api = new AlunoApi();
+    api = new DiaAulaApi();
   });
 
   describe('initialization', () => {
