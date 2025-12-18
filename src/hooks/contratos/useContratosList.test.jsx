@@ -150,7 +150,9 @@ describe('useContratosList hook', () => {
     expect(viewLink).toBeInTheDocument();
 
     // Check edit link
-    const editLink = actions.querySelector('a[href="/contratos/123/editar"]');
+    const editLink = actions.querySelector(
+      'a[href="/contratos/formulario?id=123&mode=edit"]'
+    );
     expect(editLink).toBeInTheDocument();
 
     // Check delete button

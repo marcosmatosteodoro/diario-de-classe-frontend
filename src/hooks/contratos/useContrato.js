@@ -5,7 +5,6 @@ import { STATUS } from '@/constants';
 import { STATUS_ERROR } from '@/constants/statusError';
 import { getAluno } from '@/store/slices/alunosSlice';
 
-// TODO criar testes
 export function useContrato(id) {
   const dispatch = useDispatch();
   const { current, message, status, statusError } = useSelector(

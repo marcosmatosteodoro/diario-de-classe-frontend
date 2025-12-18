@@ -3,12 +3,17 @@ import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { useContrato } from './useContrato';
 import { getContrato } from '@/store/slices/contratosSlice';
+import { getAluno } from '@/store/slices/alunosSlice';
 import { STATUS } from '@/constants';
 import { STATUS_ERROR } from '@/constants/statusError';
 
 // Mock dos módulos
 jest.mock('@/store/slices/contratosSlice', () => ({
   getContrato: jest.fn(),
+}));
+
+jest.mock('@/store/slices/alunosSlice', () => ({
+  getAluno: jest.fn(),
 }));
 
 jest.mock('@/constants', () => ({
@@ -29,10 +34,11 @@ jest.mock('@/constants/statusError', () => ({
 }));
 
 // Mock store
-const createMockStore = (initialState = {}) => {
+const createMockStore = (contratosState = {}, alunosState = {}) => {
   return configureStore({
     reducer: {
-      contratos: (state = initialState, action) => state,
+      contratos: (state = contratosState, action) => state,
+      alunos: (state = { current: null, ...alunosState }, action) => state,
     },
   });
 };
@@ -55,6 +61,12 @@ describe('useContrato', () => {
     // Mock do getContrato action
     getContrato.mockImplementation(id => ({
       type: 'contratos/getContrato',
+      payload: id,
+    }));
+
+    // Mock do getAluno action
+    getAluno.mockImplementation(id => ({
+      type: 'alunos/getAluno',
       payload: id,
     }));
 
