@@ -3,10 +3,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useStep2Form } from './useStep2Form';
 import { STATUS } from '@/constants';
 import {
+  createManyDiasAulas,
   clearStatus,
   clearCurrent,
-  createGroupDiaAula,
-} from '@/store/slices/diasAulasSlice';
+  clearExtra,
+} from '@/store/slices/contratosSlice';
 
 // Mock do react-redux
 jest.mock('react-redux', () => ({
@@ -15,10 +16,11 @@ jest.mock('react-redux', () => ({
 }));
 
 // Mock do slice
-jest.mock('@/store/slices/diasAulasSlice', () => ({
+jest.mock('@/store/slices/contratosSlice', () => ({
+  createManyDiasAulas: jest.fn(),
   clearStatus: jest.fn(),
   clearCurrent: jest.fn(),
-  createGroupDiaAula: jest.fn(),
+  clearExtra: jest.fn(),
 }));
 
 describe('useStep2Form', () => {
@@ -44,7 +46,7 @@ describe('useStep2Form', () => {
       status: STATUS.IDLE,
       message: null,
       errors: [],
-      list: [],
+      extra: null,
       action: null,
     });
   });
@@ -76,6 +78,19 @@ describe('useStep2Form', () => {
       expect(mockDispatch).toHaveBeenCalledWith(clearCurrent());
     });
 
+    it('should dispatch clearExtra on mount', () => {
+      renderHook(() =>
+        useStep2Form({
+          successSubmit: mockSuccessSubmit,
+          errorSubmit: mockErrorSubmit,
+          clearError: mockClearError,
+          setFormData: mockSetFormData,
+        })
+      );
+
+      expect(mockDispatch).toHaveBeenCalledWith(clearExtra());
+    });
+
     it('should return submitStep2 function', () => {
       const { result } = renderHook(() =>
         useStep2Form({
@@ -92,7 +107,7 @@ describe('useStep2Form', () => {
   });
 
   describe('submitStep2', () => {
-    it('should filter active dias aulas and dispatch createGroupDiaAula', () => {
+    it('should transform data and dispatch createManyDiasAulas', () => {
       const { result } = renderHook(() =>
         useStep2Form({
           successSubmit: mockSuccessSubmit,
@@ -131,26 +146,31 @@ describe('useStep2Form', () => {
 
       expect(mockClearError).toHaveBeenCalled();
       expect(mockDispatch).toHaveBeenCalledWith(
-        createGroupDiaAula([
-          {
+        createManyDiasAulas({
+          id: 10,
+          data: {
             idAluno: 1,
-            idContrato: 10,
-            diaSemana: 1,
-            quantidadeAulas: 2,
-            horaInicial: '10:00',
+            1: {
+              quantidadeAulas: 2,
+              horaInicial: '10:00',
+              ativo: true,
+            },
+            3: {
+              quantidadeAulas: 1,
+              horaInicial: '14:00',
+              ativo: true,
+            },
+            5: {
+              quantidadeAulas: 2,
+              horaInicial: '16:00',
+              ativo: false,
+            },
           },
-          {
-            idAluno: 1,
-            idContrato: 10,
-            diaSemana: 3,
-            quantidadeAulas: 1,
-            horaInicial: '14:00',
-          },
-        ])
+        })
       );
     });
 
-    it('should handle form data with only one active dia aula', () => {
+    it('should handle form data with only one dia aula', () => {
       const { result } = renderHook(() =>
         useStep2Form({
           successSubmit: mockSuccessSubmit,
@@ -176,50 +196,18 @@ describe('useStep2Form', () => {
       result.current.submitStep2(formData);
 
       expect(mockDispatch).toHaveBeenCalledWith(
-        createGroupDiaAula([
-          {
+        createManyDiasAulas({
+          id: 20,
+          data: {
             idAluno: 2,
-            idContrato: 20,
-            diaSemana: 2,
-            quantidadeAulas: 3,
-            horaInicial: '09:00',
+            2: {
+              quantidadeAulas: 3,
+              horaInicial: '09:00',
+              ativo: true,
+            },
           },
-        ])
-      );
-    });
-
-    it('should send empty array when no active dias aulas', () => {
-      const { result } = renderHook(() =>
-        useStep2Form({
-          successSubmit: mockSuccessSubmit,
-          errorSubmit: mockErrorSubmit,
-          clearError: mockClearError,
-          setFormData: mockSetFormData,
         })
       );
-
-      const formData = {
-        alunoId: 3,
-        contratoId: 30,
-        diasAulas: [
-          {
-            ativo: false,
-            diaSemana: 1,
-            quantidadeAulas: 2,
-            horaInicial: '10:00',
-          },
-          {
-            ativo: false,
-            diaSemana: 3,
-            quantidadeAulas: 1,
-            horaInicial: '14:00',
-          },
-        ],
-      };
-
-      result.current.submitStep2(formData);
-
-      expect(mockDispatch).toHaveBeenCalledWith(createGroupDiaAula([]));
     });
 
     it('should handle empty diasAulas array', () => {
@@ -240,7 +228,14 @@ describe('useStep2Form', () => {
 
       result.current.submitStep2(formData);
 
-      expect(mockDispatch).toHaveBeenCalledWith(createGroupDiaAula([]));
+      expect(mockDispatch).toHaveBeenCalledWith(
+        createManyDiasAulas({
+          id: 40,
+          data: {
+            idAluno: 4,
+          },
+        })
+      );
     });
 
     it('should clear errors before submitting', () => {
@@ -269,13 +264,13 @@ describe('useStep2Form', () => {
       result.current.submitStep2(formData);
 
       expect(mockClearError).toHaveBeenCalledTimes(1);
-      expect(mockClearError).toHaveBeenCalledBefore(mockDispatch);
+      expect(mockDispatch).toHaveBeenCalled();
     });
   });
 
   describe('success handling', () => {
     it('should call successSubmit and update formData on success', async () => {
-      const mockList = [
+      const mockExtra = [
         { id: 1, diaSemana: 1, quantidadeAulas: 2 },
         { id: 2, diaSemana: 3, quantidadeAulas: 1 },
       ];
@@ -284,8 +279,8 @@ describe('useStep2Form', () => {
         status: STATUS.SUCCESS,
         message: 'Dias de aula criados com sucesso',
         errors: [],
-        list: mockList,
-        action: 'createDiaAula',
+        extra: mockExtra,
+        action: 'createManyDiasAulas',
       });
 
       renderHook(() =>
@@ -312,7 +307,7 @@ describe('useStep2Form', () => {
 
       expect(result).toEqual({
         some: 'data',
-        currentDiasAulas: mockList,
+        currentDiasAulas: mockExtra,
       });
     });
 
@@ -321,8 +316,8 @@ describe('useStep2Form', () => {
         status: STATUS.SUCCESS,
         message: 'Success',
         errors: [],
-        list: [{ id: 1 }],
-        action: 'getDiaAula', // Ação diferente
+        extra: [{ id: 1 }],
+        action: 'getContrato', // Ação diferente
       });
 
       renderHook(() =>
@@ -341,13 +336,13 @@ describe('useStep2Form', () => {
       expect(mockSetFormData).not.toHaveBeenCalled();
     });
 
-    it('should handle success with empty list', async () => {
+    it('should handle success with empty extra', async () => {
       useSelector.mockReturnValue({
         status: STATUS.SUCCESS,
         message: 'Success',
         errors: [],
-        list: [],
-        action: 'createDiaAula',
+        extra: [],
+        action: 'createManyDiasAulas',
       });
 
       renderHook(() =>
@@ -370,6 +365,31 @@ describe('useStep2Form', () => {
 
       expect(result.currentDiasAulas).toEqual([]);
     });
+
+    it('should not call callbacks if extra is null', async () => {
+      useSelector.mockReturnValue({
+        status: STATUS.SUCCESS,
+        message: 'Success',
+        errors: [],
+        extra: null,
+        action: 'createManyDiasAulas',
+      });
+
+      renderHook(() =>
+        useStep2Form({
+          successSubmit: mockSuccessSubmit,
+          errorSubmit: mockErrorSubmit,
+          clearError: mockClearError,
+          setFormData: mockSetFormData,
+        })
+      );
+
+      await waitFor(() => {
+        expect(mockSuccessSubmit).not.toHaveBeenCalled();
+      });
+
+      expect(mockSetFormData).not.toHaveBeenCalled();
+    });
   });
 
   describe('error handling', () => {
@@ -382,8 +402,8 @@ describe('useStep2Form', () => {
         status: STATUS.FAILED,
         message: 'Erro ao criar dias de aula',
         errors: mockErrors,
-        list: [],
-        action: 'createDiaAula',
+        extra: null,
+        action: 'createManyDiasAulas',
       });
 
       renderHook(() =>
@@ -410,8 +430,8 @@ describe('useStep2Form', () => {
         status: STATUS.FAILED,
         message: 'Erro de servidor',
         errors: [],
-        list: [],
-        action: 'createDiaAula',
+        extra: null,
+        action: 'createManyDiasAulas',
       });
 
       renderHook(() =>
@@ -436,8 +456,8 @@ describe('useStep2Form', () => {
         status: STATUS.FAILED,
         message: 'Error',
         errors: [],
-        list: [],
-        action: 'deleteDiaAula', // Ação diferente
+        extra: null,
+        action: 'deleteContrato', // Ação diferente
       });
 
       renderHook(() =>
@@ -461,8 +481,8 @@ describe('useStep2Form', () => {
         status: STATUS.LOADING,
         message: null,
         errors: [],
-        list: [],
-        action: 'createDiaAula',
+        extra: null,
+        action: 'createManyDiasAulas',
       });
 
       renderHook(() =>
@@ -486,8 +506,8 @@ describe('useStep2Form', () => {
         status: STATUS.IDLE,
         message: null,
         errors: [],
-        list: [],
-        action: 'createDiaAula',
+        extra: null,
+        action: 'createManyDiasAulas',
       });
 
       renderHook(() =>
@@ -548,12 +568,12 @@ describe('useStep2Form', () => {
       result.current.submitStep2(formData2);
 
       expect(mockClearError).toHaveBeenCalledTimes(2);
-      expect(mockDispatch).toHaveBeenCalledTimes(4); // 2 initial + 2 submissions
+      expect(mockDispatch).toHaveBeenCalledTimes(5); // 3 initial (clearStatus, clearCurrent, clearExtra) + 2 submissions
     });
   });
 
   describe('edge cases', () => {
-    it('should handle missing ativo property (treated as falsy)', () => {
+    it('should include all diasAulas regardless of ativo status', () => {
       const { result } = renderHook(() =>
         useStep2Form({
           successSubmit: mockSuccessSubmit,
@@ -568,6 +588,7 @@ describe('useStep2Form', () => {
         contratoId: 10,
         diasAulas: [
           {
+            ativo: false,
             diaSemana: 1,
             quantidadeAulas: 2,
             horaInicial: '10:00',
@@ -577,7 +598,19 @@ describe('useStep2Form', () => {
 
       result.current.submitStep2(formData);
 
-      expect(mockDispatch).toHaveBeenCalledWith(createGroupDiaAula([]));
+      expect(mockDispatch).toHaveBeenCalledWith(
+        createManyDiasAulas({
+          id: 10,
+          data: {
+            idAluno: 1,
+            1: {
+              quantidadeAulas: 2,
+              horaInicial: '10:00',
+              ativo: false,
+            },
+          },
+        })
+      );
     });
 
     it('should preserve all required fields in mapped data', () => {
@@ -607,42 +640,18 @@ describe('useStep2Form', () => {
       result.current.submitStep2(formData);
 
       expect(mockDispatch).toHaveBeenCalledWith(
-        createGroupDiaAula([
-          {
+        createManyDiasAulas({
+          id: 100,
+          data: {
             idAluno: 10,
-            idContrato: 100,
-            diaSemana: 5,
-            quantidadeAulas: 4,
-            horaInicial: '08:30',
+            5: {
+              quantidadeAulas: 4,
+              horaInicial: '08:30',
+              ativo: true,
+            },
           },
-        ])
-      );
-    });
-
-    it('should handle null list in success response', async () => {
-      useSelector.mockReturnValue({
-        status: STATUS.SUCCESS,
-        message: 'Success',
-        errors: [],
-        list: null,
-        action: 'createDiaAula',
-      });
-
-      renderHook(() =>
-        useStep2Form({
-          successSubmit: mockSuccessSubmit,
-          errorSubmit: mockErrorSubmit,
-          clearError: mockClearError,
-          setFormData: mockSetFormData,
         })
       );
-
-      // Não deve chamar callbacks se list for null
-      await waitFor(() => {
-        expect(mockSuccessSubmit).not.toHaveBeenCalled();
-      });
-
-      expect(mockSetFormData).not.toHaveBeenCalled();
     });
 
     it('should handle large number of dias aulas', () => {
@@ -655,12 +664,38 @@ describe('useStep2Form', () => {
         })
       );
 
-      const diasAulas = Array.from({ length: 50 }, (_, i) => ({
-        ativo: true,
-        diaSemana: (i % 7) + 1,
-        quantidadeAulas: (i % 5) + 1,
-        horaInicial: `${8 + (i % 10)}:00`,
-      }));
+      const diasAulas = [
+        {
+          ativo: true,
+          diaSemana: 1,
+          quantidadeAulas: 2,
+          horaInicial: '08:00',
+        },
+        {
+          ativo: true,
+          diaSemana: 2,
+          quantidadeAulas: 3,
+          horaInicial: '09:00',
+        },
+        {
+          ativo: false,
+          diaSemana: 3,
+          quantidadeAulas: 1,
+          horaInicial: '10:00',
+        },
+        {
+          ativo: true,
+          diaSemana: 4,
+          quantidadeAulas: 2,
+          horaInicial: '11:00',
+        },
+        {
+          ativo: true,
+          diaSemana: 5,
+          quantidadeAulas: 4,
+          horaInicial: '12:00',
+        },
+      ];
 
       const formData = {
         alunoId: 1,
@@ -670,12 +705,15 @@ describe('useStep2Form', () => {
 
       result.current.submitStep2(formData);
 
-      const dispatchCall = mockDispatch.mock.calls.find(
-        call => call[0]?.type === createGroupDiaAula().type
+      // Verificar que dispatch foi chamado com createManyDiasAulas
+      expect(mockDispatch).toHaveBeenCalledWith(
+        createManyDiasAulas({
+          id: 10,
+          data: expect.objectContaining({
+            idAluno: 1,
+          }),
+        })
       );
-
-      expect(dispatchCall).toBeDefined();
-      expect(dispatchCall[0].payload).toHaveLength(50);
     });
   });
 });

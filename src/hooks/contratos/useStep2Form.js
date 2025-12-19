@@ -2,10 +2,11 @@ import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { STATUS } from '@/constants';
 import {
+  createManyDiasAulas,
   clearStatus,
   clearCurrent,
-  createGroupDiaAula,
-} from '@/store/slices/diasAulasSlice';
+  clearExtra,
+} from '@/store/slices/contratosSlice';
 
 export function useStep2Form({
   successSubmit,
@@ -14,36 +15,38 @@ export function useStep2Form({
   setFormData,
 }) {
   const dispatch = useDispatch();
-  const { status, message, errors, list, action } = useSelector(
-    state => state.diasAulas
+  const { status, message, errors, extra, action } = useSelector(
+    state => state.contratos
   );
 
   const submitStep2 = formData => {
-    const dataToSend = formData.diasAulas
-      .filter(diaAula => diaAula.ativo)
-      .map(diaAula => ({
-        idAluno: formData.alunoId,
-        idContrato: formData.contratoId,
-        diaSemana: diaAula.diaSemana,
+    const id = formData.contratoId;
+    const dataToSend = {
+      idAluno: formData.alunoId,
+    };
+    formData.diasAulas.forEach(diaAula => {
+      dataToSend[diaAula.diaSemana] = {
         quantidadeAulas: diaAula.quantidadeAulas,
         horaInicial: diaAula.horaInicial,
-      }));
+        ativo: diaAula.ativo,
+      };
+    });
     clearError();
-    console.log(dataToSend);
-    dispatch(createGroupDiaAula(dataToSend));
+    dispatch(createManyDiasAulas({ id, data: dataToSend }));
   };
 
   useEffect(() => {
     dispatch(clearStatus());
     dispatch(clearCurrent());
+    dispatch(clearExtra());
   }, [dispatch]);
 
   useEffect(() => {
-    if (action === 'createDiaAula') {
-      if (status === STATUS.SUCCESS && list) {
+    if (action === 'createManyDiasAulas') {
+      if (status === STATUS.SUCCESS && extra) {
         setFormData(prev => ({
           ...prev,
-          currentDiasAulas: list,
+          currentDiasAulas: extra,
         }));
         successSubmit();
       } else if (status === STATUS.FAILED) {
@@ -51,7 +54,7 @@ export function useStep2Form({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, list, action, message, errors]);
+  }, [status, extra, action, message, errors]);
 
   return {
     submitStep2,
