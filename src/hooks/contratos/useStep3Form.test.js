@@ -215,7 +215,7 @@ describe('useStep3Form', () => {
 
       expect(result).toEqual({
         some: 'data',
-        currentDiasAulas: mockCurrent,
+        contrato: mockCurrent,
       });
     });
 
@@ -296,7 +296,7 @@ describe('useStep3Form', () => {
       const setFormDataCallback = mockSetFormData.mock.calls[0][0];
       const result = setFormDataCallback({});
 
-      expect(result.currentDiasAulas).toEqual({});
+      expect(result.contrato).toEqual({});
     });
   });
 
