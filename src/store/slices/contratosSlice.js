@@ -163,7 +163,7 @@ export const generateAulas = createAsyncThunk(
   'contratos/generateAulas',
   async ({ id, data }, { rejectWithValue }) => {
     try {
-      const res = await GenerateAulasService.handle(id, data);
+      const res = await GenerateAulasService.handle({ id, data });
       return res.data;
     } catch (error) {
       const errorMessage =

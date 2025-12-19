@@ -406,11 +406,11 @@ describe('ContratoApi', () => {
   it('should call generateAulas with correct id and data', async () => {
     const testId = 202;
     const testData = { startDate: '2024-01-01', endDate: '2024-12-31' };
-    api.get = jest.fn().mockResolvedValue({ data: [] });
+    api.post = jest.fn().mockResolvedValue({ data: [] });
 
     await api.generateAulas(testId, testData);
 
-    expect(api.get).toHaveBeenCalledWith(
+    expect(api.post).toHaveBeenCalledWith(
       `${api.baseEndpoint}/${testId}/aulas/generate`,
       testData
     );
@@ -470,7 +470,7 @@ describe('ContratoApi', () => {
 
   it('should handle errors from generateAulas', async () => {
     const error = new Error('Failed to generate aulas');
-    api.get = jest.fn().mockRejectedValue(error);
+    api.post = jest.fn().mockRejectedValue(error);
 
     await expect(api.generateAulas(123, {})).rejects.toThrow(
       'Failed to generate aulas'
@@ -548,7 +548,7 @@ describe('ContratoApi', () => {
         { id: 2, data: '2024-01-17' },
       ],
     };
-    api.get = jest.fn().mockResolvedValue(mockResponse);
+    api.post = jest.fn().mockResolvedValue(mockResponse);
 
     const result = await api.generateAulas(1, inputData);
 

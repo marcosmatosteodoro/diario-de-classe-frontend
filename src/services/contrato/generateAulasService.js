@@ -9,7 +9,7 @@ export class GenerateAulasService {
     return await this.contratoApi.generateAulas(id, data);
   }
 
-  static async handle(id, data) {
+  static async handle({ id, data }) {
     const contratoApi = new ContratoApi();
     const service = new GenerateAulasService(contratoApi);
 
