@@ -23,14 +23,9 @@ export function useStep4Form({
     const id = formData.contratoId;
     const dataToSend = {
       idAluno: formData.alunoId,
+      idProfessor: formData.professorId,
+      aulas: formData.aulas,
     };
-    formData.diasAulas.forEach(diaAula => {
-      dataToSend[diaAula.diaSemana] = {
-        quantidadeAulas: diaAula.quantidadeAulas,
-        horaInicial: diaAula.horaInicial,
-        ativo: diaAula.ativo,
-      };
-    });
     clearError();
     dispatch(createManyAulas({ id, data: dataToSend }));
   };
@@ -46,7 +41,7 @@ export function useStep4Form({
       if (status === STATUS.SUCCESS && extra) {
         setFormData(prev => ({
           ...prev,
-          currentDiasAulas: extra,
+          aulas: extra,
         }));
         successSubmit();
       } else if (status === STATUS.FAILED) {

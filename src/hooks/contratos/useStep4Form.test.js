@@ -307,7 +307,7 @@ describe('useStep4Form', () => {
 
       expect(result).toEqual({
         some: 'data',
-        currentDiasAulas: mockExtra,
+        aulas: mockExtra,
       });
     });
 
@@ -363,7 +363,7 @@ describe('useStep4Form', () => {
       const setFormDataCallback = mockSetFormData.mock.calls[0][0];
       const result = setFormDataCallback({});
 
-      expect(result.currentDiasAulas).toEqual([]);
+      expect(result.aulas).toEqual([]);
     });
 
     it('should not call callbacks if extra is null', async () => {
