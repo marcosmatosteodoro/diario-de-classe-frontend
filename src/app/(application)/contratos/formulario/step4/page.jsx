@@ -9,7 +9,7 @@ import { Pencil, Trash2, Plus } from 'lucide-react';
 import { useEffect } from 'react';
 import Swal from 'sweetalert2';
 
-export default function ContratoStep3() {
+export default function ContratoStep4() {
   const { formData, setAulas, generateAulasByContrato } = useContratoForm();
   const { showForm, showSuccess } = useSweetAlert();
   const { dataFormatter } = useFormater();
