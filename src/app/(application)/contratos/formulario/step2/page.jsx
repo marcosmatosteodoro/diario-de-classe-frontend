@@ -91,7 +91,23 @@ export default function ContratoStep2() {
       horaFinal: '',
       quantidadeAulas: 1,
     }));
+
+    if (formData.currentDiasAulas && formData.currentDiasAulas.length > 0) {
+      formData.currentDiasAulas.forEach(diaAtual => {
+        const initialDiaAula = initialDiasAulas.find(
+          dia => dia.diaSemana === diaAtual.diaSemana
+        );
+        if (initialDiaAula) {
+          initialDiaAula.ativo = true;
+          initialDiaAula.horaInicial = diaAtual.diaSemana;
+          initialDiaAula.horaFinal = diaAtual.diaSemana;
+          initialDiaAula.quantidadeAulas = diaAtual.diaSemana;
+        }
+      });
+    }
+
     setDiasAulas(initialDiasAulas);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
