@@ -117,8 +117,6 @@ export default function ContratoStep4() {
           return false;
         }
 
-        console.log(aula.dataAula, '!=', dataAula);
-
         if (aula.dataAula != dataAula) {
           const aulaExistente = aulas.find(
             a => formateDateValue(a.dataAula) === dataAula
