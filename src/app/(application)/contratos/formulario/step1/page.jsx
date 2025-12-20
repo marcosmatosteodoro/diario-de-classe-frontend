@@ -6,7 +6,7 @@ import { SelectField, FormGroup } from '@/components';
 import { useProfessores } from '@/hooks/professores/useProfessores';
 
 export default function ContratoStep1() {
-  const { setAluno, formData, handleChange } = useContratoForm();
+  const { setProfessor, setAluno, formData, handleChange } = useContratoForm();
   const { alunos } = useAlunos();
   const { professores } = useProfessores();
   const makeLabel = ({ nome, sobrenome, email }) => {
@@ -28,11 +28,20 @@ export default function ContratoStep1() {
           value: professor.id,
         }))
       : [];
-  const handleStep1Change = e => {
+  const handleAlunoChange = e => {
     const { value } = e.target;
     handleChange(e);
     setAluno(
       alunos.find(aluno => aluno.id.toString() === value.toString()) || null
+    );
+  };
+  const handleProfessorChange = e => {
+    const { value } = e.target;
+    handleChange(e);
+    setProfessor(
+      professores.find(
+        professor => professor.id.toString() === value.toString()
+      ) || null
     );
   };
 
@@ -43,7 +52,7 @@ export default function ContratoStep1() {
         htmlFor="alunoId"
         label="Aluno"
         placeholder="Selecione o aluno"
-        onChange={handleStep1Change}
+        onChange={handleAlunoChange}
         value={formData.alunoId}
         options={alunoOptions}
       />
@@ -52,7 +61,7 @@ export default function ContratoStep1() {
         htmlFor="professorId"
         label="Professor"
         placeholder="Selecione o professor"
-        onChange={handleChange}
+        onChange={handleProfessorChange}
         value={formData.professorId}
         options={professorOptions}
       />
