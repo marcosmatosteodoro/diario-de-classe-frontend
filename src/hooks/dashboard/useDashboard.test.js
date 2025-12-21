@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { useDashboard } from './useDashboard';
 import { useDispatch, useSelector } from 'react-redux';
 import { STATUS } from '@/constants';
