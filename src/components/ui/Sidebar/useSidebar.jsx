@@ -62,7 +62,7 @@ export function useSidebar(isAdmin) {
       href: '/meu-perfil',
       label: 'Meu perfil',
       icon: <CircleUser strokeWidth={strokeWidth} />,
-      show: false,
+      show: true,
     },
     {
       href: '/configuracoes',
