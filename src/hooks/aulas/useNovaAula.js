@@ -9,7 +9,7 @@ import {
 } from '@/store/slices/aulasSlice';
 import { useToast } from '@/providers/ToastProvider';
 
-export function useNovoAula() {
+export function useNovaAula() {
   const dispatch = useDispatch();
   const router = useRouter();
   const { success } = useToast();
@@ -36,13 +36,11 @@ export function useNovoAula() {
 
   // Estados computados para facilitar o uso
   const isLoading = status === STATUS.LOADING;
-  const isSubmitting = status === STATUS.LOADING;
 
   return {
     message,
     errors,
     isLoading,
-    isSubmitting,
     submit,
   };
 }
