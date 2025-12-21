@@ -25,11 +25,7 @@ export default function EditarAluno() {
 
   useEffect(() => {
     if (current) {
-      setFormData({
-        ...current,
-        senha: '',
-        repetirSenha: '',
-      });
+      setFormData(current);
     }
   }, [current, setFormData]);
 
