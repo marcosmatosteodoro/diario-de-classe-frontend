@@ -1,21 +1,136 @@
 'use client';
 
-import { useToast } from '@/providers/ToastProvider';
-import { useSweetAlert } from '@/hooks/useSweetAlert';
+import { Avatar } from '@/components';
+import { TIPO_AULA } from '@/constants';
+import { useDashboard } from '@/hooks/dashboard/useDashboard';
+import { makeEmailLabel } from '@/utils/makeEmailLabel';
+import { makeFullNameLabel } from '@/utils/makeFullNameLabel';
+
+const HomeCard = ({ title, value, color, isLoading }) => {
+  const colorClasses = {
+    blue: 'text-blue-600',
+    green: 'text-green-600',
+    purple: 'text-purple-600',
+  };
+  const textColorClass = colorClasses[color] || 'text-gray-800';
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+      <h3 className="text-lg font-semibold text-gray-800 mb-2">{title}</h3>
+      <p className={`text-3xl font-bold ${textColorClass}`}>
+        {isLoading ? '...' : value}
+      </p>
+    </div>
+  );
+};
+
+const HomeInfoCard = ({
+  name,
+  status,
+  tipo,
+  dataAula,
+  horaInicial,
+  horaFinal,
+  professorName,
+}) => {
+  const getActionText = (status, tipo) => {
+    if (status === 'AGENDADA') {
+      return `agendou uma aula ${TIPO_AULA[tipo].toLowerCase()}`;
+    }
+    if (status === 'EM_ANDAMENTO') {
+      return `está em uma aula ${TIPO_AULA[tipo].toLowerCase()}`;
+    }
+
+    return 'dss';
+  };
+
+  const getTimeText = (dataAula, horaInicial, horaFinal) => {
+    const now = new Date();
+    const aulaDate = new Date(dataAula);
+    const startTime = new Date(horaInicial);
+    const endTime = new Date(horaFinal);
+    const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const aulaDay = new Date(
+      aulaDate.getFullYear(),
+      aulaDate.getMonth(),
+      aulaDate.getDate()
+    );
+
+    const msPerDay = 1000 * 60 * 60 * 24;
+    const diffDays = Math.floor((aulaDay - nowDay) / msPerDay);
+    const diffMs = startTime - now;
+    const diffAbsMs = Math.abs(diffMs);
+    const diffHours = Math.floor(diffAbsMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor(
+      (diffAbsMs % (1000 * 60 * 60)) / (1000 * 60)
+    );
+
+    // Evento já acabou
+    if (now > endTime) {
+      // Se foi hoje
+      if (diffDays === 0) {
+        const hoursAgo = Math.floor((now - startTime) / (1000 * 60 * 60));
+        const minutesAgo = Math.floor(
+          ((now - startTime) % (1000 * 60 * 60)) / (1000 * 60)
+        );
+        if (hoursAgo > 0) return `Há ${hoursAgo} hora(s)`;
+        if (minutesAgo > 0) return `Há ${minutesAgo} minuto(s)`;
+        return 'Concluída';
+      }
+      // Se foi ontem
+      if (diffDays === -1) return 'Ontem';
+      // Se foi há mais dias
+      if (diffDays < -1) return `Há ${Math.abs(diffDays)} dias`;
+    }
+
+    // Evento em andamento
+    if (now >= startTime && now <= endTime) {
+      return 'Em andamento';
+    }
+
+    // Evento futuro
+    if (diffDays === 0) {
+      // Hoje
+      if (diffMs > 0) {
+        if (diffHours > 0) return `Em ${diffHours} hora(s)`;
+        if (diffMinutes > 0) return `Em ${diffMinutes} minuto(s)`;
+        return 'Agora';
+      }
+    }
+    if (diffDays === 1) return 'Amanhã';
+    if (diffDays > 1) return `Em ${diffDays} dias`;
+    return '';
+  };
+
+  const action = getActionText(status, tipo);
+  const time = getTimeText(dataAula, horaInicial, horaFinal);
+  return (
+    <div className="flex items-center gap-5 p-4 bg-gray-50 rounded-lg">
+      <Avatar text={name} className="w-10 h-10" />
+      <div>
+        <p className="font-medium text-gray-800">
+          {name} {action}
+        </p>
+
+        <p className="text-sm text-gray-500">{professorName}</p>
+        <p className="text-sm text-gray-500">{time}</p>
+      </div>
+    </div>
+  );
+};
 
 export default function Home() {
-  const { success, error, warning, info } = useToast();
   const {
-    showSuccess,
-    showError,
-    showWarning,
-    showInfo,
-    showConfirm,
-    showDeleteConfirm,
-    showInput,
-    showLoading,
-    showToast,
-  } = useSweetAlert();
+    totalAlunos,
+    totalAulas,
+    totalContratos,
+    minhasAulas,
+    todasAsAulas,
+    status,
+    isLoading,
+  } = useDashboard();
+
+  console.log(minhasAulas);
+
   return (
     <div className="p-8">
       <div className="max-w-6xl mx-auto">
@@ -23,235 +138,70 @@ export default function Home() {
           Bem-vindo ao Diário de Classe
         </h2>
 
-        {/* Toast Demo */}
-        <div className="mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Demonstração de Toasts
-            </h3>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => success('Operação realizada com sucesso!')}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-              >
-                Success Toast
-              </button>
-
-              <button
-                onClick={() => error('Erro ao processar solicitação!')}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Error Toast
-              </button>
-
-              <button
-                onClick={() => warning('Atenção: Verifique os dados!')}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
-              >
-                Warning Toast
-              </button>
-
-              <button
-                onClick={() => info('Informação importante!')}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Info Toast
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* SweetAlert2 Demo */}
-        <div className="mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Demonstração de SweetAlert2
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <button
-                onClick={() =>
-                  showSuccess({
-                    title: 'Sucesso!',
-                    text: 'Dados salvos com sucesso!',
-                  })
-                }
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-              >
-                Success Alert
-              </button>
-
-              <button
-                onClick={() =>
-                  showError({
-                    title: 'Erro!',
-                    text: 'Falha ao conectar com o servidor!',
-                  })
-                }
-                className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Error Alert
-              </button>
-
-              <button
-                onClick={() =>
-                  showWarning({
-                    title: 'Atenção!',
-                    text: 'Esta ação requer confirmação!',
-                  })
-                }
-                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors"
-              >
-                Warning Alert
-              </button>
-
-              <button
-                onClick={() =>
-                  showInfo({
-                    title: 'Informação',
-                    text: 'Sistema será atualizado às 02:00h',
-                  })
-                }
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-              >
-                Info Alert
-              </button>
-
-              <button
-                onClick={async () => {
-                  const result = await showConfirm({
-                    title: 'Confirmar exclusão?',
-                    text: 'Esta ação não pode ser desfeita!',
-                  });
-                  if (result.isConfirmed) {
-                    showSuccess({
-                      title: 'Confirmado!',
-                      text: 'Ação executada!',
-                    });
-                  }
-                }}
-                className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
-              >
-                Confirm Dialog
-              </button>
-
-              <button
-                onClick={async () => {
-                  const result = await showDeleteConfirm('este registro');
-                  if (result.isConfirmed) {
-                    showSuccess({
-                      title: 'Deletado!',
-                      text: 'Registro removido com sucesso!',
-                    });
-                  }
-                }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Delete Confirm
-              </button>
-
-              <button
-                onClick={async () => {
-                  const result = await showInput({
-                    title: 'Digite seu nome',
-                    inputPlaceholder: 'Nome completo...',
-                  });
-                  if (result.isConfirmed && result.value) {
-                    showSuccess({
-                      title: 'Nome salvo!',
-                      text: `Olá, ${result.value}!`,
-                    });
-                  }
-                }}
-                className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors"
-              >
-                Input Dialog
-              </button>
-
-              <button
-                onClick={() => {
-                  showLoading({
-                    title: 'Processando...',
-                    text: 'Aguarde um momento',
-                  });
-                  // Simular processo async
-                  setTimeout(() => {
-                    showSuccess({
-                      title: 'Concluído!',
-                      text: 'Processo finalizado!',
-                    });
-                  }, 3000);
-                }}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-              >
-                Loading Alert
-              </button>
-            </div>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              Total de Alunos
-            </h3>
-            <p className="text-3xl font-bold text-blue-600">142</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              Turmas Ativas
-            </h3>
-            <p className="text-3xl font-bold text-green-600">8</p>
-          </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              Disciplinas
-            </h3>
-            <p className="text-3xl font-bold text-purple-600">12</p>
-          </div>
+          <HomeCard
+            title="Total de Alunos"
+            value={totalAlunos}
+            color="blue"
+            isLoading={isLoading}
+          />
+          <HomeCard
+            title="Total de agendadas"
+            value={totalAulas}
+            color="green"
+            isLoading={isLoading}
+          />
+          <HomeCard
+            title="Contratos ativos"
+            value={totalContratos}
+            color="purple"
+            isLoading={isLoading}
+          />
         </div>
+
+        <section className="bg-white p-8 rounded-lg shadow-md border border-gray-200">
+          <h3 className="text-xl font-semibold text-gray-800 mb-4">
+            Minhas Aulas
+          </h3>
+
+          <div className="space-y-4">
+            {!isLoading &&
+              minhasAulas &&
+              minhasAulas.length > 0 &&
+              minhasAulas.map(aula => (
+                <HomeInfoCard
+                  key={aula.id}
+                  name={makeFullNameLabel(aula.aluno)}
+                  tipo={aula.tipo}
+                  status={aula.status}
+                  dataAula={aula.dataAula}
+                  horaInicial={aula.horaInicial}
+                  horaFinal={aula.horaFinal}
+                />
+              ))}
+          </div>
+        </section>
 
         <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200">
           <h3 className="text-xl font-semibold text-gray-800 mb-4">
             Atividades Recentes
           </h3>
           <div className="space-y-4">
-            <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                <span className="text-blue-600 font-semibold">MG</span>
-              </div>
-              <div>
-                <p className="font-medium text-gray-800">
-                  Maria Silva adicionou uma nova nota
-                </p>
-                <p className="text-sm text-gray-500">Há 2 horas</p>
-              </div>
-            </div>
-
-            <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-4">
-                <span className="text-green-600 font-semibold">JS</span>
-              </div>
-              <div>
-                <p className="font-medium text-gray-800">
-                  João Santos marcou presença na turma A
-                </p>
-                <p className="text-sm text-gray-500">Há 4 horas</p>
-              </div>
-            </div>
-
-            <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center mr-4">
-                <span className="text-purple-600 font-semibold">AP</span>
-              </div>
-              <div>
-                <p className="font-medium text-gray-800">
-                  Ana Paula criou nova avaliação
-                </p>
-                <p className="text-sm text-gray-500">Ontem</p>
-              </div>
-            </div>
+            {!isLoading &&
+              todasAsAulas &&
+              todasAsAulas.length > 0 &&
+              todasAsAulas.map(aula => (
+                <HomeInfoCard
+                  key={aula.id}
+                  name={makeFullNameLabel(aula.aluno)}
+                  tipo={aula.tipo}
+                  status={aula.status}
+                  dataAula={aula.dataAula}
+                  horaInicial={aula.horaInicial}
+                  horaFinal={aula.horaFinal}
+                  professorName={makeEmailLabel(aula.professor)}
+                />
+              ))}
           </div>
         </div>
       </div>
