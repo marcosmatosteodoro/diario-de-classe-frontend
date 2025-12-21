@@ -129,8 +129,6 @@ export default function Home() {
     isLoading,
   } = useDashboard();
 
-  console.log(minhasAulas);
-
   return (
     <div className="p-8">
       <div className="max-w-6xl mx-auto">
@@ -159,7 +157,7 @@ export default function Home() {
           />
         </div>
 
-        <section className="bg-white p-8 rounded-lg shadow-md border border-gray-200">
+        <section className="bg-white p-8 rounded-lg shadow-md border border-gray-200 mb-8">
           <h3 className="text-xl font-semibold text-gray-800 mb-4">
             Minhas Aulas
           </h3>
@@ -182,7 +180,7 @@ export default function Home() {
           </div>
         </section>
 
-        <div className="bg-white p-8 rounded-lg shadow-md border border-gray-200">
+        <section className="bg-white p-8 rounded-lg shadow-md border border-gray-200">
           <h3 className="text-xl font-semibold text-gray-800 mb-4">
             Atividades Recentes
           </h3>
@@ -203,7 +201,7 @@ export default function Home() {
                 />
               ))}
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );
