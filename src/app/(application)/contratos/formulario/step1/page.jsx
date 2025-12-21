@@ -4,27 +4,25 @@ import { useContratoForm } from '@/providers/ContratoFormProvider';
 import { useAlunos } from '@/hooks/alunos/useAlunos';
 import { SelectField, FormGroup } from '@/components';
 import { useProfessores } from '@/hooks/professores/useProfessores';
+import { makeEmailLabel } from '@/utils/makeEmailLabel';
 
 export default function ContratoStep1() {
   const { setProfessor, setAluno, formData, handleChange } = useContratoForm();
   const { alunos } = useAlunos();
   const { professores } = useProfessores();
-  const makeLabel = ({ nome, sobrenome, email }) => {
-    return `${nome} ${sobrenome} <${email}>`;
-  };
 
   // TODO não mostrar alunos com contratos ativos
   const alunoOptions =
     alunos && alunos.length > 0
       ? alunos.map(aluno => ({
-          label: makeLabel(aluno),
+          label: makeEmailLabel(aluno),
           value: aluno.id,
         }))
       : [];
   const professorOptions =
     professores && professores.length > 0
       ? professores.map(professor => ({
-          label: makeLabel(professor),
+          label: makeEmailLabel(professor),
           value: professor.id,
         }))
       : [];
