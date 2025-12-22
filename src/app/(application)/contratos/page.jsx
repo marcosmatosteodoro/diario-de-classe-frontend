@@ -35,7 +35,7 @@ export default function Contratos() {
         columns={columns}
         data={data}
         isLoading={isLoading}
-        notFoundMessage="Nenhum aluno encontrado."
+        notFoundMessage="Nenhum contrato encontrado."
       />
     </Container>
   );
