@@ -16,7 +16,8 @@ export function useEditarAluno(alunoId) {
   const isLoading = status === STATUS.LOADING;
   const isNotFound =
     [STATUS_ERROR.BAD_REQUEST, STATUS_ERROR.NOT_FOUND].includes(statusError) &&
-    !current;
+    !current &&
+    action === 'getAluno';
 
   const submit = ({ id, dataToSend }) => {
     dispatch(updateAluno({ id: id, data: dataToSend }));
