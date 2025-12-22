@@ -20,11 +20,13 @@ export function useAulaForm({ id = null, submit }) {
     }));
   };
 
-  const handleSubmit = async e => {
+  const handleSubmit = e => {
     e.preventDefault();
     const dataToSend = {
       ...formData,
-      dataAula: new Date(formData.dataAula).toISOString(),
+      dataAula: formData.dataAula
+        ? new Date(formData.dataAula).toISOString()
+        : '',
     };
     submit({ id, dataToSend });
   };
