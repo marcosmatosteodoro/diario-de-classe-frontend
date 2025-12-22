@@ -1,11 +1,12 @@
 'use client';
 
-import { Avatar } from '@/components';
+import { Avatar, Loading } from '@/components';
 import { TIPO_AULA } from '@/constants';
 import { useDashboard } from '@/hooks/dashboard/useDashboard';
 import { makeEmailLabel } from '@/utils/makeEmailLabel';
 import { makeFullNameLabel } from '@/utils/makeFullNameLabel';
 
+// TODO passas os componetes para arquivos separados
 const HomeCard = ({ title, value, color, isLoading }) => {
   const colorClasses = {
     blue: 'text-blue-600',
@@ -17,7 +18,7 @@ const HomeCard = ({ title, value, color, isLoading }) => {
     <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
       <h3 className="text-lg font-semibold text-gray-800 mb-2">{title}</h3>
       <p className={`text-3xl font-bold ${textColorClass}`}>
-        {isLoading ? '...' : value}
+        {isLoading ? '...' : value || 0}
       </p>
     </div>
   );
@@ -118,6 +119,42 @@ const HomeInfoCard = ({
   );
 };
 
+const HomeSection = ({
+  title,
+  isLoading,
+  data,
+  hasProfessor,
+  notFoundMessage,
+}) => {
+  return (
+    <section className="bg-white p-8 rounded-lg shadow-md border border-gray-200 mb-8">
+      <h3 className="text-xl font-semibold text-gray-800 mb-4">{title}</h3>
+
+      <div className="space-y-4">
+        {isLoading && <Loading />}
+        {!isLoading && data && data.length > 0 ? (
+          data.map(aula => (
+            <HomeInfoCard
+              key={aula.id}
+              name={makeFullNameLabel(aula.aluno)}
+              tipo={aula.tipo}
+              status={aula.status}
+              dataAula={aula.dataAula}
+              horaInicial={aula.horaInicial}
+              horaFinal={aula.horaFinal}
+              professorName={
+                hasProfessor ? makeEmailLabel(aula.professor) : undefined
+              }
+            />
+          ))
+        ) : (
+          <p>{notFoundMessage}</p>
+        )}
+      </div>
+    </section>
+  );
+};
+
 export default function Home() {
   const {
     totalAlunos,
@@ -157,51 +194,21 @@ export default function Home() {
           />
         </div>
 
-        <section className="bg-white p-8 rounded-lg shadow-md border border-gray-200 mb-8">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">
-            Minhas Aulas
-          </h3>
+        <HomeSection
+          title={'Minhas Aulas'}
+          isLoading={isLoading}
+          data={minhasAulas}
+          hasProfessor={false}
+          notFoundMessage={'Nenhuma aula encontrada.'}
+        />
 
-          <div className="space-y-4">
-            {!isLoading &&
-              minhasAulas &&
-              minhasAulas.length > 0 &&
-              minhasAulas.map(aula => (
-                <HomeInfoCard
-                  key={aula.id}
-                  name={makeFullNameLabel(aula.aluno)}
-                  tipo={aula.tipo}
-                  status={aula.status}
-                  dataAula={aula.dataAula}
-                  horaInicial={aula.horaInicial}
-                  horaFinal={aula.horaFinal}
-                />
-              ))}
-          </div>
-        </section>
-
-        <section className="bg-white p-8 rounded-lg shadow-md border border-gray-200">
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">
-            Atividades Recentes
-          </h3>
-          <div className="space-y-4">
-            {!isLoading &&
-              todasAsAulas &&
-              todasAsAulas.length > 0 &&
-              todasAsAulas.map(aula => (
-                <HomeInfoCard
-                  key={aula.id}
-                  name={makeFullNameLabel(aula.aluno)}
-                  tipo={aula.tipo}
-                  status={aula.status}
-                  dataAula={aula.dataAula}
-                  horaInicial={aula.horaInicial}
-                  horaFinal={aula.horaFinal}
-                  professorName={makeEmailLabel(aula.professor)}
-                />
-              ))}
-          </div>
-        </section>
+        <HomeSection
+          title={'Atividades Recentes'}
+          isLoading={isLoading}
+          data={todasAsAulas}
+          hasProfessor={true}
+          notFoundMessage={'Nenhuma atividade recente.'}
+        />
       </div>
     </div>
   );
