@@ -8,6 +8,7 @@ import {
   PasswordField,
   SelectField,
 } from '@/components';
+import { useUserAuth } from '@/providers/UserAuthProvider';
 
 export const ProfessorForm = ({
   handleSubmit,
@@ -19,6 +20,14 @@ export const ProfessorForm = ({
   isLoading,
   isEdit = false,
 }) => {
+  const { currentUser } = useUserAuth();
+  const getShowPasswordFields = () => {
+    if (!isEdit) return true;
+    if (isEdit && formData.id === currentUser.id) return true;
+    return false;
+  };
+  const showPasswordFields = getShowPasswordFields();
+  // TODO adicionar uma seção para dias aulas, outra para informações básicas e outras para disponibvildiade na criação
   return (
     <Form handleSubmit={handleSubmit}>
       <FormError
@@ -73,32 +82,34 @@ export const ProfessorForm = ({
           value={formData.telefone}
         />
 
-        {/* Senha */}
-        <PasswordField
-          required={!isEdit}
-          htmlFor="senha"
-          label="Senha"
-          placeholder="Digite a senha"
-          minLength={6}
-          maxLength={100}
-          onChange={handleChange}
-          value={formData.senha}
-          autoComplete={isEdit ? 'off' : 'new-password'}
-        />
-
-        {/* Repetir Senha */}
-        <PasswordField
-          required={!isEdit}
-          htmlFor="repetirSenha"
-          label="Repetir Senha"
-          placeholder="Confirme a senha"
-          minLength={6}
-          maxLength={100}
-          onChange={handleChange}
-          value={formData.repetirSenha}
-          autoComplete={'off'}
-        />
-
+        {showPasswordFields && (
+          <>
+            {/* Senha */}
+            <PasswordField
+              required={!isEdit}
+              htmlFor="senha"
+              label="Senha"
+              placeholder="Digite a senha"
+              minLength={6}
+              maxLength={100}
+              onChange={handleChange}
+              value={formData.senha}
+              autoComplete={isEdit ? 'off' : 'new-password'}
+            />
+            {/* Repetir Senha */}
+            <PasswordField
+              required={!isEdit}
+              htmlFor="repetirSenha"
+              label="Repetir Senha"
+              placeholder="Confirme a senha"
+              minLength={6}
+              maxLength={100}
+              onChange={handleChange}
+              value={formData.repetirSenha}
+              autoComplete={'off'}
+            />
+          </>
+        )}
         {/* Permissão */}
         <SelectField
           required
