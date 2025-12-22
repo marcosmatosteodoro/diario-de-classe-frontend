@@ -38,6 +38,8 @@ export default function Aluno() {
     return <Loading />;
   }
 
+  // TODO fazer igual a professor
+
   return (
     <Container>
       <PageContent>
@@ -78,7 +80,10 @@ export default function Aluno() {
               </span>
 
               <span className="px-2 py-1 bg-blue-100 rounded text-sm">
-                🔐 {contrato?.totalAulasFeitas} de {contrato?.totalAulas}
+                🔐{' '}
+                {contrato
+                  ? `${contrato?.totalAulasFeitas} de ${contrato?.totalAulas}`
+                  : 'Sem contrato'}
               </span>
             </div>
 
@@ -96,11 +101,13 @@ export default function Aluno() {
               <div className="p-3 rounded-md bg-gray-50">
                 <div className="text-sm text-gray-500">Contrato</div>
                 <div className="mt-2">
-                  Situação: {contrato?.status}
-                  <div className="text-sm text-gray-600">
-                    Vigência: de {dataFormatter(contrato?.dataInicio)} até{' '}
-                    {dataFormatter(contrato?.dataTermino)}
-                  </div>
+                  Situação: {contrato ? contrato?.status : 'Sem contrato'}
+                  {contrato && (
+                    <div className="text-sm text-gray-600">
+                      Vigência: de {dataFormatter(contrato?.dataInicio)} até{' '}
+                      {dataFormatter(contrato?.dataTermino)}
+                    </div>
+                  )}
                 </div>
               </div>
 
