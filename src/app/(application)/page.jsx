@@ -3,6 +3,7 @@
 import { Avatar, Loading } from '@/components';
 import { TIPO_AULA } from '@/constants';
 import { useDashboard } from '@/hooks/dashboard/useDashboard';
+import { useUserAuth } from '@/providers/UserAuthProvider';
 import { makeEmailLabel } from '@/utils/makeEmailLabel';
 import { makeFullNameLabel } from '@/utils/makeFullNameLabel';
 
@@ -165,6 +166,7 @@ export default function Home() {
     status,
     isLoading,
   } = useDashboard();
+  const { isAdmin } = useUserAuth();
 
   return (
     <div className="p-8">
@@ -202,13 +204,15 @@ export default function Home() {
           notFoundMessage={'Nenhuma aula encontrada.'}
         />
 
-        <HomeSection
-          title={'Atividades Recentes'}
-          isLoading={isLoading}
-          data={todasAsAulas}
-          hasProfessor={true}
-          notFoundMessage={'Nenhuma atividade recente.'}
-        />
+        {isAdmin() && (
+          <HomeSection
+            title={'Atividades Recentes'}
+            isLoading={isLoading}
+            data={todasAsAulas}
+            hasProfessor={true}
+            notFoundMessage={'Nenhuma atividade recente.'}
+          />
+        )}
       </div>
     </div>
   );
