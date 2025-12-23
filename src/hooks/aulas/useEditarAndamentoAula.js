@@ -13,7 +13,8 @@ export function useEditarAndamentoAula() {
   const { status, message, errors, current, action, statusError } = useSelector(
     state => state.aulas
   );
-  const isLoading = status === STATUS.LOADING;
+  const isLoading =
+    action === 'updateAndamentoAula' && status === STATUS.LOADING;
 
   const submit = ({ id, dataToSend }) => {
     dispatch(updateAndamentoAula({ id: id, data: dataToSend }));
