@@ -1,6 +1,6 @@
 import { render, act } from '@testing-library/react';
 import React from 'react';
-import { useEditarAula } from './useEditarAndamentoAula';
+import { useEditarAndamentoAula } from './useEditarAndamentoAula';
 import * as reactRedux from 'react-redux';
 import * as nextRouter from 'next/navigation';
 import * as ToastProvider from '@/providers/ToastProvider';
@@ -21,8 +21,8 @@ const mockDispatch = jest.fn();
 const mockSuccess = jest.fn();
 const mockRouter = { push: jest.fn() };
 
-function HookTestComponent({ aulaId, callback }) {
-  const hook = useEditarAula(aulaId);
+function HookTestComponent({ callback }) {
+  const hook = useEditarAndamentoAula();
   React.useEffect(() => {
     if (callback) callback(hook);
     // eslint-disable-next-line
@@ -30,7 +30,7 @@ function HookTestComponent({ aulaId, callback }) {
   return null;
 }
 
-describe('useEditarAula', () => {
+describe('useEditarAndamentoAula', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     reactRedux.useDispatch.mockReturnValue(mockDispatch);
@@ -50,7 +50,6 @@ describe('useEditarAula', () => {
     let hookResult;
     render(
       <HookTestComponent
-        aulaId={1}
         callback={hook => {
           hookResult = hook;
         }}
@@ -74,7 +73,7 @@ describe('useEditarAula', () => {
       action: '',
       statusError: null,
     });
-    render(<HookTestComponent aulaId={1} />);
+    render(<HookTestComponent />);
     expect(mockDispatch).toHaveBeenCalledWith(
       expect.objectContaining(clearStatusAction)
     );
@@ -89,7 +88,7 @@ describe('useEditarAula', () => {
       action: 'updateAndamentoAula',
       statusError: null,
     });
-    render(<HookTestComponent aulaId={1} />);
+    render(<HookTestComponent />);
     expect(mockDispatch).toHaveBeenCalledWith(
       expect.objectContaining({ type: expect.stringContaining('clearCurrent') })
     );

@@ -6,7 +6,7 @@ import { useToast } from '@/providers/ToastProvider';
 import { updateAndamentoAula } from '@/store/slices/aulasSlice';
 import { clearStatus, clearCurrent } from '@/store/slices/aulasSlice';
 
-export function useEditarAula(aulaId) {
+export function useEditarAndamentoAula() {
   const dispatch = useDispatch();
   const router = useRouter();
   const { success } = useToast();
