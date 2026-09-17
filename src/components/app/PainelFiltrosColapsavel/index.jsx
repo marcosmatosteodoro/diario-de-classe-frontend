@@ -95,7 +95,9 @@ export const PainelFiltrosColapsavel = ({
   // eixo): `isOpen` chega de `useCollapsiblePanelState`, cujo `useState` lê o
   // `localStorage` sincronamente já na primeira renderização do cliente — a
   // MESMA passada que hidrata. O servidor, sem acesso a `localStorage`,
-  // sempre renderiza o default `aberto` (A-001-001). ARIA/rótulo não têm
+  // sempre renderiza o default `aberto` (A-001-001). Se a preferência passar
+  // a ser lida no servidor (cookie — ver "Reabrir se" de DEC-002-001), esta
+  // guarda de `hidratado` deve ser revista ou removida. ARIA/rótulo não têm
   // variante de CSS (ao contrário do chevron e da contagem, abaixo). A
   // primeira ideia — afirmar o default do servidor (`hidratado ? isOpen :
   // true`) — resolvia a DIVERGÊNCIA de hidratação, mas não a MENTIRA:

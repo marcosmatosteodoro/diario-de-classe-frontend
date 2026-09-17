@@ -670,23 +670,20 @@ describe('PainelFiltrosColapsavel', () => {
         expect(botaoServidor.hasAttribute('aria-expanded')).toBe(false);
         expect(botaoServidor.getAttribute('aria-label')).toBe('Filtros');
 
-        // Hidrata SEM act() (mesmo padrão do teste AC-001-009 acima): captura
-        // o estado antes do useEffect que corrige `hidratado` rodar. Mutante
-        // (reverter `ariaExpanded`/`ariaLabel` para a derivação antiga
-        // `hidratado ? isOpen : true` / `Recolher ${titulo}`): esta janela
-        // pré-flush passaria a ter `aria-expanded="true"` e
-        // `aria-label="Recolher Filtros"` — a mentira que a emenda existe
-        // para eliminar — e as duas asserções abaixo falhariam.
+        // Hidrata SEM act() (mesmo padrão do teste AC-001-009 acima). O
+        // primeiro commit de hidratação em si não é observável neste
+        // harness — `hydrateRoot` sem `act()` não produz render nem commit
+        // adicional antes do `await act(async () => {})` abaixo (o nó lido
+        // logo após esta chamada é o mesmo `botaoServidor` de cima, sem
+        // nenhuma mutação no meio). A ausência de `aria-expanded`/rótulo
+        // real nesse ponto é garantida por construção: `hidratado` nasce
+        // `useState(false)` e só vira `true` dentro do `useEffect`, que o
+        // React nunca roda antes do commit — não há mutante que abra essa
+        // janela para inspeção aqui.
         const root = hydrateRoot(
           container,
           <PainelComHookReal appliedCount={0} storageKey={storageKey} />
         );
-
-        const botaoPreFlush = dom.window.document.querySelector(
-          '[data-testid="painel-filtros-controle"]'
-        );
-        expect(botaoPreFlush.hasAttribute('aria-expanded')).toBe(false);
-        expect(botaoPreFlush.getAttribute('aria-label')).toBe('Filtros');
 
         // Flush do efeito: `hidratado` vira `true` e o hook já leu a
         // preferência real ("recolhido") — agora o controle passa a
