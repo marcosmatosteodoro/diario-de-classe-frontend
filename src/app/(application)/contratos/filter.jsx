@@ -17,7 +17,6 @@ export const Filter = ({
 }) => {
   return (
     <Form handleSubmit={handleSubmit}>
-      <h3 className="text-xl font-semibold text-main mb-4">Filtros</h3>
       <FormGroup cols={2}>
         <InputField
           htmlFor="dataInicio"

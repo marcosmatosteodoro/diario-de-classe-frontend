@@ -105,7 +105,7 @@ describe('PainelFiltrosColapsavel', () => {
       );
 
       expect(
-        screen.getByRole('button', { name: /expandir filtros/i })
+        screen.getByRole('button', { name: /expandir \(3\)/i })
       ).toHaveAttribute('aria-expanded', 'false');
       expect(screen.getByTestId('filho-enter')).toHaveTextContent('valor');
       expect(screen.getByTestId('painel-filtros-contagem')).toHaveTextContent(
@@ -211,7 +211,7 @@ describe('PainelFiltrosColapsavel', () => {
   });
 
   describe('AC-001-013: singular do nome acessível com appliedCount=1', () => {
-    it('com appliedCount=1 e isOpen=false, o alvo do botão lê "Filtros (1)" e o aria-label usa o singular "1 filtro aplicado"', () => {
+    it('com appliedCount=1 e isOpen=false, o alvo do botão lê "Expandir (1)" e o aria-label usa o singular "1 filtro aplicado"', () => {
       render(
         <PainelFiltrosColapsavel
           titulo="Filtros"
@@ -225,11 +225,11 @@ describe('PainelFiltrosColapsavel', () => {
       );
 
       expect(screen.getByTestId('painel-filtros-rotulo')).toHaveTextContent(
-        'Filtros (1)'
+        'Expandir (1)'
       );
       expect(
         screen.getByRole('button', {
-          name: 'Expandir Filtros (1), 1 filtro aplicado',
+          name: 'Expandir (1), 1 filtro aplicado',
         })
       ).toBeInTheDocument();
     });

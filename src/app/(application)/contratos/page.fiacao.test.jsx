@@ -84,4 +84,10 @@ describe('Contratos — fiação real do painel colapsável (AC-001-012/021)', (
       screen.queryByTestId('painel-filtros-contagem')
     ).not.toBeInTheDocument();
   });
+
+  it('requisito emergente (achado 7 do gate 11): com o painel aberto, "Filtros" aparece exatamente uma vez na árvore renderizada', () => {
+    render(<Contratos />);
+
+    expect(screen.getAllByText(/^Filtros$/)).toHaveLength(1);
+  });
 });
