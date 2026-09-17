@@ -1,6 +1,6 @@
 'use client';
 
-import { useId } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 // Predicado da convenção de formato da `storageKey` (string vs.
 // `{ mapKey, itemId }`) é de COMP-002-003 — endereço canônico em
@@ -90,7 +90,29 @@ export const PainelFiltrosColapsavel = ({
   const contentId = `${idBase}-conteudo`;
   const buttonId = `${idBase}-controle`;
 
-  const mostrarContagem = !isOpen && Number(appliedCount) > 0;
+  // Two-pass render (DEC-002-001, emenda 2026-09-17; lição
+  // `estado-de-localstorage-tem-uma-fonte-so-antes-da-hidratacao`): `isOpen`
+  // chega de `useCollapsiblePanelState`, cujo `useState` lê o `localStorage`
+  // sincronamente já na primeira renderização do cliente — a MESMA passada
+  // que hidrata. O servidor, sem acesso a `localStorage`, sempre renderiza o
+  // default `aberto` (A-001-001). ARIA/rótulo não têm variante de CSS (ao
+  // contrário do chevron e da contagem, abaixo), então sem esta guarda a
+  // primeira passada do cliente usaria `isOpen` real e divergiria do
+  // servidor. `hidratado` mantém essa primeira passada idêntica ao servidor
+  // (sempre `true`) e só assume o valor real depois de montado, corrigindo
+  // sem flash visual — o visual já deriva do atributo `data-panel-state`, não
+  // deste estado. Se um dia a preferência passar a ser lida no servidor
+  // (cookie httpOnly — ver "Reabrir se" de DEC-002-001), este default `true`
+  // vira mentira e a guarda precisa ser revista.
+  const [hidratado, setHidratado] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHidratado(true);
+  }, []);
+  const isOpenParaAria = hidratado ? isOpen : true;
+
+  const existeContagem = Number(appliedCount) > 0;
+  const mostrarContagemNoRotuloAria = !isOpenParaAria && existeContagem;
 
   // Rótulo textual acessível: "1 filtro aplicado" / "N filtros aplicados"
   // (WCAG 2.5.3 — o aria-label precisa CONTER o texto visível do botão,
@@ -101,9 +123,9 @@ export const PainelFiltrosColapsavel = ({
       : `${appliedCount} filtros aplicados`;
 
   let ariaLabel = `Expandir ${titulo}`;
-  if (isOpen) {
+  if (isOpenParaAria) {
     ariaLabel = `Recolher ${titulo}`;
-  } else if (mostrarContagem) {
+  } else if (mostrarContagemNoRotuloAria) {
     ariaLabel = `Expandir ${titulo} (${appliedCount}), ${rotuloContagem}`;
   }
 
@@ -129,7 +151,7 @@ export const PainelFiltrosColapsavel = ({
         <button
           type="button"
           id={buttonId}
-          aria-expanded={isOpen}
+          aria-expanded={isOpenParaAria}
           aria-controls={contentId}
           aria-label={ariaLabel}
           onClick={onToggle}
@@ -138,17 +160,32 @@ export const PainelFiltrosColapsavel = ({
         >
           <span data-testid="painel-filtros-rotulo">
             {titulo}
-            {mostrarContagem && (
-              <span data-testid="painel-filtros-contagem">
+            {existeContagem && (
+              <span
+                data-testid="painel-filtros-contagem"
+                className="hidden group-data-[panel-state=recolhido]:inline"
+              >
                 {` (${appliedCount})`}
               </span>
             )}
           </span>
-          {isOpen ? (
-            <ChevronUp size={16} aria-hidden="true" />
-          ) : (
-            <ChevronDown size={16} aria-hidden="true" />
-          )}
+          {/* Visual derivado do atributo, por CSS (DEC-002-001): as duas
+              variantes existem sempre no markup — servidor e cliente ficam
+              estruturalmente idênticos, não há o que reconciliar na
+              hidratação — e a visibilidade alterna pela mesma variante de
+              grupo que já oculta o conteúdo (`data-panel-state` na raiz). */}
+          <ChevronUp
+            size={16}
+            aria-hidden="true"
+            data-testid="painel-filtros-chevron-recolher"
+            className="group-data-[panel-state=recolhido]:hidden"
+          />
+          <ChevronDown
+            size={16}
+            aria-hidden="true"
+            data-testid="painel-filtros-chevron-expandir"
+            className="hidden group-data-[panel-state=recolhido]:block"
+          />
         </button>
       </div>
       <div

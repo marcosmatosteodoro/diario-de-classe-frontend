@@ -3,9 +3,12 @@ import path from 'path';
 import { JSDOM } from 'jsdom';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { act } from 'react';
+import { renderToStaticMarkup, renderToString } from 'react-dom/server';
+import { hydrateRoot } from 'react-dom/client';
 import { PainelFiltrosColapsavel, buildAntiFlashScript } from './index';
 import { PainelFiltrosColapsavel as PainelDoBarrel } from '@/components/app';
+import { useCollapsiblePanelState } from '@/hooks/useCollapsiblePanelState';
 
 const MARCADOR_FIM_SCRIPT = '</script>';
 
@@ -60,6 +63,68 @@ function montarDocumentoTruncadoNoScript({
   });
 
   return { document: dom.window.document, window: dom.window };
+}
+
+/**
+ * Composição mínima com o hook REAL (`useCollapsiblePanelState`) — a mesma
+ * cablagem que `ListPage`/painel inicial usam (COMP-002-005/006). Necessária
+ * para reproduzir o defeito da TASK-002-008: `PainelFiltrosColapsavel` é
+ * controlado (não tem `isOpen` próprio) e o defeito nasce especificamente da
+ * inicialização síncrona do hook — que já lê `localStorage` na própria
+ * primeira renderização cliente — divergindo do servidor, que nunca lê.
+ */
+function PainelComHookReal({ appliedCount = 0, storageKey }) {
+  const { isOpen, toggle } = useCollapsiblePanelState(storageKey);
+  return (
+    <PainelFiltrosColapsavel
+      titulo="Filtros"
+      isOpen={isOpen}
+      onToggle={toggle}
+      appliedCount={appliedCount}
+      storageKey={storageKey}
+    >
+      <div data-testid="campo-filtro-real">conteudo</div>
+    </PainelFiltrosColapsavel>
+  );
+}
+
+/**
+ * Monta o par servidor+navegador reais para a prova de hidratação da
+ * TASK-002-008 (mesmo padrão de `page.test.jsx`, "INVARIANTE DE CABLAGEM"):
+ * `renderToString` roda no realm AMBIENTE do Jest (onde o hook também vai
+ * rodar durante a hidratação abaixo) sem nenhuma preferência salva — simula
+ * o servidor, que nunca tem acesso a `localStorage` (A-001-001: painel
+ * sempre aberto lá). A preferência-alvo é então semeada em DOIS realms:
+ * o isolado (`JSDOM` novo, para o script anti-flash, que roda durante o
+ * parse REAL do HTML) e o ambiente (para o hook, que lê `localStorage`
+ * global durante a própria hidratação, no realm do Jest).
+ */
+function montarParaHidratacaoReal({
+  preferenciaRecolhida,
+  appliedCount,
+  storageKey,
+}) {
+  localStorage.clear();
+  const markup = renderToString(
+    <PainelComHookReal appliedCount={appliedCount} storageKey={storageKey} />
+  );
+  const html = `<!DOCTYPE html><html><body><div id="root">${markup}</div></body></html>`;
+
+  if (preferenciaRecolhida) {
+    localStorage.setItem(storageKey, JSON.stringify('recolhido'));
+  }
+
+  const dom = new JSDOM(html, {
+    runScripts: 'dangerously',
+    url: 'https://painel-filtros-task-008.teste/',
+    beforeParse(janela) {
+      if (preferenciaRecolhida) {
+        janela.localStorage.setItem(storageKey, JSON.stringify('recolhido'));
+      }
+    },
+  });
+
+  return { dom, container: dom.window.document.getElementById('root') };
 }
 
 describe('PainelFiltrosColapsavel', () => {
@@ -511,6 +576,159 @@ describe('PainelFiltrosColapsavel', () => {
     it('import a partir de @/components/app não é undefined', () => {
       expect(PainelDoBarrel).toBeDefined();
       expect(PainelDoBarrel).toBe(PainelFiltrosColapsavel);
+    });
+  });
+
+  describe('TASK-002-008: controle coerente antes da hidratação (SSR + hidratação real)', () => {
+    describe('AC-001-004/AC-001-005: o controle nunca afirma o oposto do painel', () => {
+      it('recolhido + 0 filtros: aria-expanded="false" e o chevron efetivamente visível é o de expandir, nunca o de recolher', () => {
+        const storageKey = 'panel_teste_task008_aria';
+        const { dom, container } = montarParaHidratacaoReal({
+          preferenciaRecolhida: true,
+          appliedCount: 0,
+          storageKey,
+        });
+
+        let root;
+        act(() => {
+          root = hydrateRoot(
+            container,
+            <PainelComHookReal appliedCount={0} storageKey={storageKey} />
+          );
+        });
+
+        const doc = dom.window.document;
+        const raiz = doc.querySelector(
+          '[data-testid="painel-filtros-colapsavel"]'
+        );
+        const botao = doc.querySelector(
+          '[data-testid="painel-filtros-controle"]'
+        );
+        const chevronRecolher = doc.querySelector(
+          '[data-testid="painel-filtros-chevron-recolher"]'
+        );
+        const chevronExpandir = doc.querySelector(
+          '[data-testid="painel-filtros-chevron-expandir"]'
+        );
+
+        expect(raiz.getAttribute('data-panel-state')).toBe('recolhido');
+        expect(botao.getAttribute('aria-expanded')).toBe('false');
+        expect(botao.getAttribute('aria-label')).not.toMatch(/recolher/i);
+
+        // Visibilidade EFETIVA sob o atributo — não presença no markup
+        // (risco declarado da TASK: as duas variantes existem sempre no
+        // DOM). A variante "recolher" carrega a classe que a apaga sob o
+        // mesmo group-data que já oculta o conteúdo; a "expandir" nasce
+        // com `hidden` e só a substitui pela classe que a reexibe sob o
+        // mesmo estado. Mutante (reverter para `isOpen ? <ChevronUp/> :
+        // <ChevronDown/>}`): só UM dos dois testids existiria no DOM, e o
+        // `querySelector` do que faltasse devolveria `null` — os
+        // `.getAttribute` abaixo lançariam.
+        expect(chevronRecolher).not.toBeNull();
+        expect(chevronExpandir).not.toBeNull();
+        expect(chevronRecolher.getAttribute('class')).toContain(
+          'group-data-[panel-state=recolhido]:hidden'
+        );
+        expect(chevronExpandir.getAttribute('class')).toContain('hidden');
+        expect(chevronExpandir.getAttribute('class')).toContain(
+          'group-data-[panel-state=recolhido]:block'
+        );
+
+        act(() => {
+          root.unmount();
+        });
+      });
+    });
+
+    describe('NFR-001-002: zero divergência de hidratação nos quatro cenários {aberto,recolhido} x {0,2 filtros}', () => {
+      it.each([
+        ['aberto + 0 filtros', false, 0],
+        ['aberto + 2 filtros', false, 2],
+        ['recolhido + 0 filtros', true, 0],
+        ['recolhido + 2 filtros', true, 2],
+      ])(
+        '%s: hydrateRoot real não emite nenhum console.error',
+        (_descricao, preferenciaRecolhida, appliedCount) => {
+          const storageKey = `panel_teste_task008_nfr_${preferenciaRecolhida}_${appliedCount}`;
+          const { dom, container } = montarParaHidratacaoReal({
+            preferenciaRecolhida,
+            appliedCount,
+            storageKey,
+          });
+
+          const consoleErrorSpy = jest
+            .spyOn(console, 'error')
+            .mockImplementation(() => {});
+
+          let root;
+          act(() => {
+            root = hydrateRoot(
+              container,
+              <PainelComHookReal
+                appliedCount={appliedCount}
+                storageKey={storageKey}
+              />
+            );
+          });
+
+          // Mutante (restaurar o `<span>` da contagem condicionado a
+          // `!isOpen`): no cenário recolhido+2, o servidor (sempre aberto)
+          // não renderiza o `<span>`, mas a hidratação — com `isOpen` já
+          // `false` via hook — o renderizaria: divergência ESTRUTURAL,
+          // "Hydration failed", e esta asserção reprova.
+          expect(consoleErrorSpy).toHaveBeenCalledTimes(0);
+
+          act(() => {
+            root.unmount();
+          });
+          consoleErrorSpy.mockRestore();
+        }
+      );
+
+      it('nunca usa suppressHydrationWarning — a flag desligaria a própria checagem que estes testes fazem', () => {
+        const fonte = fs.readFileSync(
+          path.join(__dirname, 'index.jsx'),
+          'utf8'
+        );
+        expect(fonte).not.toContain('suppressHydrationWarning');
+      });
+    });
+
+    describe('AC-001-009: a contagem aparece ao terminar de carregar, não após o primeiro clique', () => {
+      it('recolhido + 2 filtros: "(2)" já está no primeiro commit de hidratação, antes do useEffect de correção do ARIA rodar', async () => {
+        const storageKey = 'panel_teste_task008_ac009';
+        const { dom, container } = montarParaHidratacaoReal({
+          preferenciaRecolhida: true,
+          appliedCount: 2,
+          storageKey,
+        });
+
+        // Propositalmente FORA de `act()`: um `act()` síncrono envolvendo
+        // `hydrateRoot` já flusha, na mesma passada, o `useEffect` que
+        // corrige `hidratado` (verificado: aria-expanded já sai corrigido
+        // dali) — o que apagaria a distinção entre o primeiro commit de
+        // hidratação e o corrigido. Chamar direto captura o commit real,
+        // antes de qualquer efeito rodar: é ali que a contagem — que nunca
+        // depende de `hidratado` — precisa já estar. Mutante (condicionar o
+        // `<span>` a `hidratado`): ausente neste ponto, presente só depois.
+        const root = hydrateRoot(
+          container,
+          <PainelComHookReal appliedCount={2} storageKey={storageKey} />
+        );
+
+        const contagem = dom.window.document.querySelector(
+          '[data-testid="painel-filtros-contagem"]'
+        );
+        expect(contagem).not.toBeNull();
+        expect(contagem.textContent).toContain('2');
+
+        // Flusha o efeito pendente antes de desmontar, para não vazar aviso
+        // de "not wrapped in act" para o teste seguinte.
+        await act(async () => {});
+        act(() => {
+          root.unmount();
+        });
+      });
     });
   });
 });
