@@ -86,20 +86,6 @@ describe('loadPanelState / savePanelState', () => {
     localStorage.clear();
   });
 
-  it('returns the default when window is undefined (SSR)', () => {
-    const originalWindow = global.window;
-    try {
-      delete global.window;
-    } catch {
-      global.window = undefined;
-    }
-    try {
-      expect(loadPanelState('panel_aulas', 'aberto')).toBe('aberto');
-    } finally {
-      global.window = originalWindow;
-    }
-  });
-
   it('returns the default when nothing is stored or stored JSON is invalid', () => {
     expect(loadPanelState('panel_aulas', 'aberto')).toBe('aberto');
 

@@ -1,6 +1,6 @@
 import { countAppliedFilters } from './filterCount';
 
-// Shape real de defaultFormData, conferido contra src/hooks/aulas/useAulas.js:17-25.
+// Shape de defaultFormData — fonte: src/hooks/aulas/useAulas.js:17-25.
 const defaultFormData = {
   dataInicio: '2026-09-17',
   dataTermino: '2026-12-17',
