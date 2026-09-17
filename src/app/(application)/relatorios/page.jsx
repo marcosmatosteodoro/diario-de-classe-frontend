@@ -5,9 +5,12 @@ import {
   FormGroup,
   InputField,
   Loading,
+  PainelFiltrosColapsavel,
   SelectField,
   TextAreaField,
 } from '@/components';
+import { RELATORIOS_PANEL_STORAGE_KEY } from '@/constants';
+import { useCollapsiblePanelState } from '@/hooks/useCollapsiblePanelState';
 import { useRelatorioForm } from '@/hooks/relatorios/useRelatorioForm';
 import { useRelatorios } from '@/hooks/relatorios/useRelatorios';
 import { useState } from 'react';
@@ -29,11 +32,25 @@ function FiltroRelatorio({ filtro, value, handleChange }) {
   }
 }
 
+// COMP-002-007: cada card se identifica no mapa único de persistência
+// (`filters_relatorios_panel`, RELATORIOS_PANEL_STORAGE_KEY) por
+// `relatorio.endpoint` — único campo estável hoje (`useRelatorioForm.js:37`,
+// `submit(relatorio.endpoint, filtros)`). Degradação aceitável se o backend
+// deixar de garantir essa estabilidade (TRISK-002-003): o card correspondente
+// cai no default aberto, sem afetar os demais.
 function CardRelatorio({ relatorio, isSubmitting, submit }) {
   const { filtros, handleChange, handleSubmit } = useRelatorioForm({
     relatorio,
     submit,
   });
+  const storageKey = {
+    mapKey: RELATORIOS_PANEL_STORAGE_KEY,
+    itemId: relatorio.endpoint,
+  };
+  // MESMA storageKey passada ao painel (invariante de DEC-002-001 §6): só
+  // assim o `isOpen` que o React controla converge com o que o script
+  // anti-flash já aplicou ao DOM antes da hidratação.
+  const { isOpen, toggle } = useCollapsiblePanelState(storageKey);
 
   return (
     <div className="bg-main rounded-lg shadow p-6 flex flex-col gap- border border-main">
@@ -42,27 +59,36 @@ function CardRelatorio({ relatorio, isSubmitting, submit }) {
       </h3>
       <p className="text-muted mb-2">{relatorio.description}</p>
 
-      <Form handleSubmit={handleSubmit} col={2} className="grid">
-        {/* <FormError title={message} errors={errors} /> */}
-        <FormGroup col={2}>
-          {relatorio?.filters.map(filtro => (
-            <FiltroRelatorio
-              key={filtro.htmlFor}
-              filtro={filtro}
-              value={filtros[filtro.htmlFor]}
-              handleChange={handleChange}
-            />
-          ))}
-        </FormGroup>
-      </Form>
-
-      <button
-        className={`btn btn-primary self-end mt-4  ${isSubmitting ? 'blocked' : ''}`}
-        disabled={isSubmitting}
-        onClick={handleSubmit}
+      {/* Sem appliedCount: `/relatorios` não tem noção de "filtro aplicado"
+          (SPEC §4.2, DEC-002-004/COMP-002-007). */}
+      <PainelFiltrosColapsavel
+        titulo="Filtros"
+        isOpen={isOpen}
+        onToggle={toggle}
+        storageKey={storageKey}
       >
-        Gerar
-      </button>
+        <Form handleSubmit={handleSubmit} col={2} className="grid">
+          {/* <FormError title={message} errors={errors} /> */}
+          <FormGroup col={2}>
+            {relatorio?.filters.map(filtro => (
+              <FiltroRelatorio
+                key={filtro.htmlFor}
+                filtro={filtro}
+                value={filtros[filtro.htmlFor]}
+                handleChange={handleChange}
+              />
+            ))}
+          </FormGroup>
+        </Form>
+
+        <button
+          className={`btn btn-primary self-end mt-4  ${isSubmitting ? 'blocked' : ''}`}
+          disabled={isSubmitting}
+          onClick={handleSubmit}
+        >
+          Gerar
+        </button>
+      </PainelFiltrosColapsavel>
     </div>
   );
 }
