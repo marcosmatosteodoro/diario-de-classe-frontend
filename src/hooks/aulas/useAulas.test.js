@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useAulas } from './useAulas';
 import { getAulas } from '@/store/slices/aulasSlice';
 import { STATUS } from '@/constants';
+import { useCollapsiblePanelState } from '@/hooks/useCollapsiblePanelState';
+import { countAppliedFilters } from '@/utils/filterCount';
 
 jest.mock('react-redux', () => ({
   useDispatch: jest.fn(),
@@ -449,6 +451,106 @@ describe('useAulas', () => {
 
       expect(result.current.formData.dataInicio).toBe(initialDataInicio);
       expect(result.current.formData.dataTermino).toBe('2024-09-30');
+    });
+  });
+
+  describe('appliedCount (COMP-002-004) e AC-001-013', () => {
+    it('formData alterado do default: appliedCount reflete countAppliedFilters(formData, defaultFormData)', () => {
+      useSelector.mockImplementation(cb => cb(mockSelectorState));
+      const { result } = renderHook(() => useAulas());
+
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'tipo', value: 'PADRAO', type: 'text' },
+        });
+      });
+
+      const defaultFormData = { ...result.current.formData, tipo: '' };
+      expect(result.current.appliedCount).toBe(
+        countAppliedFilters(result.current.formData, defaultFormData)
+      );
+      expect(result.current.appliedCount).toBe(1);
+    });
+
+    it('AC-001-013: handleClearFilter zera appliedCount na sequência, sem remontar', () => {
+      useSelector.mockImplementation(cb => cb(mockSelectorState));
+      const { result } = renderHook(() => useAulas());
+
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'tipo', value: 'PADRAO', type: 'text' },
+        });
+      });
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'idAluno', value: '123', type: 'text' },
+        });
+      });
+
+      expect(result.current.appliedCount).toBe(2);
+
+      act(() => {
+        result.current.handleClearFilter();
+      });
+
+      expect(result.current.appliedCount).toBe(0);
+    });
+  });
+
+  describe('AC-001-011 (não-regressão, FR-001-002): toggle() do painel não toca formData/dispatch de useAulas', () => {
+    it('alternar isOpen via toggle() do hook do painel não dispara novo dispatch nem altera o formData já modificado', () => {
+      useSelector.mockImplementation(cb => cb(mockSelectorState));
+
+      const { result } = renderHook(() => ({
+        aulas: useAulas(),
+        painel: useCollapsiblePanelState('panel_aulas_teste_ac011'),
+      }));
+
+      act(() => {
+        result.current.aulas.handleChange({
+          target: { name: 'tipo', value: 'PADRAO', type: 'text' },
+        });
+      });
+
+      const formDataAntesDoToggle = result.current.aulas.formData;
+      expect(formDataAntesDoToggle.tipo).toBe('PADRAO');
+
+      getAulas.mockClear();
+      mockDispatch.mockClear();
+
+      act(() => {
+        result.current.painel.toggle();
+      });
+
+      // Mutante: fazer toggle() chamar handleClearFilter por engano faria
+      // getAulas/dispatch serem chamados de novo, com o formData resetado ao
+      // default (tipo === '') — divergente do formData modificado acima.
+      expect(getAulas).not.toHaveBeenCalled();
+      expect(mockDispatch).not.toHaveBeenCalled();
+      expect(result.current.aulas.formData).toEqual(formDataAntesDoToggle);
+      expect(result.current.painel.isOpen).toBe(false);
+    });
+  });
+
+  describe('AC-001-008 (FR-001-012, achado B1 do qa): handleClearFilter não altera isOpen do painel', () => {
+    it('painel recolhido: acionar handleClearFilter do hook real mantém isOpen inalterado', () => {
+      useSelector.mockImplementation(cb => cb(mockSelectorState));
+
+      const { result } = renderHook(() => ({
+        aulas: useAulas(),
+        painel: useCollapsiblePanelState('panel_aulas_teste_ac008'),
+      }));
+
+      act(() => {
+        result.current.painel.toggle();
+      });
+      expect(result.current.painel.isOpen).toBe(false);
+
+      act(() => {
+        result.current.aulas.handleClearFilter();
+      });
+
+      expect(result.current.painel.isOpen).toBe(false);
     });
   });
 });
