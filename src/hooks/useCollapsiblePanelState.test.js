@@ -1,7 +1,6 @@
 import React from 'react';
 import { render, renderHook, act } from '@testing-library/react';
 import { useCollapsiblePanelState } from './useCollapsiblePanelState';
-import { loadPanelStateMap } from '@/utils/filterStorage';
 
 const CHAVE_A = 'panel_teste_a';
 const CHAVE_B = 'panel_teste_b';
@@ -45,6 +44,25 @@ describe('useCollapsiblePanelState', () => {
       useCollapsiblePanelState(CHAVE_B)
     );
     expect(outraChave.current.isOpen).toBe(true);
+  });
+
+  it('AC-001-003/016 (ramo aberto): recolhido semeado, toggle() reabre e persiste "aberto" — nova instância da mesma chave também lê aberto', () => {
+    localStorage.setItem(CHAVE_A, JSON.stringify('recolhido'));
+
+    const { result } = renderHook(() => useCollapsiblePanelState(CHAVE_A));
+    expect(result.current.isOpen).toBe(false);
+
+    act(() => result.current.toggle());
+
+    expect(result.current.isOpen).toBe(true);
+    // conteúdo persistido, não o retorno de loadPanelState: o default
+    // ('aberto') e o valor gravado 'aberto' são indistinguíveis por lá.
+    expect(JSON.parse(localStorage.getItem(CHAVE_A))).toBe('aberto');
+
+    const { result: novaInstancia } = renderHook(() =>
+      useCollapsiblePanelState(CHAVE_A)
+    );
+    expect(novaInstancia.current.isOpen).toBe(true);
   });
 
   it('AC-001-004/017: leitura que lança resulta em isOpen=true, sem propagar exceção', () => {
@@ -110,6 +128,29 @@ describe('useCollapsiblePanelState', () => {
     expect(novaB.current.isOpen).toBe(true);
   });
 
+  it('AC-001-025 (ramo aberto): item semeado recolhido, toggle() reabre e persiste "aberto" no mapa — nova instância do mesmo item também lê aberto', () => {
+    localStorage.setItem(CHAVE_MAPA, JSON.stringify({ a: 'recolhido' }));
+
+    const { result } = renderHook(() =>
+      useCollapsiblePanelState({ mapKey: CHAVE_MAPA, itemId: 'a' })
+    );
+    expect(result.current.isOpen).toBe(false);
+
+    act(() => result.current.toggle());
+
+    expect(result.current.isOpen).toBe(true);
+    // conteúdo persistido, não o retorno de loadPanelStateMap: o default
+    // ('aberto') e o valor gravado 'aberto' são indistinguíveis por lá.
+    expect(JSON.parse(localStorage.getItem(CHAVE_MAPA))).toEqual({
+      a: 'aberto',
+    });
+
+    const { result: novaInstancia } = renderHook(() =>
+      useCollapsiblePanelState({ mapKey: CHAVE_MAPA, itemId: 'a' })
+    );
+    expect(novaInstancia.current.isOpen).toBe(true);
+  });
+
   it('AC-001-026: leitura/gravação que lança na variante mapa não bloqueia as demais instâncias', () => {
     const { result: a } = renderHook(() =>
       useCollapsiblePanelState({ mapKey: CHAVE_MAPA, itemId: 'a' })
@@ -135,7 +176,7 @@ describe('useCollapsiblePanelState', () => {
     expect(b.current.isOpen).toBe(true);
   });
 
-  it('AC-001-024 (parcial): toggle() na primeira instância não altera isOpen nem a chave persistida da segunda', () => {
+  it('AC-001-024 (parcial): toggle() na primeira instância não escreve na chave da segunda no mapa persistido', () => {
     const { result: a } = renderHook(() =>
       useCollapsiblePanelState({ mapKey: CHAVE_MAPA, itemId: 'a' })
     );
@@ -146,7 +187,11 @@ describe('useCollapsiblePanelState', () => {
     act(() => a.current.toggle());
 
     expect(b.current.isOpen).toBe(true);
-    expect(loadPanelStateMap(CHAVE_MAPA, 'b', 'aberto')).toBe('aberto');
+    // conteúdo persistido: 'b' não sofreu escrita nenhuma — não é só que
+    // "aberto" veio de volta, é que a chave nunca foi tocada.
+    expect(JSON.parse(localStorage.getItem(CHAVE_MAPA))).toEqual({
+      a: 'recolhido',
+    });
   });
 
   it('NFR-001-002: isOpen já nasce false na primeira execução do corpo, sem correção por efeito', () => {

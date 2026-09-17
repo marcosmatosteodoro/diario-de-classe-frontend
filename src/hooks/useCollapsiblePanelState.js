@@ -1,7 +1,6 @@
-'use client';
-
 import { useCallback, useState } from 'react';
 import {
+  isConfigDeMapa,
   loadPanelState,
   loadPanelStateMap,
   savePanelState,
@@ -10,14 +9,6 @@ import {
 
 const ABERTO = 'aberto';
 const RECOLHIDO = 'recolhido';
-
-function isConfigDeMapa(storageKey) {
-  return (
-    storageKey !== null &&
-    typeof storageKey === 'object' &&
-    Object.hasOwn(storageKey, 'mapKey')
-  );
-}
 
 /**
  * Estado de abertura (`isOpen`) e persistência de um painel colapsável.
@@ -37,13 +28,18 @@ function isConfigDeMapa(storageKey) {
  */
 export function useCollapsiblePanelState(storageKey) {
   const usaMapa = isConfigDeMapa(storageKey);
-  const mapKey = usaMapa ? storageKey.mapKey : null;
+  // Quando não é variante-mapa, `storageKey` já é a própria chave (string) —
+  // reaproveitada em `mapKey` para que `toggle` dependa só de primitivos
+  // estáveis (usaMapa/mapKey/itemId), nunca do objeto `{ mapKey, itemId }`
+  // que o chamador da variante-mapa passa como literal novo a cada render
+  // (identidade instável, que quebraria a memoização do useCallback).
+  const mapKey = usaMapa ? storageKey.mapKey : storageKey;
   const itemId = usaMapa ? storageKey.itemId : null;
 
   const [isOpen, setIsOpen] = useState(() => {
     const preferencia = usaMapa
       ? loadPanelStateMap(mapKey, itemId, ABERTO)
-      : loadPanelState(storageKey, ABERTO);
+      : loadPanelState(mapKey, ABERTO);
     return preferencia !== RECOLHIDO;
   });
 
@@ -55,7 +51,7 @@ export function useCollapsiblePanelState(storageKey) {
         if (usaMapa) {
           savePanelStateMap(mapKey, itemId, valor);
         } else {
-          savePanelState(storageKey, valor);
+          savePanelState(mapKey, valor);
         }
         return proximo;
       } catch {
@@ -64,7 +60,7 @@ export function useCollapsiblePanelState(storageKey) {
         return true;
       }
     });
-  }, [usaMapa, mapKey, itemId, storageKey]);
+  }, [usaMapa, mapKey, itemId]);
 
   return { isOpen, toggle };
 }

@@ -5,6 +5,21 @@ import {
 } from '@/constants';
 
 /**
+ * Convenção de formato da `storageKey` de painel colapsável (COMP-002-003):
+ * string simples (chave fixa) ou `{ mapKey, itemId }` (variante de
+ * chave-mapa, usada em `/relatorios`, onde os cards são dinâmicos).
+ * Endereço canônico — `useCollapsiblePanelState` e `PainelFiltrosColapsavel`
+ * importam daqui; nenhum dos dois deve depender do outro.
+ */
+export function isConfigDeMapa(storageKey) {
+  return (
+    storageKey !== null &&
+    typeof storageKey === 'object' &&
+    Object.hasOwn(storageKey, 'mapKey')
+  );
+}
+
+/**
  * Lê os filtros salvos no localStorage e mescla sobre os padrões.
  * SSR-safe: fora do browser (ou em caso de erro) retorna os padrões.
  */

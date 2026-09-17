@@ -7,6 +7,7 @@ import {
   savePanelState,
   loadPanelStateMap,
   savePanelStateMap,
+  isConfigDeMapa,
 } from './filterStorage';
 import {
   FILTER_STORAGE_KEYS,
@@ -116,6 +117,19 @@ describe('loadPanelState / savePanelState', () => {
   );
 });
 
+describe('isConfigDeMapa (endereço canônico da convenção de storageKey, achado C)', () => {
+  it.each([
+    ['string simples', 'panel_aulas', false],
+    ['objeto { mapKey, itemId }', { mapKey: 'k', itemId: 'a' }, true],
+    ['objeto qualquer sem mapKey', { itemId: 'a' }, false],
+    ['null', null, false],
+    ['número', 5, false],
+    ['undefined', undefined, false],
+  ])('com %s, devolve %s', (_descricao, valor, esperado) => {
+    expect(isConfigDeMapa(valor)).toBe(esperado);
+  });
+});
+
 describe('loadPanelStateMap / savePanelStateMap', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -139,12 +153,13 @@ describe('loadPanelStateMap / savePanelStateMap', () => {
     savePanelStateMap(RELATORIOS_PANEL_STORAGE_KEY, 'endpoint-a', 'recolhido');
     savePanelStateMap(RELATORIOS_PANEL_STORAGE_KEY, 'endpoint-b', 'aberto');
 
+    // conteúdo persistido, não o retorno de loadPanelStateMap: sob
+    // substituição total do mapa, a última chave escrita sempre sobrevive,
+    // então uma asserção sobre o retorno nunca discriminaria merge de
+    // substituição (mutante `if (value === 'aberto') return;` sobreviveria).
     expect(
-      loadPanelStateMap(RELATORIOS_PANEL_STORAGE_KEY, 'endpoint-a', 'aberto')
-    ).toBe('recolhido');
-    expect(
-      loadPanelStateMap(RELATORIOS_PANEL_STORAGE_KEY, 'endpoint-b', 'aberto')
-    ).toBe('aberto');
+      JSON.parse(localStorage.getItem(RELATORIOS_PANEL_STORAGE_KEY))
+    ).toEqual({ 'endpoint-a': 'recolhido', 'endpoint-b': 'aberto' });
   });
 
   it.each([

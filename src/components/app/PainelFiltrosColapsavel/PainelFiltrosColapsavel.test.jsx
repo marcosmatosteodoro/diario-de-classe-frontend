@@ -1,42 +1,65 @@
 import fs from 'fs';
 import path from 'path';
+import { JSDOM } from 'jsdom';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PainelFiltrosColapsavel, buildAntiFlashScript } from './index';
 import { PainelFiltrosColapsavel as PainelDoBarrel } from '@/components/app';
 
-/**
- * Executa o texto de um `<script>` extraído da árvore renderizada contra um
- * documento HTML isolado (`document.implementation.createHTMLDocument`),
- * passando esse documento como o `document` local da função executada — o
- * script real, gerado pelo componente, manipula só esse documento isolado,
- * nunca o documento global do teste.
- */
-function executarScriptEmDocumentoIsolado(scriptText, doc) {
-  const executar = new Function('document', scriptText);
-  executar(doc);
-}
+const MARCADOR_FIM_SCRIPT = '</script>';
 
-function montarDocumentoComScript({ isOpen = true, storageKey, filhoTestId }) {
-  const markup = renderToStaticMarkup(
+/**
+ * Monta o markup real do componente e o executa com o parser HTML real do
+ * jsdom (`runScripts: 'dangerously'`), truncado exatamente no fechamento do
+ * `<script>` anti-flash — nada do que viria depois dele (o
+ * `<div id={contentId}>`) chega a ser parseado. Prova, sem ambiguidade, que
+ * o mecanismo não depende de um nó que só existe depois no documento: se
+ * dependesse, este teste não teria como encontrá-lo.
+ *
+ * `seedLocalStorage` roda em `beforeParse` — antes do HTML ser processado —
+ * porque o `localStorage` de cada instância do `JSDOM` é isolado da suíte e
+ * o script anti-flash executa durante a própria construção do documento.
+ *
+ * Uma sentinela é anexada logo após o script anti-flash: se ele quebrasse o
+ * parser (por exemplo, um breakout de tag), a sentinela nunca executaria.
+ */
+function montarDocumentoTruncadoNoScript({
+  isOpen = true,
+  storageKey,
+  seedLocalStorage,
+}) {
+  const markupCompleto = renderToStaticMarkup(
     <PainelFiltrosColapsavel
       titulo="Filtros"
       isOpen={isOpen}
       onToggle={() => {}}
       storageKey={storageKey}
     >
-      <div data-testid={filhoTestId || 'campo-filtro'}>conteudo</div>
+      <div data-testid="campo-filtro">conteudo</div>
     </PainelFiltrosColapsavel>
   );
 
-  const doc = document.implementation.createHTMLDocument('teste-anti-flash');
-  doc.body.innerHTML = markup;
+  const fimDoScript =
+    markupCompleto.indexOf(MARCADOR_FIM_SCRIPT) + MARCADOR_FIM_SCRIPT.length;
+  const ateOFechamentoDoScript = markupCompleto.slice(0, fimDoScript);
 
-  const scriptNode = doc.querySelector('script');
-  const wrapper = doc.querySelector('[data-testid="painel-filtros-conteudo"]');
+  const html =
+    '<!DOCTYPE html><html><body>' +
+    ateOFechamentoDoScript +
+    '<script data-testid="sentinela">window.__sentinelaExecutou = true;</script>';
 
-  return { doc, scriptText: scriptNode.textContent, wrapper };
+  const dom = new JSDOM(html, {
+    runScripts: 'dangerously',
+    url: 'https://painel-filtros.teste/',
+    beforeParse(janela) {
+      if (seedLocalStorage) {
+        seedLocalStorage(janela.localStorage);
+      }
+    },
+  });
+
+  return { document: dom.window.document, window: dom.window };
 }
 
 describe('PainelFiltrosColapsavel', () => {
@@ -84,8 +107,6 @@ describe('PainelFiltrosColapsavel', () => {
       expect(
         screen.getByRole('button', { name: /expandir filtros/i })
       ).toHaveAttribute('aria-expanded', 'false');
-      // nenhuma outra prop é tocada pelo próprio componente: children e
-      // appliedCount seguem exatamente o que foi passado no rerender.
       expect(screen.getByTestId('filho-enter')).toHaveTextContent('valor');
       expect(screen.getByTestId('painel-filtros-contagem')).toHaveTextContent(
         '3'
@@ -153,9 +174,14 @@ describe('PainelFiltrosColapsavel', () => {
         </PainelFiltrosColapsavel>
       );
 
-      expect(screen.getByTestId('painel-filtros-conteudo')).toHaveAttribute(
+      // data-panel-state fica na raiz (`group`), não mais no conteúdo — é o
+      // ancestral que o script anti-flash marca (achado A).
+      expect(screen.getByTestId('painel-filtros-colapsavel')).toHaveAttribute(
         'data-panel-state',
         'recolhido'
+      );
+      expect(screen.getByTestId('painel-filtros-conteudo')).not.toHaveAttribute(
+        'data-panel-state'
       );
       expect(screen.getByTestId('painel-filtros-contagem')).toHaveTextContent(
         '2'
@@ -181,6 +207,31 @@ describe('PainelFiltrosColapsavel', () => {
         screen.queryByTestId('painel-filtros-contagem')
       ).not.toBeInTheDocument();
       expect(screen.queryByText('0')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('AC-001-013: singular do nome acessível com appliedCount=1', () => {
+    it('com appliedCount=1 e isOpen=false, o alvo do botão lê "Filtros (1)" e o aria-label usa o singular "1 filtro aplicado"', () => {
+      render(
+        <PainelFiltrosColapsavel
+          titulo="Filtros"
+          isOpen={false}
+          onToggle={() => {}}
+          appliedCount={1}
+          storageKey="panel_teste_singular"
+        >
+          <div>conteudo</div>
+        </PainelFiltrosColapsavel>
+      );
+
+      expect(screen.getByTestId('painel-filtros-rotulo')).toHaveTextContent(
+        'Filtros (1)'
+      );
+      expect(
+        screen.getByRole('button', {
+          name: 'Expandir Filtros (1), 1 filtro aplicado',
+        })
+      ).toBeInTheDocument();
     });
   });
 
@@ -277,11 +328,14 @@ describe('PainelFiltrosColapsavel', () => {
       expect(inputA).not.toBeNull();
       expect(inputA.value).toBe('valor-a');
 
-      const conteudoA = within(
-        screen.getByRole('button', { name: /expandir card a/i }).parentElement
-          .parentElement
-      ).queryByTestId('painel-filtros-conteudo');
-      expect(conteudoA).toHaveAttribute('data-panel-state', 'recolhido');
+      // data-panel-state fica na raiz do painel (`group`), não no conteúdo.
+      const raizA = screen.getByRole('button', { name: /expandir card a/i })
+        .parentElement.parentElement;
+      expect(raizA).toHaveAttribute('data-testid', 'painel-filtros-colapsavel');
+      expect(raizA).toHaveAttribute('data-panel-state', 'recolhido');
+      expect(
+        within(raizA).getByTestId('painel-filtros-conteudo')
+      ).not.toHaveAttribute('data-panel-state');
     });
   });
 
@@ -356,89 +410,98 @@ describe('PainelFiltrosColapsavel', () => {
     });
   });
 
-  describe('Script anti-flash (DEC-002-001) — execução contra DOM real', () => {
-    it('com a chave gravada como "recolhido", aplica data-panel-state="recolhido" antes de qualquer React rodar', () => {
-      localStorage.setItem(
-        'panel_teste_antiflash_ok',
-        JSON.stringify('recolhido')
+  describe('Script anti-flash (DEC-002-001) — execução contra DOM real, ordem de parse', () => {
+    it('com a chave gravada como "recolhido", marca a raiz (ancestral já aberto) com data-panel-state="recolhido", mesmo com o documento truncado logo após o script', () => {
+      const { document: doc, window: janela } = montarDocumentoTruncadoNoScript(
+        {
+          isOpen: true,
+          storageKey: 'panel_teste_antiflash_ok',
+          seedLocalStorage: storage =>
+            storage.setItem(
+              'panel_teste_antiflash_ok',
+              JSON.stringify('recolhido')
+            ),
+        }
       );
 
-      const { scriptText, wrapper, doc } = montarDocumentoComScript({
-        isOpen: true,
-        storageKey: 'panel_teste_antiflash_ok',
-      });
-
-      executarScriptEmDocumentoIsolado(scriptText, doc);
-
-      const wrapperPos = doc.querySelector(
-        '[data-testid="painel-filtros-conteudo"]'
+      const raiz = doc.querySelector(
+        '[data-testid="painel-filtros-colapsavel"]'
       );
-      expect(wrapperPos.getAttribute('data-panel-state')).toBe('recolhido');
-      expect(wrapper).not.toBeNull();
+      expect(raiz.getAttribute('data-panel-state')).toBe('recolhido');
+      // sentinela: o parser seguiu vivo depois do script anti-flash
+      expect(janela.__sentinelaExecutou).toBe(true);
+      // documento propositalmente truncado: o conteúdo real do painel
+      // (que viria depois do script, na árvore) nunca chegou a ser
+      // parseado neste teste — prova de que o mecanismo não depende dele.
+      expect(
+        doc.querySelector('[data-testid="painel-filtros-conteudo"]')
+      ).toBeNull();
     });
 
-    it('cenário irmão: sem a chave gravada, o atributo não é aplicado', () => {
-      const { scriptText, doc } = montarDocumentoComScript({
-        isOpen: true,
-        storageKey: 'panel_teste_antiflash_ausente',
-      });
-
-      executarScriptEmDocumentoIsolado(scriptText, doc);
-
-      const wrapperPos = doc.querySelector(
-        '[data-testid="painel-filtros-conteudo"]'
+    it('cenário irmão: sem a chave gravada, o atributo não é aplicado na raiz', () => {
+      const { document: doc, window: janela } = montarDocumentoTruncadoNoScript(
+        { isOpen: true, storageKey: 'panel_teste_antiflash_ausente' }
       );
-      expect(wrapperPos.getAttribute('data-panel-state')).toBeNull();
+
+      const raiz = doc.querySelector(
+        '[data-testid="painel-filtros-colapsavel"]'
+      );
+      expect(raiz.getAttribute('data-panel-state')).toBeNull();
+      expect(janela.__sentinelaExecutou).toBe(true);
     });
 
-    it('variante de chave-mapa: aplica o atributo só quando o item do mapa é "recolhido"', () => {
-      localStorage.setItem(
-        'filters_relatorios_panel_teste',
-        JSON.stringify({ 'card-1': 'recolhido', 'card-2': 'aberto' })
+    it('variante de chave-mapa: aplica o atributo na raiz só quando o item do mapa é "recolhido"', () => {
+      const { document: doc, window: janela } = montarDocumentoTruncadoNoScript(
+        {
+          isOpen: true,
+          storageKey: {
+            mapKey: 'filters_relatorios_panel_teste',
+            itemId: 'card-1',
+          },
+          seedLocalStorage: storage =>
+            storage.setItem(
+              'filters_relatorios_panel_teste',
+              JSON.stringify({ 'card-1': 'recolhido', 'card-2': 'aberto' })
+            ),
+        }
       );
 
-      const { scriptText, doc } = montarDocumentoComScript({
-        isOpen: true,
-        storageKey: {
-          mapKey: 'filters_relatorios_panel_teste',
-          itemId: 'card-1',
-        },
-      });
-
-      executarScriptEmDocumentoIsolado(scriptText, doc);
-
-      const wrapperPos = doc.querySelector(
-        '[data-testid="painel-filtros-conteudo"]'
+      const raiz = doc.querySelector(
+        '[data-testid="painel-filtros-colapsavel"]'
       );
-      expect(wrapperPos.getAttribute('data-panel-state')).toBe('recolhido');
+      expect(raiz.getAttribute('data-panel-state')).toBe('recolhido');
+      expect(janela.__sentinelaExecutou).toBe(true);
     });
 
-    it('valor lido do localStorage nunca é interpolado: string de ataque não insere nó nem aplica o atributo', () => {
-      localStorage.setItem(
-        'panel_teste_valor_ataque',
-        JSON.stringify('recolhido"><img src=x onerror=alert(1)>')
+    it('valor lido do localStorage nunca é interpolado: string de ataque não insere nó nem aplica o atributo, e o parser segue vivo', () => {
+      const { document: doc, window: janela } = montarDocumentoTruncadoNoScript(
+        {
+          isOpen: true,
+          storageKey: 'panel_teste_valor_ataque',
+          seedLocalStorage: storage =>
+            storage.setItem(
+              'panel_teste_valor_ataque',
+              JSON.stringify('recolhido"><img src=x onerror=alert(1)>')
+            ),
+        }
       );
-
-      const { scriptText, doc } = montarDocumentoComScript({
-        isOpen: true,
-        storageKey: 'panel_teste_valor_ataque',
-      });
-
-      executarScriptEmDocumentoIsolado(scriptText, doc);
 
       expect(doc.querySelectorAll('img').length).toBe(0);
-      const wrapperPos = doc.querySelector(
-        '[data-testid="painel-filtros-conteudo"]'
+      const raiz = doc.querySelector(
+        '[data-testid="painel-filtros-colapsavel"]'
       );
-      expect(wrapperPos.getAttribute('data-panel-state')).toBeNull();
+      expect(raiz.getAttribute('data-panel-state')).toBeNull();
+      // sentinela: mesmo com a tentativa de breakout, o parser continuou e
+      // executou o script seguinte — não houve fechamento prematuro de tag.
+      expect(janela.__sentinelaExecutou).toBe(true);
     });
   });
 
   describe('Regra CSS anti-flash sobrevive ao build (achado A1)', () => {
-    it('o seletor de ocultação existe no código-fonte como string literal estática', () => {
+    it('o seletor de ocultação (variante de descendente, group-data) existe no código-fonte como string literal estática', () => {
       const fonte = fs.readFileSync(path.join(__dirname, 'index.jsx'), 'utf8');
 
-      expect(fonte).toContain('data-[panel-state=recolhido]:hidden');
+      expect(fonte).toContain('group-data-[panel-state=recolhido]:hidden');
       // não pode ser montado dinamicamente (o scanner do Tailwind exige literal)
       expect(fonte).not.toMatch(/data-\[panel-state=\$\{/);
     });
