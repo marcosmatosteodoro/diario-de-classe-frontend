@@ -92,15 +92,9 @@ export const PainelFiltrosColapsavel = ({
 
   const mostrarContagem = !isOpen && Number(appliedCount) > 0;
 
-  // Texto visível do controle é o verbo da ação (+ contagem quando
-  // recolhido e há filtro aplicado). O `<h3>{titulo}</h3>` ao lado já
-  // identifica o painel — não repetir `titulo` aqui evita duplicar o mesmo
-  // texto na tela.
-  const rotuloVisivel = isOpen ? 'Recolher' : 'Expandir';
-
   // Rótulo textual acessível: "1 filtro aplicado" / "N filtros aplicados"
   // (WCAG 2.5.3 — o aria-label precisa CONTER o texto visível do botão,
-  // nunca só o número).
+  // "${titulo} (${appliedCount})", nunca só o número).
   const rotuloContagem =
     Number(appliedCount) === 1
       ? '1 filtro aplicado'
@@ -110,7 +104,7 @@ export const PainelFiltrosColapsavel = ({
   if (isOpen) {
     ariaLabel = `Recolher ${titulo}`;
   } else if (mostrarContagem) {
-    ariaLabel = `Expandir (${appliedCount}), ${rotuloContagem}`;
+    ariaLabel = `Expandir ${titulo} (${appliedCount}), ${rotuloContagem}`;
   }
 
   return (
@@ -142,21 +136,8 @@ export const PainelFiltrosColapsavel = ({
           className="btn btn-secondary flex items-center gap-2"
           data-testid="painel-filtros-controle"
         >
-          {/*
-            O verbo visível depende de `isOpen`, e o servidor sempre
-            renderiza aberto (sem localStorage — A-001-001), enquanto o
-            cliente pode hidratar já recolhido (preferência real lida por
-            useCollapsiblePanelState). Diferente do atributo data-panel-state
-            (que o script anti-flash já escreve fora do controle do React e
-            cuja divergência o React reconcilia silenciosamente), texto de
-            nó filho divergente entre servidor e cliente é fatal na
-            hidratação sem suppressHydrationWarning — o React descarta a
-            subárvore e relança. A flag restringe React a não comparar o
-            texto deste nó específico na hidratação; a reconciliação normal
-            seguinte (clique) já converge para o valor real de `isOpen`.
-          */}
-          <span data-testid="painel-filtros-rotulo" suppressHydrationWarning>
-            {rotuloVisivel}
+          <span data-testid="painel-filtros-rotulo">
+            {titulo}
             {mostrarContagem && (
               <span data-testid="painel-filtros-contagem">
                 {` (${appliedCount})`}

@@ -90,9 +90,11 @@ describe('Aulas — fiação real do painel colapsável (AC-001-012/021)', () =>
     ).not.toBeInTheDocument();
   });
 
-  it('requisito emergente (achado 7 do gate 11): com o painel aberto, "Filtros" aparece exatamente uma vez na árvore renderizada', () => {
+  it('requisito emergente (achado 7 do gate 11): existe um único heading "Filtros" na árvore renderizada — prova que o filter.jsx não reintroduziu o <h3> que o painel colapsável já é dono', () => {
     render(<Aulas />);
 
-    expect(screen.getAllByText(/^Filtros$/)).toHaveLength(1);
+    expect(
+      screen.getAllByRole('heading', { name: 'Filtros', level: 3 })
+    ).toHaveLength(1);
   });
 });
