@@ -91,28 +91,31 @@ export const PainelFiltrosColapsavel = ({
   const buttonId = `${idBase}-controle`;
 
   // Two-pass render (DEC-002-001, emenda 2026-09-17; lição
-  // `estado-de-localstorage-tem-uma-fonte-so-antes-da-hidratacao`): `isOpen`
-  // chega de `useCollapsiblePanelState`, cujo `useState` lê o `localStorage`
-  // sincronamente já na primeira renderização do cliente — a MESMA passada
-  // que hidrata. O servidor, sem acesso a `localStorage`, sempre renderiza o
-  // default `aberto` (A-001-001). ARIA/rótulo não têm variante de CSS (ao
-  // contrário do chevron e da contagem, abaixo), então sem esta guarda a
-  // primeira passada do cliente usaria `isOpen` real e divergiria do
-  // servidor. `hidratado` mantém essa primeira passada idêntica ao servidor
-  // (sempre `true`) e só assume o valor real depois de montado, corrigindo
-  // sem flash visual — o visual já deriva do atributo `data-panel-state`, não
-  // deste estado. Se um dia a preferência passar a ser lida no servidor
-  // (cookie httpOnly — ver "Reabrir se" de DEC-002-001), este default `true`
-  // vira mentira e a guarda precisa ser revista.
+  // `estado-de-localstorage-tem-uma-fonte-so-antes-da-hidratacao`, segundo
+  // eixo): `isOpen` chega de `useCollapsiblePanelState`, cujo `useState` lê o
+  // `localStorage` sincronamente já na primeira renderização do cliente — a
+  // MESMA passada que hidrata. O servidor, sem acesso a `localStorage`,
+  // sempre renderiza o default `aberto` (A-001-001). ARIA/rótulo não têm
+  // variante de CSS (ao contrário do chevron e da contagem, abaixo). A
+  // primeira ideia — afirmar o default do servidor (`hidratado ? isOpen :
+  // true`) — resolvia a DIVERGÊNCIA de hidratação, mas não a MENTIRA:
+  // `aria-expanded="true"` num painel que o CSS já fechou manda o leitor de
+  // tela para uma região em `display:none`. Por isso `hidratado` governa
+  // AUSÊNCIA, não substituição: enquanto `false`, `aria-expanded` fica
+  // omitido (`undefined`) e o `aria-label` usa o rótulo neutro (`titulo`),
+  // sem afirmar nenhum dos dois estados. Ausência não diverge do servidor
+  // (que também nunca escreve o atributo nesta janela) e não mente. Depois
+  // de montado, os dois passam a refletir o valor real, sem flash visual — o
+  // visual já deriva do atributo `data-panel-state`, não deste estado.
   const [hidratado, setHidratado] = useState(false);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHidratado(true);
   }, []);
-  const isOpenParaAria = hidratado ? isOpen : true;
+  const ariaExpanded = hidratado ? isOpen : undefined;
 
   const existeContagem = Number(appliedCount) > 0;
-  const mostrarContagemNoRotuloAria = !isOpenParaAria && existeContagem;
+  const mostrarContagemNoRotuloAria = hidratado && !isOpen && existeContagem;
 
   // Rótulo textual acessível: "1 filtro aplicado" / "N filtros aplicados"
   // (WCAG 2.5.3 — o aria-label precisa CONTER o texto visível do botão,
@@ -122,11 +125,14 @@ export const PainelFiltrosColapsavel = ({
       ? '1 filtro aplicado'
       : `${appliedCount} filtros aplicados`;
 
-  let ariaLabel = `Expandir ${titulo}`;
-  if (isOpenParaAria) {
-    ariaLabel = `Recolher ${titulo}`;
-  } else if (mostrarContagemNoRotuloAria) {
-    ariaLabel = `Expandir ${titulo} (${appliedCount}), ${rotuloContagem}`;
+  let ariaLabel = titulo;
+  if (hidratado) {
+    ariaLabel = `Expandir ${titulo}`;
+    if (isOpen) {
+      ariaLabel = `Recolher ${titulo}`;
+    } else if (mostrarContagemNoRotuloAria) {
+      ariaLabel = `Expandir ${titulo} (${appliedCount}), ${rotuloContagem}`;
+    }
   }
 
   return (
@@ -151,7 +157,7 @@ export const PainelFiltrosColapsavel = ({
         <button
           type="button"
           id={buttonId}
-          aria-expanded={isOpenParaAria}
+          aria-expanded={ariaExpanded}
           aria-controls={contentId}
           aria-label={ariaLabel}
           onClick={onToggle}

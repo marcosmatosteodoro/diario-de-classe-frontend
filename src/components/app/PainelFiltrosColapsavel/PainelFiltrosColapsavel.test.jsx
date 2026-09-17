@@ -615,24 +615,88 @@ describe('PainelFiltrosColapsavel', () => {
         expect(botao.getAttribute('aria-expanded')).toBe('false');
         expect(botao.getAttribute('aria-label')).not.toMatch(/recolher/i);
 
-        // Visibilidade EFETIVA sob o atributo — não presença no markup
-        // (risco declarado da TASK: as duas variantes existem sempre no
-        // DOM). A variante "recolher" carrega a classe que a apaga sob o
-        // mesmo group-data que já oculta o conteúdo; a "expandir" nasce
-        // com `hidden` e só a substitui pela classe que a reexibe sob o
-        // mesmo estado. Mutante (reverter para `isOpen ? <ChevronUp/> :
-        // <ChevronDown/>}`): só UM dos dois testids existiria no DOM, e o
-        // `querySelector` do que faltasse devolveria `null` — os
-        // `.getAttribute` abaixo lançariam.
+        // Âncora do seletor: a variante de grupo só governa visibilidade se
+        // a RAIZ carregar a classe `group` — sem ela, o seletor gerado
+        // (`&:is(:where(.group)[data-panel-state="recolhido"] *)`) nunca
+        // casa com nada, e as duas classes abaixo (`toContain`) continuam
+        // presentes como STRING sem nenhum efeito real. Mutante (remover
+        // `className="group"` da raiz): esta asserção falha; sem ela, a
+        // suíte inteira ficava verde apagando de uma vez ocultação, chevron
+        // e contagem.
+        expect(raiz.classList.contains('group')).toBe(true);
+
+        // Presença das DUAS variantes no markup — string de classe, não
+        // visibilidade efetiva (essa depende do CSS compilado + do
+        // `classList.contains('group')` acima). As duas existem sempre no
+        // DOM (risco declarado da TASK). A variante "recolher" carrega a
+        // classe que a apaga sob o mesmo group-data que já oculta o
+        // conteúdo; a "expandir" nasce com `hidden` e só a substitui pela
+        // classe que a reexibe sob o mesmo estado. Mutante (reverter para
+        // `isOpen ? <ChevronUp/> : <ChevronDown/>}`): só UM dos dois testids
+        // existiria no DOM, e o `querySelector` do que faltasse devolveria
+        // `null` — os `.getAttribute` abaixo lançariam.
         expect(chevronRecolher).not.toBeNull();
         expect(chevronExpandir).not.toBeNull();
         expect(chevronRecolher.getAttribute('class')).toContain(
           'group-data-[panel-state=recolhido]:hidden'
         );
-        expect(chevronExpandir.getAttribute('class')).toContain('hidden');
+        expect(chevronExpandir.classList.contains('hidden')).toBe(true);
         expect(chevronExpandir.getAttribute('class')).toContain(
           'group-data-[panel-state=recolhido]:block'
         );
+
+        act(() => {
+          root.unmount();
+        });
+      });
+    });
+
+    describe('AC-001-004/AC-001-005, segundo eixo (emenda 2026-09-17): ausência em vez de mentira', () => {
+      it('recolhido + 0 filtros: sem aria-expanded e com rótulo neutro no servidor e antes do flush; valor real + verbo só depois do efeito', async () => {
+        const storageKey = 'panel_teste_task008_segundo_eixo';
+        const { dom, container } = montarParaHidratacaoReal({
+          preferenciaRecolhida: true,
+          appliedCount: 0,
+          storageKey,
+        });
+
+        // Markup do servidor (renderToString, dentro de
+        // montarParaHidratacaoReal): o servidor nunca lê localStorage
+        // (A-001-001), então a fonte que ele afirmaria seria sempre
+        // "aberto" — exatamente o valor que a emenda proíbe de afirmar.
+        const botaoServidor = dom.window.document.querySelector(
+          '[data-testid="painel-filtros-controle"]'
+        );
+        expect(botaoServidor.hasAttribute('aria-expanded')).toBe(false);
+        expect(botaoServidor.getAttribute('aria-label')).toBe('Filtros');
+
+        // Hidrata SEM act() (mesmo padrão do teste AC-001-009 acima): captura
+        // o estado antes do useEffect que corrige `hidratado` rodar. Mutante
+        // (reverter `ariaExpanded`/`ariaLabel` para a derivação antiga
+        // `hidratado ? isOpen : true` / `Recolher ${titulo}`): esta janela
+        // pré-flush passaria a ter `aria-expanded="true"` e
+        // `aria-label="Recolher Filtros"` — a mentira que a emenda existe
+        // para eliminar — e as duas asserções abaixo falhariam.
+        const root = hydrateRoot(
+          container,
+          <PainelComHookReal appliedCount={0} storageKey={storageKey} />
+        );
+
+        const botaoPreFlush = dom.window.document.querySelector(
+          '[data-testid="painel-filtros-controle"]'
+        );
+        expect(botaoPreFlush.hasAttribute('aria-expanded')).toBe(false);
+        expect(botaoPreFlush.getAttribute('aria-label')).toBe('Filtros');
+
+        // Flush do efeito: `hidratado` vira `true` e o hook já leu a
+        // preferência real ("recolhido") — agora o controle passa a
+        // AFIRMAR o estado real, com o verbo coerente ("Expandir").
+        await act(async () => {});
+        const botaoPosFlush = dom.window.document.querySelector(
+          '[data-testid="painel-filtros-controle"]'
+        );
+        expect(botaoPosFlush.getAttribute('aria-expanded')).toBe('false');
+        expect(botaoPosFlush.getAttribute('aria-label')).toMatch(/expandir/i);
 
         act(() => {
           root.unmount();
@@ -695,7 +759,7 @@ describe('PainelFiltrosColapsavel', () => {
     });
 
     describe('AC-001-009: a contagem aparece ao terminar de carregar, não após o primeiro clique', () => {
-      it('recolhido + 2 filtros: "(2)" já está no primeiro commit de hidratação, antes do useEffect de correção do ARIA rodar', async () => {
+      it('recolhido + 2 filtros: "(2)" já está no markup do servidor, antes de qualquer render/commit de hidratação', async () => {
         const storageKey = 'panel_teste_task008_ac009';
         const { dom, container } = montarParaHidratacaoReal({
           preferenciaRecolhida: true,
@@ -703,14 +767,20 @@ describe('PainelFiltrosColapsavel', () => {
           storageKey,
         });
 
-        // Propositalmente FORA de `act()`: um `act()` síncrono envolvendo
-        // `hydrateRoot` já flusha, na mesma passada, o `useEffect` que
-        // corrige `hidratado` (verificado: aria-expanded já sai corrigido
-        // dali) — o que apagaria a distinção entre o primeiro commit de
-        // hidratação e o corrigido. Chamar direto captura o commit real,
-        // antes de qualquer efeito rodar: é ali que a contagem — que nunca
-        // depende de `hidratado` — precisa já estar. Mutante (condicionar o
-        // `<span>` a `hidratado`): ausente neste ponto, presente só depois.
+        // Propositalmente FORA de `act()`: medido com ref-callback + contador
+        // de render que, logo após este `hydrateRoot` sem `act()`, a lista de
+        // eventos está vazia — ZERO render, ZERO commit aconteceram. A
+        // leitura abaixo é 100% o markup produzido por `renderToString`
+        // (dentro de `montarParaHidratacaoReal`), não "o primeiro commit de
+        // hidratação" — não há commit nenhum ainda neste ponto. Um `act()`
+        // síncrono envolvendo `hydrateRoot`, por sua vez, já flusharia na
+        // mesma passada o `useEffect` que corrige `hidratado` (verificado:
+        // aria-expanded já sairia corrigido dali), mascarando a distinção
+        // entre "nada commitado" e "commitado e corrigido". Chamar direto
+        // captura o markup do servidor, antes de qualquer render do cliente:
+        // é ali que a contagem — que nunca depende de `hidratado` — precisa
+        // já estar. Mutante (condicionar o `<span>` a `hidratado`): ausente
+        // neste ponto, presente só depois.
         const root = hydrateRoot(
           container,
           <PainelComHookReal appliedCount={2} storageKey={storageKey} />
