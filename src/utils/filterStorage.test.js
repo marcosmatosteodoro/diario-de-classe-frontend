@@ -97,6 +97,23 @@ describe('loadPanelState / savePanelState', () => {
     savePanelState('panel_aulas', 'recolhido');
     expect(loadPanelState('panel_aulas', 'aberto')).toBe('recolhido');
   });
+
+  it.each([
+    ['RECOLHIDO', JSON.stringify('RECOLHIDO')],
+    ['true', JSON.stringify(true)],
+    ['<script>', JSON.stringify('<script>')],
+    ['número', JSON.stringify(5)],
+    ['objeto', JSON.stringify({ recolhido: true })],
+    ['null', JSON.stringify(null)],
+    ['string vazia', JSON.stringify('')],
+    ['JSON inválido', '{invalid'],
+  ])(
+    'deny-by-default: valor gravado à mão (%s) devolve o default, nunca "recolhido"',
+    (_descricao, valorGravado) => {
+      localStorage.setItem('panel_aulas', valorGravado);
+      expect(loadPanelState('panel_aulas', 'aberto')).toBe('aberto');
+    }
+  );
 });
 
 describe('loadPanelStateMap / savePanelStateMap', () => {
@@ -126,7 +143,32 @@ describe('loadPanelStateMap / savePanelStateMap', () => {
       loadPanelStateMap(RELATORIOS_PANEL_STORAGE_KEY, 'endpoint-a', 'aberto')
     ).toBe('recolhido');
     expect(
-      loadPanelStateMap(RELATORIOS_PANEL_STORAGE_KEY, 'endpoint-b', 'recolhido')
+      loadPanelStateMap(RELATORIOS_PANEL_STORAGE_KEY, 'endpoint-b', 'aberto')
     ).toBe('aberto');
   });
+
+  it.each([
+    ['RECOLHIDO', 'RECOLHIDO'],
+    ['true', true],
+    ['<script>', '<script>'],
+    ['número', 5],
+    ['objeto', { recolhido: true }],
+    ['null', null],
+    ['string vazia', ''],
+  ])(
+    'deny-by-default: item com valor gravado à mão (%s) devolve o default, nunca "recolhido"',
+    (_descricao, valorGravado) => {
+      localStorage.setItem(
+        RELATORIOS_PANEL_STORAGE_KEY,
+        JSON.stringify({ 'endpoint-lixo': valorGravado })
+      );
+      expect(
+        loadPanelStateMap(
+          RELATORIOS_PANEL_STORAGE_KEY,
+          'endpoint-lixo',
+          'aberto'
+        )
+      ).toBe('aberto');
+    }
+  );
 });

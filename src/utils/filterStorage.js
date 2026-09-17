@@ -62,6 +62,9 @@ export function clearAllFilters() {
 /**
  * Lê a preferência de estado (aberto/recolhido) de um painel com chave fixa.
  * SSR-safe: fora do browser (ou em caso de erro) retorna o default.
+ * Deny-by-default: o `localStorage` é editável pelo usuário (DevTools), então
+ * só o valor exatamente `'recolhido'` é aceito como recolhido — qualquer outro
+ * conteúdo (lixo, tipo inesperado, variação de caixa) devolve o default.
  */
 export function loadPanelState(key, defaultValue) {
   if (typeof window === 'undefined') {
@@ -72,7 +75,8 @@ export function loadPanelState(key, defaultValue) {
     if (!stored) {
       return defaultValue;
     }
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    return parsed === 'recolhido' ? 'recolhido' : defaultValue;
   } catch {
     return defaultValue;
   }
@@ -92,6 +96,8 @@ export function savePanelState(key, value) {
  * Lê a preferência de estado de um item dentro do mapa de uma chave única
  * (uso em `/relatorios`, onde os cards são dinâmicos). SSR-safe e fail-secure:
  * fora do browser, mapa ausente, item ausente ou JSON inválido retornam o default.
+ * Deny-by-default: mesmo critério de `loadPanelState` — só o valor exatamente
+ * `'recolhido'` é aceito; qualquer outro conteúdo devolve o default.
  */
 export function loadPanelStateMap(mapKey, itemId, defaultValue) {
   if (typeof window === 'undefined') {
@@ -106,7 +112,7 @@ export function loadPanelStateMap(mapKey, itemId, defaultValue) {
     if (!map || !Object.hasOwn(map, itemId)) {
       return defaultValue;
     }
-    return map[itemId];
+    return map[itemId] === 'recolhido' ? 'recolhido' : defaultValue;
   } catch {
     return defaultValue;
   }
