@@ -394,8 +394,12 @@ describe('PainelFiltrosColapsavel', () => {
       expect(inputA.value).toBe('valor-a');
 
       // data-panel-state fica na raiz do painel (`group`), não no conteúdo.
-      const raizA = screen.getByRole('button', { name: /expandir card a/i })
-        .parentElement.parentElement;
+      // `closest` em vez de contar hops de `parentElement`: o botão agora
+      // vive dentro do heading (BRIEF-002, fusão título+seta), então a
+      // distância até a raiz não é mais fixa em dois níveis.
+      const raizA = screen
+        .getByRole('button', { name: /expandir card a/i })
+        .closest('[data-testid="painel-filtros-colapsavel"]');
       expect(raizA).toHaveAttribute('data-testid', 'painel-filtros-colapsavel');
       expect(raizA).toHaveAttribute('data-panel-state', 'recolhido');
       expect(
@@ -795,6 +799,170 @@ describe('PainelFiltrosColapsavel', () => {
         act(() => {
           root.unmount();
         });
+      });
+    });
+  });
+
+  describe('BRIEF-002: título e seta viram um único controle clicável', () => {
+    it('clicar no TEXTO do título (não só na seta) dispara onToggle', async () => {
+      const user = userEvent.setup();
+      const handleToggle = jest.fn();
+
+      render(
+        <PainelFiltrosColapsavel
+          titulo="Filtros"
+          isOpen={true}
+          onToggle={handleToggle}
+          storageKey="panel_teste_brief002_texto_clicavel"
+        >
+          <div>conteudo</div>
+        </PainelFiltrosColapsavel>
+      );
+
+      await user.click(screen.getByTestId('painel-filtros-rotulo'));
+
+      expect(handleToggle).toHaveBeenCalledTimes(1);
+    });
+
+    it('existe um único texto "Filtros" na árvore — o heading não duplica o rótulo do botão', () => {
+      render(
+        <PainelFiltrosColapsavel
+          titulo="Filtros"
+          isOpen={true}
+          onToggle={() => {}}
+          storageKey="panel_teste_brief002_texto_unico"
+        >
+          <div>conteudo</div>
+        </PainelFiltrosColapsavel>
+      );
+
+      expect(screen.getAllByText('Filtros')).toHaveLength(1);
+      expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(1);
+    });
+
+    it('o controle não usa mais o chrome de botão sólido (.btn/.btn-secondary)', () => {
+      render(
+        <PainelFiltrosColapsavel
+          titulo="Filtros"
+          isOpen={true}
+          onToggle={() => {}}
+          storageKey="panel_teste_brief002_sem_chrome"
+        >
+          <div>conteudo</div>
+        </PainelFiltrosColapsavel>
+      );
+
+      const classes = screen
+        .getByTestId('painel-filtros-controle')
+        .className.split(/\s+/)
+        .filter(Boolean);
+
+      expect(classes).not.toContain('btn');
+      expect(classes).not.toContain('btn-secondary');
+      // Mutante (readicionar `text-*`/`font-*` na classe do botão): as duas
+      // asserções abaixo, do bloco seguinte, reprovariam — aqui só a
+      // ausência do chrome sólido.
+    });
+
+    it('o heading (TagTitulo) ENVOLVE o botão — h3/h4 aceita <button> no seu modelo de conteúdo, o inverso não é HTML válido', () => {
+      render(
+        <PainelFiltrosColapsavel
+          titulo="Filtros"
+          isOpen={true}
+          onToggle={() => {}}
+          storageKey="panel_teste_brief002_wrapping"
+        >
+          <div>conteudo</div>
+        </PainelFiltrosColapsavel>
+      );
+
+      const titulo = screen.getByTestId('painel-filtros-titulo');
+      const controle = screen.getByTestId('painel-filtros-controle');
+
+      expect(titulo.tagName).toBe('H3');
+      expect(controle.tagName).toBe('BUTTON');
+      expect(titulo.contains(controle)).toBe(true);
+    });
+
+    it('o nome acessível do heading continua "Filtros" mesmo com o aria-label do botão aninhado variando por estado', () => {
+      render(
+        <PainelFiltrosColapsavel
+          titulo="Filtros"
+          isOpen={false}
+          onToggle={() => {}}
+          appliedCount={2}
+          storageKey="panel_teste_brief002_nome_heading"
+        >
+          <div>conteudo</div>
+        </PainelFiltrosColapsavel>
+      );
+
+      // o botão aninhado afirma o estado ("Expandir Filtros (2), ...") —
+      // accname 2B (aria-label do próprio nó) responde por ele, sem
+      // descer a name-from-content.
+      expect(
+        screen.getByRole('button', { name: /expandir filtros/i })
+      ).toBeInTheDocument();
+      // Mutante (remover `aria-label={titulo}` do TagTitulo): a computação
+      // de nome do heading passaria a usar a subárvore (2F) e herdaria o
+      // aria-label do botão — esta asserção reprovaria, lendo "Expandir
+      // Filtros (2), 2 filtros aplicados" em vez de "Filtros".
+      expect(
+        screen.getByRole('heading', { name: 'Filtros', level: 3 })
+      ).toBeInTheDocument();
+    });
+
+    describe('tipografia do botão herda do heading (Tailwind v4 preflight)', () => {
+      it('o preflight instalado normaliza button{font,color:inherit} — mecanismo real, lido do pacote instalado, não assumido', () => {
+        // Caminho direto (não `require.resolve`): o `moduleNameMapper` de
+        // `next/jest` intercepta resolução de `.css` para um mock — leitura
+        // via `fs` no caminho real do pacote instalado escapa do mock e lê
+        // o arquivo que o build de fato usa.
+        const preflight = fs.readFileSync(
+          path.join(
+            __dirname,
+            '..',
+            '..',
+            '..',
+            '..',
+            'node_modules',
+            'tailwindcss',
+            'preflight.css'
+          ),
+          'utf8'
+        );
+
+        const inicioRegra = preflight.indexOf('button,\ninput');
+        expect(inicioRegra).toBeGreaterThan(-1);
+        const fimRegra = preflight.indexOf('}', inicioRegra);
+        const regra = preflight.slice(inicioRegra, fimRegra);
+
+        expect(regra).toMatch(/font:\s*inherit/);
+        expect(regra).toMatch(/color:\s*inherit/);
+      });
+
+      it('a classe do botão não sobrescreve font-size/font-weight/cor — nada bloqueia a herança do heading via preflight', () => {
+        render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={true}
+            onToggle={() => {}}
+            storageKey="panel_teste_brief002_sem_override_tipografia"
+          >
+            <div>conteudo</div>
+          </PainelFiltrosColapsavel>
+        );
+
+        const classes = screen
+          .getByTestId('painel-filtros-controle')
+          .className.split(/\s+/)
+          .filter(Boolean);
+
+        // Mutante (acrescentar `text-sm`/`font-bold`/`text-gray-500` na
+        // classe do botão): qualquer uma destas asserções reprovaria — é
+        // exatamente o tipo de classe que quebraria a herança medida acima.
+        expect(classes.some(classe => classe.startsWith('text-'))).toBe(false);
+        expect(classes.some(classe => classe.startsWith('font-'))).toBe(false);
       });
     });
   });

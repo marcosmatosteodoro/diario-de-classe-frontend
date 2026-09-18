@@ -156,49 +156,61 @@ export const PainelFiltrosColapsavel = ({
           __html: buildAntiFlashScript({ storageKey }),
         }}
       />
-      <div className="flex items-center justify-between gap-2 mb-4">
-        <TagTitulo className={classeTitulo} data-testid="painel-filtros-titulo">
-          {titulo}
-        </TagTitulo>
-        <button
-          type="button"
-          id={buttonId}
-          aria-expanded={ariaExpanded}
-          aria-controls={contentId}
-          aria-label={ariaLabel}
-          onClick={onToggle}
-          className="btn btn-secondary flex items-center gap-2"
-          data-testid="painel-filtros-controle"
+      <div className="mb-4">
+        {/* BRIEF-002: título e seta fundidos num único controle clicável —
+            heading envolve o botão (h3/h4 aceita <button> no seu modelo de
+            conteúdo; o inverso não é HTML válido). `aria-label={titulo}`
+            aqui é o que mantém o NOME ACESSÍVEL do heading estável em
+            "Filtros": sem ele, a computação de nome por conteúdo (accname
+            2F) usaria o aria-label do <button> aninhado — que varia por
+            estado ("Expandir Filtros"/"Recolher Filtros") — como nome do
+            próprio heading. `aria-label` no nó (2B) sempre vence 2F, e não
+            afeta o nome do botão, que continua vindo do PRÓPRIO aria-label. */}
+        <TagTitulo
+          className={classeTitulo}
+          aria-label={titulo}
+          data-testid="painel-filtros-titulo"
         >
-          <span data-testid="painel-filtros-rotulo">
-            {titulo}
-            {existeContagem && (
-              <span
-                data-testid="painel-filtros-contagem"
-                className="hidden group-data-[panel-state=recolhido]:inline"
-              >
-                {` (${appliedCount})`}
-              </span>
-            )}
-          </span>
-          {/* Visual derivado do atributo, por CSS (DEC-002-001): as duas
-              variantes existem sempre no markup — servidor e cliente ficam
-              estruturalmente idênticos, não há o que reconciliar na
-              hidratação — e a visibilidade alterna pela mesma variante de
-              grupo que já oculta o conteúdo (`data-panel-state` na raiz). */}
-          <ChevronUp
-            size={16}
-            aria-hidden="true"
-            data-testid="painel-filtros-chevron-recolher"
-            className="group-data-[panel-state=recolhido]:hidden"
-          />
-          <ChevronDown
-            size={16}
-            aria-hidden="true"
-            data-testid="painel-filtros-chevron-expandir"
-            className="hidden group-data-[panel-state=recolhido]:block"
-          />
-        </button>
+          <button
+            type="button"
+            id={buttonId}
+            aria-expanded={ariaExpanded}
+            aria-controls={contentId}
+            aria-label={ariaLabel}
+            onClick={onToggle}
+            className="inline-flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+            data-testid="painel-filtros-controle"
+          >
+            <span data-testid="painel-filtros-rotulo">
+              {titulo}
+              {existeContagem && (
+                <span
+                  data-testid="painel-filtros-contagem"
+                  className="hidden group-data-[panel-state=recolhido]:inline"
+                >
+                  {` (${appliedCount})`}
+                </span>
+              )}
+            </span>
+            {/* Visual derivado do atributo, por CSS (DEC-002-001): as duas
+                variantes existem sempre no markup — servidor e cliente ficam
+                estruturalmente idênticos, não há o que reconciliar na
+                hidratação — e a visibilidade alterna pela mesma variante de
+                grupo que já oculta o conteúdo (`data-panel-state` na raiz). */}
+            <ChevronUp
+              size={16}
+              aria-hidden="true"
+              data-testid="painel-filtros-chevron-recolher"
+              className="group-data-[panel-state=recolhido]:hidden"
+            />
+            <ChevronDown
+              size={16}
+              aria-hidden="true"
+              data-testid="painel-filtros-chevron-expandir"
+              className="hidden group-data-[panel-state=recolhido]:block"
+            />
+          </button>
+        </TagTitulo>
       </div>
       <div
         id={contentId}
