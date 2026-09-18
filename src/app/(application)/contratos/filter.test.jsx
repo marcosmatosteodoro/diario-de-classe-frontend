@@ -79,7 +79,7 @@ describe('Filter Component', () => {
   });
 
   describe('Rendering', () => {
-    it('should render filter form with title', () => {
+    it('should render the filter form without an internal "Filtros" heading (owned by the collapsible panel wrapper)', () => {
       render(
         <Filter
           handleSubmit={mockHandleSubmit}
@@ -89,8 +89,8 @@ describe('Filter Component', () => {
         />
       );
 
-      expect(screen.getByText('Filtros')).toBeInTheDocument();
       expect(screen.getByTestId('filter-form')).toBeInTheDocument();
+      expect(screen.queryByText('Filtros')).not.toBeInTheDocument();
     });
 
     it('should render all form fields', () => {

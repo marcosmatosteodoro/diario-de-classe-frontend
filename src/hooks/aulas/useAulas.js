@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { STATUS, FILTER_STORAGE_KEYS } from '@/constants';
 import { getAulas } from '@/store/slices/aulasSlice';
 import { loadFilters, saveFilters, clearFilters } from '@/utils/filterStorage';
+import { countAppliedFilters } from '@/utils/filterCount';
 
 export function useAulas() {
   const dispatch = useDispatch();
@@ -63,6 +64,8 @@ export function useAulas() {
     action === 'getAulas' &&
     (status === STATUS.IDLE || status === STATUS.LOADING);
 
+  const appliedCount = countAppliedFilters(formData, defaultFormData);
+
   return {
     aulas: list,
     status,
@@ -72,5 +75,6 @@ export function useAulas() {
     handleChange,
     handleClearFilter,
     formData,
+    appliedCount,
   };
 }
