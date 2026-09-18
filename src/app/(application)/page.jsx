@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   STATUS_AULA,
   STATUS_AULA_LABEL,
@@ -122,8 +123,14 @@ const HomeInfoCard = ({
     return `Há ${Math.abs(diffDays)} dias`;
   };
 
+  const [time, setTime] = useState(null);
+
+  useEffect(() => {
+    setTime(getTimeText(dataAula, horaInicial, horaFinal));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const action = getActionText(status, tipo);
-  const time = getTimeText(dataAula, horaInicial, horaFinal);
   const onClick = () => {
     handleClick(id);
   };
