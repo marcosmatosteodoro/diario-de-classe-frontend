@@ -1,15 +1,14 @@
 import { DURACAO_AULA } from '@/constants';
 import { calculateHoraFimByDuracaoAula } from '@/utils/calculateHoraFim';
-import { useState } from 'react';
+import { todayLocalDate } from '@/utils/todayLocalDate';
+import { useState, useEffect } from 'react';
 
 export function useAulaForm({ id = null, submit }) {
-  const hoje = new Date();
-  const dataInicioFormatada = hoje.toISOString().split('T')[0];
   const [formData, setFormData] = useState({
     idAluno: '',
     idProfessor: '',
     idContrato: '',
-    dataAula: dataInicioFormatada,
+    dataAula: null,
     duracaoAula: DURACAO_AULA[40],
     horaInicial: '',
     horaFinal: '',
@@ -17,6 +16,17 @@ export function useAulaForm({ id = null, submit }) {
     status: 'AGENDADA',
     observacao: '',
   });
+
+  useEffect(() => {
+    const dataInicioFormatada = todayLocalDate();
+    // Efeito roda uma única vez, na montagem, para preencher `dataAula` que
+    // nasceu nula por desenho (paridade SSR — ver DEC-002-003/PLAN-002);
+    // dependências vazias são intencionais, não esquecidas.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFormData(prev =>
+      prev.dataAula !== null ? prev : { ...prev, dataAula: dataInicioFormatada }
+    );
+  }, []);
 
   const handleChange = e => {
     const { name, value } = e.target;

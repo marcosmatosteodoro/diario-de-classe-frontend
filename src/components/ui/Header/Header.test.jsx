@@ -76,7 +76,10 @@ describe('Header Component', () => {
     );
     // O primeiro botão é o de tema
     const [themeButton] = screen.getAllByRole('button');
-    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    // Sem escolha explícita ainda (sem cookie), o atributo começa em
+    // 'system' — só o clique (escolha explícita) fixa 'light'/'dark'
+    // (DEC-002-004).
+    expect(document.documentElement.getAttribute('data-theme')).toBe('system');
     fireEvent.click(themeButton);
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
     fireEvent.click(themeButton);
@@ -98,5 +101,17 @@ describe('Header Component', () => {
       'h-16',
       'bg-main'
     );
+  });
+
+  it('deve exibir a logo escura e o ícone de sol já na primeira renderização com initialTheme="dark"', () => {
+    render(
+      <ThemeProvider initialTheme="dark">
+        <Header />
+      </ThemeProvider>
+    );
+    const logo = screen.getByAltText('Logo da empresa BLS');
+    expect(logo).toHaveAttribute('src', '/bls-dark.png');
+    const [themeButton] = screen.getAllByRole('button');
+    expect(themeButton.querySelector('svg')).toHaveClass('lucide-sun');
   });
 });
