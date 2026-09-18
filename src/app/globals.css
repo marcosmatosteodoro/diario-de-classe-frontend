@@ -71,6 +71,9 @@
     }
   }
 
+  :root {
+    --color-table-sticky-bg: var(--color-white);
+  }
   .bg-main {
     @apply bg-white;
   }
@@ -110,6 +113,7 @@
 
   [data-theme='dark'] {
     /* Elevação: página (secondary) é o tom mais escuro; superfícies (main) sobem um nível */
+    --color-table-sticky-bg: var(--color-slate-800);
     .bg-main {
       @apply bg-slate-800;
     }

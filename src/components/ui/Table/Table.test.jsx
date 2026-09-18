@@ -102,6 +102,21 @@ describe('Table component', () => {
 
     expect(getByTestId('no-data').textContent).toContain('Nada');
   });
+
+  // DEC-002-001: scroll horizontal contido ao próprio container, nunca à página.
+  it('contém o scroll ao container (overflow-x-auto max-w-full) sem className customizado', () => {
+    const { getByTestId } = render(
+      <Table columns={[]} data={[]} isLoading={false} notFoundMessage="Nada" />
+    );
+
+    const wrapperClassName = getByTestId('table').className;
+    expect(wrapperClassName).toContain('overflow-x-auto');
+    expect(wrapperClassName).toContain('max-w-full');
+    expect(wrapperClassName).toContain('bg-main');
+    expect(wrapperClassName).toContain('p-2');
+    expect(wrapperClassName).toContain('rounded-lg');
+    expect(wrapperClassName).toContain('shadow-md');
+  });
 });
 
 // BI-41: sem customStyles em progress/noData no tema dark, esses containers

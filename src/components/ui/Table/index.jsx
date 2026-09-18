@@ -69,7 +69,10 @@ export function Table({
       : {};
   return (
     <div
-      className={className || 'bg-main p-2 rounded-lg shadow-md'}
+      className={
+        className ||
+        'bg-main p-2 rounded-lg shadow-md overflow-x-auto max-w-full'
+      }
       data-testid="table"
     >
       <DataTable
