@@ -1,5 +1,6 @@
 import { renderHook } from '@testing-library/react';
 import { useAvatar } from './useAvatar';
+import { calcularValorComSorteio } from '@/utils/__fixtures__/regressaoHidratacao.fixture';
 
 describe('useAvatar (SSR-safety)', () => {
   it('never touches localStorage or Math.random when computing the color', () => {
@@ -40,5 +41,17 @@ describe('useAvatar (SSR-safety)', () => {
     expect(colorJoao).toBe('bg-orange-500 text-white');
     expect(colorMaria).toBe('bg-pink-500 text-white');
     expect(colorPedro).toBe('bg-teal-500 text-white');
+  });
+});
+
+describe('useAvatar — a rede de teste pega a regressão (NFR-001-001/002, AC-001-009/010)', () => {
+  it('regressão fixture: um cálculo com Math.random É detectado pelo mesmo spy de Math.random', () => {
+    const randomSpy = jest.spyOn(Math, 'random');
+
+    calcularValorComSorteio();
+
+    expect(randomSpy).toHaveBeenCalled();
+
+    randomSpy.mockRestore();
   });
 });
