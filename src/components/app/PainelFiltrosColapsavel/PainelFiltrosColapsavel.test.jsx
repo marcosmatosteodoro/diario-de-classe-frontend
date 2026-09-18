@@ -687,9 +687,9 @@ describe('PainelFiltrosColapsavel', () => {
         // logo após esta chamada é o mesmo `botaoServidor` de cima, sem
         // nenhuma mutação no meio). A ausência de `aria-expanded`/rótulo
         // real nesse ponto é garantida por construção: `hidratado` nasce
-        // `useState(false)` e só vira `true` dentro do `useEffect`, que o
-        // React nunca roda antes do commit — não há mutante que abra essa
-        // janela para inspeção aqui.
+        // `useState(false)` e só vira `true` dentro do `useLayoutEffect`, que
+        // o React nunca roda antes do commit (só sincronamente logo depois
+        // dele) — não há mutante que abra essa janela para inspeção aqui.
         const root = hydrateRoot(
           container,
           <PainelComHookReal appliedCount={0} storageKey={storageKey} />
@@ -781,8 +781,8 @@ describe('PainelFiltrosColapsavel', () => {
         // (dentro de `montarParaHidratacaoReal`), não "o primeiro commit de
         // hidratação" — não há commit nenhum ainda neste ponto. Um `act()`
         // síncrono envolvendo `hydrateRoot`, por sua vez, já flusharia na
-        // mesma passada o `useEffect` que corrige `hidratado` (verificado:
-        // aria-expanded já sairia corrigido dali), mascarando a distinção
+        // mesma passada o `useLayoutEffect` que corrige `hidratado`
+        // (verificado: aria-expanded já sairia corrigido dali), mascarando a distinção
         // entre "nada commitado" e "commitado e corrigido". Chamar direto
         // captura o markup do servidor, antes de qualquer render do cliente:
         // é ali que a contagem — que nunca depende de `hidratado` — precisa
@@ -1379,6 +1379,63 @@ describe('PainelFiltrosColapsavel', () => {
         expect(screen.getByTestId('painel-filtros-conteudo')).toHaveAttribute(
           'inert'
         );
+      });
+    });
+
+    describe('Retry gate 8: `useLayoutEffect` fecha a janela síncrona entre o commit da hidratação e a guarda `hidratado`', () => {
+      // Achado do review: com `useEffect` (passivo, agendado pelo scheduler
+      // fora do commit), existe uma janela em que a hidratação já comitou —
+      // o botão já processa clique — mas `hidratado` ainda é `false`. Se o
+      // primeiro toggle do usuário cair nessa janela, `inert` fica ausente
+      // (`undefined`) numa transição REAL, reabrindo o próprio defeito deste
+      // BRIEF. Medido diretamente (sem Playwright, indisponível neste
+      // projeto): `hydrateRoot` SEM `act()` deixa a hidratação pendente
+      // (nenhum commit síncrono, mesmo invariante da suíte "segundo eixo"
+      // acima); um clique síncrono no botão ainda não hidratado aciona a
+      // via de hidratação-por-interação do próprio React, que força aquele
+      // commit a terminar sincronamente dentro do handler do clique — e é
+      // exatamente esse commit forçado que expõe a janela: com `useEffect`
+      // (mutante desta prova), o efeito que corrige `hidratado` NUNCA roda
+      // dentro dessa mesma passada síncrona (efeito passivo, sempre adiado);
+      // com `useLayoutEffect`, ele roda como parte do próprio commit, antes
+      // do clique retornar.
+      it('reabrir por clique síncrono logo após hydrateRoot() (sem act()): `inert` já reflete o estado real (ainda recolhido) no mesmo instante em que o clique é processado, nunca a ausência que `useEffect` deixava', () => {
+        const storageKey = 'panel_teste_retry_layouteffect_janela_sincrona';
+        const { dom, container } = montarParaHidratacaoReal({
+          preferenciaRecolhida: true,
+          appliedCount: 0,
+          storageKey,
+        });
+
+        const root = hydrateRoot(
+          container,
+          <PainelComHookReal appliedCount={0} storageKey={storageKey} />
+        );
+
+        const botao = dom.window.document.querySelector(
+          '[data-testid="painel-filtros-controle"]'
+        );
+        const conteudo = dom.window.document.querySelector(
+          '[data-testid="painel-filtros-conteudo"]'
+        );
+
+        // Pré-condição: nada comitou ainda (mesma medição da suíte acima).
+        expect(botao.hasAttribute('aria-expanded')).toBe(false);
+        expect(conteudo.hasAttribute('inert')).toBe(false);
+
+        // Clique síncrono, SEM act() e SEM await antes da leitura abaixo —
+        // é a técnica que expõe a janela: se `hidratado` ainda dependesse
+        // de um passo assíncrono adicional (como o efeito passivo deixava),
+        // o conteúdo apareceria momentaneamente SEM `inert` aqui, mesmo com
+        // o real ainda recolhido.
+        botao.click();
+
+        expect(conteudo.hasAttribute('inert')).toBe(true);
+        expect(botao.getAttribute('aria-expanded')).toBe('false');
+
+        act(() => {
+          root.unmount();
+        });
       });
     });
   });

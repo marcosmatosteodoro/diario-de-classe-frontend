@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
+import { useId, useLayoutEffect, useState } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 // Predicado da convenção de formato da `storageKey` (string vs.
 // `{ mapKey, itemId }`) é de COMP-002-003 — endereço canônico em
@@ -117,7 +117,16 @@ export const PainelFiltrosColapsavel = ({
   // de montado, os dois passam a refletir o valor real, sem flash visual — o
   // visual já deriva do atributo `data-panel-state`, não deste estado.
   const [hidratado, setHidratado] = useState(false);
-  useEffect(() => {
+  // `useLayoutEffect`, não `useEffect`: o segundo é agendado pelo scheduler e
+  // pode deixar uma janela síncrona entre o commit (botão já clicável) e o
+  // efeito (que ainda não rodou) — um toggle do usuário caindo nela leria
+  // `hidratado` ainda `false` durante uma transição real. `useLayoutEffect`
+  // roda sincronamente logo após o commit, fechando essa janela. Não roda no
+  // servidor (SSR) de qualquer forma — só client-side, como `useEffect` — e
+  // este componente é sempre client-side (`'use client'` no topo do
+  // arquivo), então não há o componente-com-SSR-sem-fallback que dispararia
+  // o aviso do React sobre `useLayoutEffect` em SSR.
+  useLayoutEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHidratado(true);
   }, []);
