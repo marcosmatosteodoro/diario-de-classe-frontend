@@ -93,4 +93,16 @@ describe('ApplicationLayout', () => {
     fireEvent.click(sidebar);
     await waitFor(() => expect(toggleSidebar).toHaveBeenCalled());
   });
+
+  it('main tem min-w-0, para não crescer pelo conteúdo mínimo de um filho flex (achado do gate 9, tabela forçando rolagem de página em /alunos)', () => {
+    render(
+      <ApplicationLayout>
+        {' '}
+        <div data-testid="conteudo" />{' '}
+      </ApplicationLayout>
+    );
+    const classes = screen.getByRole('main').className.split(' ');
+    expect(classes).toContain('min-w-0');
+    expect(classes).toContain('flex-1');
+  });
 });

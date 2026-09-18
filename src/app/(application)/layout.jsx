@@ -19,7 +19,7 @@ export default function ApplicationLayout({ children }) {
           toggleSidebar={toggleSidebar}
         />
         <main
-          className={`flex-1 p-8 transition-all duration-300 ease-in-out ${
+          className={`min-w-0 flex-1 p-8 transition-all duration-300 ease-in-out ${
             sidebarExpanded.isExpanded ? 'md:ml-[150px]' : 'md:ml-18'
           }`}
         >
