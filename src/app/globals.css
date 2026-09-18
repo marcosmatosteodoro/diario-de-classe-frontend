@@ -135,6 +135,13 @@
     .input-field {
       @apply focus:ring-blue-400 bg-slate-800 text-slate-100 disabled:bg-slate-700 disabled:text-slate-500 disabled:opacity-60;
     }
+    /* Ícone nativo do seletor de data é pseudo-elemento do user-agent e não
+       responde a color/background comuns; color-scheme informa ao navegador
+       que renderize os controles nativos (inclusive o ícone) na variante
+       clara, legível sobre o fundo escuro do input (BI-40). */
+    input[type='date'].input-field {
+      color-scheme: dark;
+    }
     .page-title {
       @apply text-slate-100;
     }
