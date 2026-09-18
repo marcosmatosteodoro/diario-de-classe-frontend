@@ -10,3 +10,4 @@ export * from './details/CronogramaSection';
 export * from './SearchForm';
 export * from './DisponibilidadeCard';
 export * from './ClearFiltersButton';
+export * from './PainelFiltrosColapsavel';

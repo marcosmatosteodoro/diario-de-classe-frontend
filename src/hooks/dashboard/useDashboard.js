@@ -13,6 +13,7 @@ import { useToast } from '@/providers/ToastProvider';
 import useSweetAlert from '@/hooks/useSweetAlert';
 import { classNameDefault } from '@/components/ui/Fields/base';
 import { loadFilters, saveFilters, clearFilters } from '@/utils/filterStorage';
+import { countAppliedFilters } from '@/utils/filterCount';
 
 export function useDashboard() {
   const dispatch = useDispatch();
@@ -126,6 +127,8 @@ export function useDashboard() {
     }
   };
 
+  const appliedCount = countAppliedFilters(formData, defaultFormData);
+
   useEffect(() => {
     saveFilters(FILTER_STORAGE_KEYS.dashboard, formData);
     handleSubmit(formData);
@@ -165,5 +168,6 @@ export function useDashboard() {
     handleChange,
     handleClearFilter,
     handleClick,
+    appliedCount,
   };
 }

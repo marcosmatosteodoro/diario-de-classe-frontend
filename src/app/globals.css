@@ -140,6 +140,14 @@
     .input-field {
       @apply focus:ring-blue-400 bg-slate-800 text-slate-100 disabled:bg-slate-700 disabled:text-slate-500 disabled:opacity-60;
     }
+    /* Ícone nativo do date/time picker é pseudo-elemento do UA, não
+       alcançável por color/background comuns; color-scheme: dark pede os
+       controles nativos na variante escura — o que deixa o ícone claro e
+       legível sobre o fundo escuro do input (BI-40). */
+    input[type='date'].input-field,
+    input[type='time'].input-field {
+      color-scheme: dark;
+    }
     .page-title {
       @apply text-slate-100;
     }

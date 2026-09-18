@@ -53,6 +53,18 @@ export function Table({
               color: 'var(--color-gray-300)',
             },
           },
+          progress: {
+            style: {
+              backgroundColor: '#1f2937', // bg-gray-900 // => 1f2937
+              color: 'var(--color-gray-300)',
+            },
+          },
+          noData: {
+            style: {
+              backgroundColor: '#1f2937', // bg-gray-900 // => 1f2937
+              color: 'var(--color-gray-300)',
+            },
+          },
         }
       : {};
   return (
