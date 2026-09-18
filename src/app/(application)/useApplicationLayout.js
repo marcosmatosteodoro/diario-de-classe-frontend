@@ -66,7 +66,12 @@ export function useApplicationLayout() {
     let isCurrent = true;
 
     async function checkAuth() {
-      const userIsAuth = await isAuthenticated();
+      let userIsAuth;
+      try {
+        userIsAuth = await isAuthenticated();
+      } catch {
+        userIsAuth = false;
+      }
       if (!isCurrent) {
         return;
       }
