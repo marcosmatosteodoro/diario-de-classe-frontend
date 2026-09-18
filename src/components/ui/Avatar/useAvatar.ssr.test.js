@@ -3,6 +3,7 @@ import { useAvatar } from './useAvatar';
 import {
   calcularValorComSorteio,
   gravarPreferenciaSemGuard,
+  lerPreferenciaSemGuard,
 } from '@/utils/__fixtures__/regressaoHidratacao.fixture';
 
 describe('useAvatar (SSR-safety)', () => {
@@ -58,7 +59,7 @@ describe('useAvatar — a rede de teste pega a regressão (NFR-001-001/002, AC-0
     randomSpy.mockRestore();
   });
 
-  it('regressão fixture: uma gravação sem guard É detectada pelo mesmo spy de Storage.prototype.setItem (ACH-W2-02 — controle positivo da ausência afirmada acima)', () => {
+  it('regressão fixture: uma gravação sem guard É detectada pelo mesmo spy de Storage.prototype.setItem (controle positivo da ausência afirmada acima)', () => {
     const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
 
     gravarPreferenciaSemGuard();
@@ -66,5 +67,15 @@ describe('useAvatar — a rede de teste pega a regressão (NFR-001-001/002, AC-0
     expect(setItemSpy).toHaveBeenCalled();
 
     setItemSpy.mockRestore();
+  });
+
+  it('regressão fixture: uma leitura sem guard É detectada pelo mesmo spy de Storage.prototype.getItem (controle positivo da ausência afirmada acima)', () => {
+    const getItemSpy = jest.spyOn(Storage.prototype, 'getItem');
+
+    lerPreferenciaSemGuard();
+
+    expect(getItemSpy).toHaveBeenCalled();
+
+    getItemSpy.mockRestore();
   });
 });

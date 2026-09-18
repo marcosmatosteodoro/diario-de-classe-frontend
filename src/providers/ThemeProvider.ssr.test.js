@@ -34,7 +34,7 @@ describe('ThemeProvider — a rede de teste pega a regressão (NFR-001-001/002, 
     getItemSpy.mockRestore();
   });
 
-  it('regressão fixture: uma gravação sem guard É detectada pelo mesmo spy de Storage.prototype.setItem (ACH-W2-02 — controle positivo da ausência afirmada acima)', () => {
+  it('regressão fixture: uma gravação sem guard É detectada pelo mesmo spy de Storage.prototype.setItem (controle positivo da ausência afirmada acima)', () => {
     const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
 
     gravarPreferenciaSemGuard();

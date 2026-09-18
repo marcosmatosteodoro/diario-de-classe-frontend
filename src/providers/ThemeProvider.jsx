@@ -10,6 +10,7 @@ import React, {
 } from 'react';
 import {
   getKey,
+  parseThemeCookie,
   serializeThemeCookie,
   DEFAULT_THEME,
 } from '@/utils/themeCookie';
@@ -44,14 +45,11 @@ export const ThemeProvider = ({ children, initialTheme = null }) => {
   useLayoutEffect(() => {
     if (initialTheme !== null) return;
 
-    const legacy = localStorage.getItem(THEME_KEY);
-    if (legacy && legacy !== theme) {
-      setTheme(legacy);
+    const legacy = parseThemeCookie(localStorage.getItem(THEME_KEY));
+    if (legacy) {
+      if (legacy !== theme) setTheme(legacy);
       setHasChoice(true);
-    } else if (
-      !legacy &&
-      window.matchMedia?.('(prefers-color-scheme: dark)').matches
-    ) {
+    } else if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
       setTheme('dark');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

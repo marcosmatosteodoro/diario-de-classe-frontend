@@ -161,7 +161,7 @@ describe('ThemeProvider', () => {
       );
     });
 
-    it('Caso crítico (achado gate 11) — cookie claro explícito NÃO é sobreposto pelo SO em modo escuro: atributo permanece "light", nunca "system"', () => {
+    it('Caso crítico — cookie claro explícito NÃO é sobreposto pelo SO em modo escuro: atributo permanece "light", nunca "system"', () => {
       mockMatchMedia(true);
 
       const { getByTestId } = render(
@@ -174,7 +174,7 @@ describe('ThemeProvider', () => {
       expect(document.documentElement.getAttribute('data-theme')).toBe('light');
     });
 
-    it('Caso C — legado em localStorage vence a preferência do SO em ambas as direções', () => {
+    it('Caso C — legado em localStorage vence a preferência do SO em ambas as direções (atributo lido pelo CSS, não só o estado)', () => {
       localStorage.setItem('theme', 'dark');
       mockMatchMedia(false);
 
@@ -184,6 +184,7 @@ describe('ThemeProvider', () => {
         </ThemeProvider>
       );
       expect(getByTestId('theme').textContent).toBe('dark');
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
       unmount();
 
       localStorage.setItem('theme', 'light');
@@ -195,6 +196,33 @@ describe('ThemeProvider', () => {
         </ThemeProvider>
       );
       expect(getByTestIdSegundaMontagem('theme').textContent).toBe('light');
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    });
+
+    it('Caso D — legado "light" (igual ao default) marca hasChoice e não é sobreposto pelo SO em modo escuro: atributo final "light"', () => {
+      localStorage.setItem('theme', 'light');
+      mockMatchMedia(true);
+
+      render(
+        <ThemeProvider initialTheme={null}>
+          <TestComponent />
+        </ThemeProvider>
+      );
+
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    });
+
+    it('Caso E — legado "dark" (SO em modo claro) marca hasChoice e vence a preferência do SO: atributo final "dark"', () => {
+      localStorage.setItem('theme', 'dark');
+      mockMatchMedia(false);
+
+      render(
+        <ThemeProvider initialTheme={null}>
+          <TestComponent />
+        </ThemeProvider>
+      );
+
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
     });
   });
 });
