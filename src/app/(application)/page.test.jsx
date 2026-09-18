@@ -146,6 +146,34 @@ describe('Home Page - Dashboard', () => {
     expect(screen.queryByText('...')).not.toBeInTheDocument();
     expect(screen.getAllByText('0')).toHaveLength(3);
   });
+
+  it('aplica animate-block-in no grid de cards e na lista de aulas quando o carregamento conclui (COMP-003-001, AC-002-001)', () => {
+    const { container } = render(<Home />);
+
+    // Seletor por substring de classe estável (nunca por classe exata): a
+    // classe alvo (`animate-block-in`) é composta condicionalmente e não pode
+    // fazer parte do próprio seletor sem esvaziar a prova.
+    const grid = container.querySelector('[class*="grid-cols-1"]');
+    const lista = container.querySelector('[class*="space-y-4"]');
+
+    expect(grid).toHaveClass('animate-block-in');
+    expect(lista).toHaveClass('animate-block-in');
+  });
+
+  it('não aplica animate-block-in no grid de cards nem na lista de aulas enquanto isLoading é true (COMP-003-001)', () => {
+    useDashboard.mockReturnValue({
+      ...defaultDashboardData,
+      isLoading: true,
+    });
+
+    const { container } = render(<Home />);
+
+    const grid = container.querySelector('[class*="grid-cols-1"]');
+    const lista = container.querySelector('[class*="space-y-4"]');
+
+    expect(grid).not.toHaveClass('animate-block-in');
+    expect(lista).not.toHaveClass('animate-block-in');
+  });
 });
 
 describe('HomeInfoCard — tempo relativo estável até montar (AC-001-004)', () => {
