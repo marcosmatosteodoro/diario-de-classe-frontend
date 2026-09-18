@@ -99,4 +99,16 @@ describe('Header Component', () => {
       'bg-main'
     );
   });
+
+  it('deve exibir a logo escura e o ícone de sol já na primeira renderização com initialTheme="dark"', () => {
+    render(
+      <ThemeProvider initialTheme="dark">
+        <Header />
+      </ThemeProvider>
+    );
+    const logo = screen.getByAltText('Logo da empresa BLS');
+    expect(logo).toHaveAttribute('src', '/bls-dark.png');
+    const [themeButton] = screen.getAllByRole('button');
+    expect(themeButton.querySelector('svg')).toHaveClass('lucide-sun');
+  });
 });

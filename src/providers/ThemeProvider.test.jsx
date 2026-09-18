@@ -30,15 +30,15 @@ describe('ThemeProvider', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 
-  it('should use theme from localStorage if set', () => {
+  it('should not resolve initial state from localStorage (initialTheme/cookie is the source of truth)', () => {
     localStorage.setItem('theme', 'dark');
     const { getByTestId } = render(
       <ThemeProvider>
         <TestComponent />
       </ThemeProvider>
     );
-    expect(getByTestId('theme').textContent).toBe('dark');
-    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(getByTestId('theme').textContent).toBe('light');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
   });
 
   it('should toggle theme and persist in localStorage', () => {

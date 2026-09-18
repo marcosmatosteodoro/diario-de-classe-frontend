@@ -1,9 +1,13 @@
+import { cookies } from 'next/headers';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ToastProvider } from '@/providers/ToastProvider';
 import { ReduxProvider } from '@/providers/ReduxyProvider';
 import { UserAuthProvider } from '@/providers/UserAuthProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
+import { getKey, parseThemeCookie } from '@/utils/themeCookie';
+
+const DEFAULT_THEME = 'light';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -20,7 +24,11 @@ export const metadata = {
   description: 'Sistema de gestão escolar',
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const cookieStore = await cookies();
+  const initialTheme =
+    parseThemeCookie(cookieStore.get(getKey())?.value) ?? DEFAULT_THEME;
+
   return (
     <html lang="pt-BR">
       <head>
@@ -33,7 +41,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReduxProvider>
-          <ThemeProvider>
+          <ThemeProvider initialTheme={initialTheme}>
             <ToastProvider>
               <UserAuthProvider>{children}</UserAuthProvider>
             </ToastProvider>

@@ -7,19 +7,10 @@ import React, {
   useState,
   useCallback,
 } from 'react';
+import { getKey, serializeThemeCookie } from '@/utils/themeCookie';
 
-const THEME_KEY = 'theme';
+const THEME_KEY = getKey();
 const DEFAULT_THEME = 'light';
-
-function getInitialTheme() {
-  if (typeof window === 'undefined') return DEFAULT_THEME;
-  const storedTheme = localStorage.getItem(THEME_KEY);
-  if (storedTheme) return storedTheme;
-  const prefersDark =
-    window.matchMedia &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return prefersDark ? 'dark' : DEFAULT_THEME;
-}
 
 const ThemeContext = createContext({
   theme: DEFAULT_THEME,
@@ -28,11 +19,15 @@ const ThemeContext = createContext({
 
 export const useTheme = () => useContext(ThemeContext);
 
-export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(getInitialTheme);
+export const ThemeProvider = ({ children, initialTheme = DEFAULT_THEME }) => {
+  const [theme, setTheme] = useState(initialTheme);
 
   useEffect(() => {
+    // Grava em localStorage só para não perder a preferência de quem já tinha
+    // tema salvo por esse canal antes do cookie existir; não participa da
+    // resolução do estado inicial (a fonte da verdade é o cookie, lido no servidor).
     localStorage.setItem(THEME_KEY, theme);
+    document.cookie = serializeThemeCookie(theme);
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
@@ -42,7 +37,7 @@ export const ThemeProvider = ({ children }) => {
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <div className={theme}>{children}</div>
+      <div data-theme={theme}>{children}</div>
     </ThemeContext.Provider>
   );
 };
