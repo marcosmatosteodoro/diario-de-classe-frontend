@@ -1,7 +1,13 @@
 'use client';
 
 import { useApplicationLayout } from './useApplicationLayout';
-import { Header, Sidebar, Footer, Loading } from '@/components';
+import {
+  Header,
+  Sidebar,
+  Footer,
+  Loading,
+  TransitionShell,
+} from '@/components';
 
 export default function ApplicationLayout({ children }) {
   const {
@@ -13,7 +19,7 @@ export default function ApplicationLayout({ children }) {
   } = useApplicationLayout();
 
   return (
-    <div className="min-h-screen bg-secondary">
+    <TransitionShell className="min-h-screen bg-secondary">
       <Header />
       <div className="flex pt-16 min-h-screen">
         <Sidebar
@@ -33,6 +39,6 @@ export default function ApplicationLayout({ children }) {
         </main>
       </div>
       <Footer />
-    </div>
+    </TransitionShell>
   );
 }
