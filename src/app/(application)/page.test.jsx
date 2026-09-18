@@ -120,6 +120,32 @@ describe('Home Page - Dashboard', () => {
       expect(useDashboard).toHaveBeenCalled();
     });
   });
+
+  it('conclui a apresentação com o fallback já existente quando getDashboard rejeita, sem indicador preso (AC-002-004)', () => {
+    // Shape do estado pós-rejeição em `dashboardSlice.js`: STATUS.FAILED
+    // não preenche `data`, então `isLoading` fica `false` e `aulas`/valores
+    // dos cards ficam sem valor (`useDashboard.js`).
+    useDashboard.mockReturnValue({
+      ...defaultDashboardData,
+      aulas: null,
+      isLoading: false,
+      homeCardValues: [
+        { title: 'Alunos', value: undefined, color: 'blue' },
+        { title: 'Aulas', value: undefined, color: 'green' },
+        { title: 'Contratos', value: undefined, color: 'purple' },
+      ],
+    });
+
+    render(<Home />);
+
+    expect(screen.getByText('Nenhuma aula encontrada')).toBeInTheDocument();
+    expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+
+    // Cards sem valor (rejeição não preenche `data`): mostram "0", nunca o
+    // placeholder de carregamento "...".
+    expect(screen.queryByText('...')).not.toBeInTheDocument();
+    expect(screen.getAllByText('0')).toHaveLength(3);
+  });
 });
 
 describe('HomeInfoCard — tempo relativo estável até montar (AC-001-004)', () => {

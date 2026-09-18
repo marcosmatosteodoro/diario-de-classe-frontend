@@ -184,7 +184,9 @@ export default function Home() {
     <>
       <h2 className="text-3xl font-bold text-main mb-8">Diário de Classe</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div
+        className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 ${!isLoading ? 'animate-block-in' : ''}`}
+      >
         {homeCardValues.map(row => (
           <HomeCard
             key={row.title}
@@ -286,7 +288,7 @@ export default function Home() {
           {formData.minhasAulas ? 'Minhas Aulas' : 'Todas as Aulas'}
         </h3>
 
-        <div className="space-y-4">
+        <div className={`space-y-4 ${!isLoading ? 'animate-block-in' : ''}`}>
           {isLoading && <Loading />}
           {!isLoading && aulas && aulas.length > 0 ? (
             aulas.map(aula => (
