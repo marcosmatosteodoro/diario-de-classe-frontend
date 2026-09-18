@@ -147,20 +147,28 @@ describe('Home Page - Dashboard', () => {
     expect(screen.getAllByText('0')).toHaveLength(3);
   });
 
-  it('aplica animate-block-in no grid de cards e na lista de aulas quando o carregamento conclui (COMP-003-001, AC-002-001)', () => {
+  it('aplica animate-block-in no valor de cada card (o nó que efetivamente troca) e na lista de aulas quando o carregamento conclui, mas nunca na moldura do grid, que persiste entre os dois estados (COMP-003-001, AC-002-001)', () => {
     const { container } = render(<Home />);
 
     // Seletor por substring de classe estável (nunca por classe exata): a
     // classe alvo (`animate-block-in`) é composta condicionalmente e não pode
     // fazer parte do próprio seletor sem esvaziar a prova.
     const grid = container.querySelector('[class*="grid-cols-1"]');
+    const valores = grid.querySelectorAll('[class*="text-3xl"]');
     const lista = container.querySelector('[class*="space-y-4"]');
 
-    expect(grid).toHaveClass('animate-block-in');
+    // A moldura do grid (fundo, borda, sombra, título) é o mesmo nó DOM
+    // entre `isLoading: true` e `false` — se ganhasse a classe aqui, o
+    // keyframe `block-in` (que começa em opacity: 0) faria os 3 cards
+    // sumirem e reaparecerem por inteiro.
+    expect(grid).not.toHaveClass('animate-block-in');
+
+    expect(valores).toHaveLength(3);
+    valores.forEach(valor => expect(valor).toHaveClass('animate-block-in'));
     expect(lista).toHaveClass('animate-block-in');
   });
 
-  it('não aplica animate-block-in no grid de cards nem na lista de aulas enquanto isLoading é true (COMP-003-001)', () => {
+  it('não aplica animate-block-in no valor dos cards nem na lista de aulas enquanto isLoading é true (COMP-003-001)', () => {
     useDashboard.mockReturnValue({
       ...defaultDashboardData,
       isLoading: true,
@@ -169,9 +177,11 @@ describe('Home Page - Dashboard', () => {
     const { container } = render(<Home />);
 
     const grid = container.querySelector('[class*="grid-cols-1"]');
+    const valores = grid.querySelectorAll('[class*="text-3xl"]');
     const lista = container.querySelector('[class*="space-y-4"]');
 
-    expect(grid).not.toHaveClass('animate-block-in');
+    expect(valores).toHaveLength(3);
+    valores.forEach(valor => expect(valor).not.toHaveClass('animate-block-in'));
     expect(lista).not.toHaveClass('animate-block-in');
   });
 });

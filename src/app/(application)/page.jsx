@@ -38,7 +38,10 @@ const HomeCard = ({ title, value, color, isLoading }) => {
   return (
     <div className="bg-main p-6 rounded-lg shadow-md border border-main ">
       <h3 className="text-lg font-semibold text-main mb-2">{title}</h3>
-      <p className={`text-3xl font-bold ${textColorClass}`}>
+      <p
+        key={isLoading ? 'loading' : 'value'}
+        className={`text-3xl font-bold ${textColorClass} ${!isLoading ? 'animate-block-in' : ''}`}
+      >
         {isLoading ? '...' : value || 0}
       </p>
     </div>
@@ -184,9 +187,7 @@ export default function Home() {
     <>
       <h2 className="text-3xl font-bold text-main mb-8">Diário de Classe</h2>
 
-      <div
-        className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 ${!isLoading ? 'animate-block-in' : ''}`}
-      >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {homeCardValues.map(row => (
           <HomeCard
             key={row.title}
