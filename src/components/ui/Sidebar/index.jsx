@@ -20,8 +20,10 @@ export const Sidebar = ({ isExpanded, toggleSidebar }) => {
       id="main-navigation"
       aria-label="Main navigation"
       className={`fixed left-0 top-16 bottom-0 bg-secondary border-r border-main transition-all duration-300 ease-in-out z-30 ${
-        isExpanded ? 'translate-x-0 w-full' : '-translate-x-full'
-      } md:translate-x-0 ${isExpanded ? 'md:w-[180px]' : 'md:w-18'}`}
+        isExpanded
+          ? 'translate-x-0 w-full visible'
+          : '-translate-x-full invisible'
+      } md:translate-x-0 md:visible ${isExpanded ? 'md:w-[180px]' : 'md:w-18'}`}
       data-testid="sidebar"
     >
       <div className="flex flex-col h-full">

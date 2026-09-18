@@ -73,4 +73,34 @@ describe('Sidebar', () => {
     expect(sidebar.className).toContain('translate-x-0');
     expect(sidebar.className).toContain('md:translate-x-0');
   });
+
+  describe('visibilidade para teclado/leitor de tela nos 4 estados combinados (<md e ≥md × fechado/aberto)', () => {
+    it('<md, fechado: invisible (fora do foco/leitor), sem md:invisible', () => {
+      render(<Sidebar isExpanded={false} toggleSidebar={() => {}} />);
+      const classes = screen.getByTestId('sidebar').className.split(' ');
+      expect(classes).toContain('invisible');
+      expect(classes).toContain('md:visible');
+      expect(classes).not.toContain('visible');
+    });
+
+    it('<md, aberto: visible (focável/lido), sem invisible', () => {
+      render(<Sidebar isExpanded={true} toggleSidebar={() => {}} />);
+      const classes = screen.getByTestId('sidebar').className.split(' ');
+      expect(classes).toContain('visible');
+      expect(classes).toContain('md:visible');
+      expect(classes).not.toContain('invisible');
+    });
+
+    it('≥md, colapsado (isExpanded=false): md:visible presente para vencer o invisible da faixa <md', () => {
+      render(<Sidebar isExpanded={false} toggleSidebar={() => {}} />);
+      const classes = screen.getByTestId('sidebar').className.split(' ');
+      expect(classes).toContain('md:visible');
+    });
+
+    it('≥md, expandido (isExpanded=true): md:visible presente (redundante com visible incondicional, mas incondicional ao lado de md:translate-x-0)', () => {
+      render(<Sidebar isExpanded={true} toggleSidebar={() => {}} />);
+      const classes = screen.getByTestId('sidebar').className.split(' ');
+      expect(classes).toContain('md:visible');
+    });
+  });
 });
