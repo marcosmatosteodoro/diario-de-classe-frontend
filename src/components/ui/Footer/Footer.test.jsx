@@ -1,8 +1,7 @@
 import React from 'react';
-import { render, act } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
-import { createRoot } from 'react-dom/client';
-import { flushSync } from 'react-dom';
+import { mountRaw } from '@/utils/mountRaw';
 import { Footer } from './index';
 import packageJson from '../../../../package.json';
 
@@ -56,50 +55,20 @@ describe('Footer — ano estável até montar (AC-001-005)', () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-12-31T23:59:59.000-03:00'));
 
-    // RTL `render()` embrulha o mount em `act()`, que assenta os efeitos
-    // passivos sincronamente antes de retornar — tornaria o estado
-    // pré-efeito inobservável. `flushSync` força o commit inicial de forma
-    // síncrona e verificável (o ano ausente já visível no DOM) sem também
-    // assentar o efeito passivo, que só roda no próximo flush de efeitos
-    // (`act(async () => {...})` abaixo).
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    const consoleErrorSpy = jest
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
-    const root = createRoot(container);
-
-    flushSync(() => {
-      root.render(<Footer />);
-    });
-
-    expect(container.textContent).not.toMatch(/202\d/);
-
-    await act(async () => {
-      await Promise.resolve();
-    });
-
-    expect(container.textContent).toMatch('2026');
+    // `mountRaw` (ACH-10) — mesmo helper compartilhado das 5 suítes de hook,
+    // aqui montando o componente diretamente (sem `Harness`).
+    const footer1 = mountRaw(<Footer />);
+    expect(footer1.container.textContent).not.toMatch(/202\d/);
+    await footer1.flush();
+    expect(footer1.container.textContent).toMatch('2026');
 
     jest.setSystemTime(new Date('2027-01-01T00:00:01.000-03:00'));
-    const root2Container = document.createElement('div');
-    document.body.appendChild(root2Container);
-    const root2 = createRoot(root2Container);
-    flushSync(() => {
-      root2.render(<Footer />);
-    });
-    expect(root2Container.textContent).not.toMatch(/202\d/);
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(root2Container.textContent).toMatch('2027');
+    const footer2 = mountRaw(<Footer />);
+    expect(footer2.container.textContent).not.toMatch(/202\d/);
+    await footer2.flush();
+    expect(footer2.container.textContent).toMatch('2027');
 
-    act(() => {
-      root.unmount();
-      root2.unmount();
-    });
-    document.body.removeChild(container);
-    document.body.removeChild(root2Container);
-    consoleErrorSpy.mockRestore();
+    footer1.unmount();
+    footer2.unmount();
   });
 });

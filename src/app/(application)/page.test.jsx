@@ -1,7 +1,6 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
-import { createRoot } from 'react-dom/client';
-import { flushSync } from 'react-dom';
+import { mountRaw } from '@/utils/mountRaw';
 import Home from './page';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useAlunos } from '@/hooks/alunos/useAlunos';
@@ -170,35 +169,16 @@ describe('HomeInfoCard — tempo relativo estável até montar (AC-001-004)', ()
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-06-15T13:00:00.000Z'));
 
-    // RTL `render()` embrulha o mount em `act()`, que assenta os efeitos
-    // passivos sincronamente antes de retornar — tornaria o estado
-    // pré-efeito inobservável. `flushSync` força o commit inicial de forma
-    // síncrona e verificável (o placeholder já visível no DOM) sem também
-    // assentar o efeito passivo, que só roda no próximo flush de efeitos
-    // (`act(async () => {...})` abaixo).
-    const container = document.createElement('div');
-    document.body.appendChild(container);
-    const consoleErrorSpy = jest
-      .spyOn(console, 'error')
-      .mockImplementation(() => {});
-    const root = createRoot(container);
+    // `mountRaw` (ACH-10) — mesmo helper compartilhado das 5 suítes de hook,
+    // aqui montando o componente diretamente (sem `Harness`).
+    const home = mountRaw(<Home />);
 
-    flushSync(() => {
-      root.render(<Home />);
-    });
+    expect(home.container.textContent).not.toMatch(/minuto\(s\)/);
 
-    expect(container.textContent).not.toMatch(/minuto\(s\)/);
+    await home.flush();
 
-    await act(async () => {
-      await Promise.resolve();
-    });
+    expect(home.container.textContent).toMatch('Em 5 minuto(s)');
 
-    expect(container.textContent).toMatch('Em 5 minuto(s)');
-
-    act(() => {
-      root.unmount();
-    });
-    document.body.removeChild(container);
-    consoleErrorSpy.mockRestore();
+    home.unmount();
   });
 });

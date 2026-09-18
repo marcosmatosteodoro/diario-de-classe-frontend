@@ -1,8 +1,7 @@
 import { createElement } from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { createRoot } from 'react-dom/client';
-import { flushSync } from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { mountRaw } from '@/utils/mountRaw';
 import { useAulas } from './useAulas';
 import { getAulas } from '@/store/slices/aulasSlice';
 import { STATUS, FILTER_STORAGE_KEYS } from '@/constants';
@@ -24,22 +23,12 @@ beforeEach(() => {
   localStorage.clear();
 });
 
-// Monta o hook via `flushSync` (fora de `act`) para observar
-// dataInicio/dataTermino ANTES do `useEffect([])` assentar. `renderHook` do
-// RTL embrulha o mount em `act()`, que assenta efeitos passivos
-// sincronamente antes de retornar — tornaria o estado pré-efeito
-// inobservável por esse caminho. O estado é lido do DOM (não de uma
-// variável capturada por fora do componente) para manter o harness puro.
+// `mountRaw` (ACH-10) cuida do `flushSync`/supressão de aviso de `act`
+// compartilhados entre os 7 testes que precisam observar estado pré-efeito;
+// só o que varia por hook fica aqui: o `Harness` e como ler
+// dataInicio/dataTermino do DOM (não de uma variável capturada por fora do
+// componente, para manter o harness puro).
 function mountHookRaw() {
-  const container = document.createElement('div');
-  document.body.appendChild(container);
-  // O mount fora de `act` (necessário para o `flushSync` abaixo observar o
-  // pré-efeito) dispara o aviso "not wrapped in act(...)" do React quando o
-  // `useEffect([])` assenta depois — esperado por construção, suprimido
-  // aqui.
-  const consoleErrorSpy = jest
-    .spyOn(console, 'error')
-    .mockImplementation(() => {});
   function Harness() {
     const { formData } = useAulas();
     return createElement(
@@ -51,26 +40,14 @@ function mountHookRaw() {
       })
     );
   }
-  const root = createRoot(container);
-  flushSync(() => {
-    root.render(createElement(Harness));
-  });
+  const hook = mountRaw(createElement(Harness));
   return {
+    ...hook,
     getDatas() {
-      const text = container.querySelector('[data-testid="datas"]').textContent;
+      const text = hook.container.querySelector(
+        '[data-testid="datas"]'
+      ).textContent;
       return JSON.parse(text);
-    },
-    async flush() {
-      await act(async () => {
-        await Promise.resolve();
-      });
-    },
-    unmount() {
-      act(() => {
-        root.unmount();
-      });
-      consoleErrorSpy.mockRestore();
-      document.body.removeChild(container);
     },
   };
 }
