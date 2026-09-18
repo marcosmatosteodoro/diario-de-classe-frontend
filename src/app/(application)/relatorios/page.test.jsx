@@ -170,7 +170,6 @@ describe('CardRelatorio — collapse por card (TASK-002-007, COMP-002-007)', () 
       expect(painel).not.toHaveAttribute('data-panel-state')
     );
 
-    // Preenche os dois campos, um por card.
     fireEvent.change(screen.getByLabelText('Campo A'), {
       target: { value: 'valor-a' },
     });
@@ -188,7 +187,6 @@ describe('CardRelatorio — collapse por card (TASK-002-007, COMP-002-007)', () 
     expect(paineis[0]).toHaveAttribute('data-panel-state', 'recolhido');
     // O segundo card mantém seu próprio estado (aberto) — não desmontou.
     expect(paineis[1]).not.toHaveAttribute('data-panel-state');
-    // E os filtros preenchidos em ambos permanecem intocados.
     expect(screen.getByLabelText('Campo A')).toHaveValue('valor-a');
     expect(screen.getByLabelText('Campo B')).toHaveValue('valor-b');
 
@@ -278,6 +276,32 @@ describe('CardRelatorio — collapse por card (TASK-002-007, COMP-002-007)', () 
     expect(paineis[1]).not.toHaveAttribute('data-panel-state');
   });
 
+  it('TRISK-002-003: relatorio com endpoint ausente/inválido não derruba a rota, o card nasce aberto e sem persistência', () => {
+    const relatorioSemEndpoint = makeRelatorio({ endpoint: undefined });
+    useRelatorios.mockReturnValue({
+      data: [relatorioSemEndpoint],
+      submit: jest.fn(),
+      isSubmitting: false,
+    });
+
+    // Sem a guarda de tipo em CardRelatorio, `itemId: undefined` chega ao
+    // script anti-flash (`JSON.stringify(undefined).replace(...)` lança
+    // `TypeError` durante o PRÓPRIO render, antes de qualquer execução no
+    // browser) e a rota inteira (sem error.jsx/ErrorBoundary) quebraria.
+    expect(() => render(<Relatorios />)).not.toThrow();
+
+    expect(screen.getByText(relatorioSemEndpoint.title)).toBeInTheDocument();
+    expect(
+      screen.getByText(relatorioSemEndpoint.description)
+    ).toBeInTheDocument();
+
+    const painel = screen.getByTestId('painel-filtros-colapsavel');
+    // Card nasce aberto (default): sem storageKey válida, não há
+    // `data-panel-state` de recolhido.
+    expect(painel).not.toHaveAttribute('data-panel-state');
+    expect(screen.getByRole('button', { name: 'Gerar' })).toBeInTheDocument();
+  });
+
   describe('INVARIANTE DE CABLAGEM (herdado do re-review da wave 2, DEC-002-001 §6): isOpen do card vem de useCollapsiblePanelState({ mapKey: RELATORIOS_PANEL_STORAGE_KEY, itemId: relatorio.endpoint })', () => {
     it('preferência salva "recolhido" para o endpoint do card: o atributo aplicado pelo script anti-flash sobrevive à hidratação e some ao expandir', () => {
       const relatorio = makeRelatorio();
@@ -287,8 +311,14 @@ describe('CardRelatorio — collapse por card (TASK-002-007, COMP-002-007)', () 
         isSubmitting: false,
       });
 
-      // Simula o servidor: sem preferência nenhuma (A-001-001: sempre
-      // aberto lá, sem acesso a localStorage).
+      // Harness real (medido dentro deste `renderToString`): `typeof window`
+      // é `'object'`, `typeof localStorage` é `'object'` e
+      // `localStorage.length` é `0` — o jsdom do Jest tem `localStorage`
+      // PRESENTE e vazio, não ausente. Este `clear()` garante que não há
+      // preferência salva para o endpoint do card, então o markup produzido
+      // é o default aberto (A-001-001) — não a ausência real de
+      // `localStorage` de um servidor, que não é reproduzível neste runner
+      // (Restrição medida em [[teste-de-ambiente-simulado-inerte]]).
       localStorage.clear();
       const markup = renderToString(<Relatorios />);
       const html = `<!DOCTYPE html><html><body><div id="root">${markup}</div></body></html>`;
@@ -324,12 +354,30 @@ describe('CardRelatorio — collapse por card (TASK-002-007, COMP-002-007)', () 
 
       const container = dom.window.document.getElementById('root');
 
+      // `useRelatorioForm` é o contador de graça neste arquivo (`jest.fn`
+      // envolvendo a implementação real, linha 21-26): 1 card montado chama
+      // o hook 1x por render de `CardRelatorio`. `renderToString` (acima) já
+      // contabilizou 1 chamada; a leitura abaixo, feita ANTES de
+      // `hydrateRoot`, é o ponto de partida para medir o que muda entre as
+      // duas leituras do DOM.
+      const chamadasAntesDeHidratar = useRelatorioForm.mock.calls.length;
+
       let root;
       expect(() => {
         act(() => {
           root = hydrateRoot(container, <Relatorios />);
         });
       }).not.toThrow();
+
+      // Medido: `hydrateRoot` dentro de `act()` produz exatamente 1 render
+      // de `CardRelatorio` (delta de 1 chamada de `useRelatorioForm`) — é
+      // esse commit de hidratação que muda o DOM entre `raizAntesDeHidratar`
+      // (markup parseado pelo jsdom, pré-hidratação) e `raizDepoisDeHidratar`
+      // abaixo. Sem essa medição, a segunda leitura seria a primeira de
+      // novo, incapaz de falhar sozinha ([[comentario-de-teste-vale-como-asercao]]).
+      expect(useRelatorioForm.mock.calls.length - chamadasAntesDeHidratar).toBe(
+        1
+      );
 
       const raizDepoisDeHidratar = dom.window.document.querySelector(
         '[data-testid="painel-filtros-colapsavel"]'

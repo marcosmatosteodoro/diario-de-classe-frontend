@@ -84,6 +84,13 @@ export const PainelFiltrosColapsavel = ({
   onToggle,
   appliedCount = 0,
   storageKey,
+  // `tagTitulo`/`classeTitulo` são aditivos, com o par que já existia como
+  // default — quem não passa a prop (`/`, `ListPage`, `/relatorios` antes
+  // desta prop) continua saindo com o MESMO `h3`/`text-xl font-semibold
+  // text-main`, byte-idêntico. Só quem passa a prop muda a hierarquia
+  // tipográfica local.
+  tagTitulo: TagTitulo = 'h3',
+  classeTitulo = 'text-xl font-semibold text-main',
   children,
 }) => {
   const idBase = useId();
@@ -150,12 +157,9 @@ export const PainelFiltrosColapsavel = ({
         }}
       />
       <div className="flex items-center justify-between gap-2 mb-4">
-        <h3
-          className="text-xl font-semibold text-main"
-          data-testid="painel-filtros-titulo"
-        >
+        <TagTitulo className={classeTitulo} data-testid="painel-filtros-titulo">
           {titulo}
-        </h3>
+        </TagTitulo>
         <button
           type="button"
           id={buttonId}

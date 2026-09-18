@@ -43,10 +43,19 @@ function CardRelatorio({ relatorio, isSubmitting, submit }) {
     relatorio,
     submit,
   });
-  const storageKey = {
-    mapKey: RELATORIOS_PANEL_STORAGE_KEY,
-    itemId: relatorio.endpoint,
-  };
+  // Guarda de tipo: `itemId` só é aceito se for string não-vazia. Sem a
+  // guarda, `undefined` chegaria ao script anti-flash de
+  // `PainelFiltrosColapsavel`
+  // (`JSON.stringify(undefined).replace(...)` lança `TypeError` durante o
+  // render, e a rota não tem `error.jsx`/`ErrorBoundary`). Com
+  // `storageKey = null`, o card nasce aberto e sem persistência — a
+  // degradação que o comentário acima de `CardRelatorio` promete
+  // (TRISK-002-003).
+  const itemIdValido =
+    typeof relatorio.endpoint === 'string' && relatorio.endpoint.length > 0;
+  const storageKey = itemIdValido
+    ? { mapKey: RELATORIOS_PANEL_STORAGE_KEY, itemId: relatorio.endpoint }
+    : null;
   // MESMA storageKey passada ao painel (invariante de DEC-002-001 §6): só
   // assim o `isOpen` que o React controla converge com o que o script
   // anti-flash já aplicou ao DOM antes da hidratação.
@@ -61,8 +70,14 @@ function CardRelatorio({ relatorio, isSubmitting, submit }) {
 
       {/* Sem appliedCount: `/relatorios` não tem noção de "filtro aplicado"
           (SPEC §4.2, DEC-002-004/COMP-002-007). */}
+      {/* Hierarquia tipográfica: h1 20px/700 > h3 do card 18px/600 > h4
+          "Filtros" 16px/600 (canônico de BlockQuoteInfo/index.jsx:4) —
+          monotônica; "Filtros" não empata com o h1 da página nem é irmão de
+          heading do h3 do card que o contém. */}
       <PainelFiltrosColapsavel
         titulo="Filtros"
+        tagTitulo="h4"
+        classeTitulo="font-semibold text-main"
         isOpen={isOpen}
         onToggle={toggle}
         storageKey={storageKey}
