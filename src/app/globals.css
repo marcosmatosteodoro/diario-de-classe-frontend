@@ -2,6 +2,43 @@
 
 @import './datatable-dark.css';
 
+/* Transição login → tela inicial (COMP-003-001, DEC-003-001/DEC-003-002):
+   `.animate-app-shell-in`/`.animate-block-in` só existem dentro do bloco
+   `no-preference` abaixo — opt-in, nunca uma declaração zerando com `none`
+   tentando cancelar uma base que já anima. `@media` não soma especificidade
+   e pode perder por ordem contra uma regra base (lição
+   media-query-sem-escopo-nao-desempata-contra-escolha-explicita); a forma
+   opt-in elimina essa disputa por construção. Ambos os tempos (200ms/150ms)
+   ficam abaixo do teto de 300ms de NFR-002-001. */
+@keyframes app-shell-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes block-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-app-shell-in {
+    animation: app-shell-in 200ms ease-out;
+  }
+  .animate-block-in {
+    animation: block-in 150ms ease-out;
+  }
+}
+
 @layer components {
   /* White Theme */
   .btn {
