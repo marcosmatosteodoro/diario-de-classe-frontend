@@ -16,6 +16,10 @@ describe('Fields Base Components', () => {
     it('contains disabled state CSS classes', () => {
       // Não precisa testar classes de estado, pois está tudo em input-field
     });
+
+    it('contains tap-target for touch area', () => {
+      expect(classNameDefault).toContain('tap-target');
+    });
   });
 
   describe('LabelField', () => {

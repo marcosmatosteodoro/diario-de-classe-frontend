@@ -6,6 +6,7 @@
   /* White Theme */
   .btn {
     @apply px-4 py-2 text-sm text-white rounded transition-colors cursor-pointer font-semibold;
+    min-height: 2.75rem;
 
     &.blocked {
       @apply bg-gray-400 cursor-not-allowed;

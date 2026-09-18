@@ -1,5 +1,5 @@
 export const classNameDefault =
-  'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 appearance-none disabled:cursor-not-allowed input-field';
+  'w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 appearance-none disabled:cursor-not-allowed input-field tap-target';
 
 export const LabelField = ({
   className,

@@ -316,6 +316,15 @@ describe('CheckboxField', () => {
       expect(wrapper).toHaveClass('items-center');
     });
 
+    it('should apply tap-target to default container classes', () => {
+      const handleChange = jest.fn();
+      const { container } = render(
+        <CheckboxField htmlFor="test" label="Test" onChange={handleChange} />
+      );
+      const wrapper = container.firstChild;
+      expect(wrapper).toHaveClass('tap-target');
+    });
+
     it('should apply default label classes when labelClass is not provided', () => {
       const handleChange = jest.fn();
       render(
