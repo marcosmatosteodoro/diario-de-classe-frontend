@@ -27,22 +27,26 @@ export const ThemeProvider = ({ children, initialTheme = null }) => {
   const [theme, setTheme] = useState(initialTheme ?? DEFAULT_THEME);
 
   // Migração de preferência salva antes do cookie existir (DEC-002-001,
-  // emenda de mecanismo): só executa quando não há cookie
+  // emenda de mecanismo) + preferência de sistema operacional na primeira
+  // visita (AC-001-003, cenário 2): só executa quando não há cookie
   // (`initialTheme === null`) — nesse caso não há nada a perder, então o
   // efeito lê `localStorage` uma única vez e corrige o estado em memória,
   // sem gravar nada (nem cookie, nem `localStorage`) aqui — a gravação em
   // ambos os canais é só responsabilidade de `toggleTheme` (ação explícita
   // do usuário). `localStorage` (escolha explícita anterior) tem prioridade
-  // sobre a preferência do sistema operacional; ponto de extensão da wave 2
-  // (TASK-002-006, ainda não implementada): plugar aqui um
-  // `else if (matchMedia('(prefers-color-scheme: dark)').matches)`, no
-  // mesmo efeito, nunca um segundo efeito concorrente.
+  // sobre a preferência do sistema operacional: só cai em `matchMedia`
+  // quando não há cookie **e** não há legado em `localStorage`.
   useLayoutEffect(() => {
     if (initialTheme !== null) return;
 
     const legacy = localStorage.getItem(THEME_KEY);
     if (legacy && legacy !== theme) {
       setTheme(legacy);
+    } else if (
+      !legacy &&
+      window.matchMedia?.('(prefers-color-scheme: dark)').matches
+    ) {
+      setTheme('dark');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

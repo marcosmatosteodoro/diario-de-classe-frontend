@@ -103,4 +103,66 @@ describe('ThemeProvider', () => {
     });
     expect(document.cookie).toContain('theme=light');
   });
+
+  describe('preferência de sistema operacional na primeira visita (AC-001-003, cenário 2)', () => {
+    const mockMatchMedia = matches => {
+      window.matchMedia = jest.fn().mockImplementation(query => ({
+        matches,
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+      }));
+    };
+
+    afterEach(() => {
+      delete window.matchMedia;
+    });
+
+    it('Caso A — corrige para dark quando não há cookie, não há legado em localStorage e o SO está em modo escuro', () => {
+      mockMatchMedia(true);
+
+      const { getByTestId } = render(
+        <ThemeProvider initialTheme={null}>
+          <TestComponent />
+        </ThemeProvider>
+      );
+
+      expect(getByTestId('theme').textContent).toBe('dark');
+    });
+
+    it('Caso B — permanece no default light quando o SO não está em modo escuro', () => {
+      mockMatchMedia(false);
+
+      const { getByTestId } = render(
+        <ThemeProvider initialTheme={null}>
+          <TestComponent />
+        </ThemeProvider>
+      );
+
+      expect(getByTestId('theme').textContent).toBe('light');
+    });
+
+    it('Caso C — legado em localStorage vence a preferência do SO em ambas as direções', () => {
+      localStorage.setItem('theme', 'dark');
+      mockMatchMedia(false);
+
+      const { getByTestId, unmount } = render(
+        <ThemeProvider initialTheme={null}>
+          <TestComponent />
+        </ThemeProvider>
+      );
+      expect(getByTestId('theme').textContent).toBe('dark');
+      unmount();
+
+      localStorage.setItem('theme', 'light');
+      mockMatchMedia(true);
+
+      const { getByTestId: getByTestIdSegundaMontagem } = render(
+        <ThemeProvider initialTheme={null}>
+          <TestComponent />
+        </ThemeProvider>
+      );
+      expect(getByTestIdSegundaMontagem('theme').textContent).toBe('light');
+    });
+  });
 });
