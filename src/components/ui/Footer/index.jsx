@@ -1,7 +1,16 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import packageJson from '../../../../package.json';
 
 export const Footer = () => {
-  const anoAtual = new Date().getFullYear();
+  const [anoAtual, setAnoAtual] = useState(null);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAnoAtual(new Date().getFullYear());
+  }, []);
+
   return (
     <footer
       className="bg-secondary border-t border-main py-6"
