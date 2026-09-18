@@ -110,10 +110,14 @@ describe('useAulaForm', () => {
     });
 
     it('should initialize with today date', () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-01-15T12:00:00.000-03:00'));
       const submit = jest.fn();
       const { result } = renderHook(() => useAulaForm({ id: null, submit }));
-      const today = new Date().toISOString().split('T')[0];
-      expect(result.current.formData.dataAula).toBe(today);
+      // Literal fixo (fuso local, `todayLocalDate`) — não recalculado pelo
+      // mesmo algoritmo da produção (ACH-08).
+      expect(result.current.formData.dataAula).toBe('2026-01-15');
+      jest.useRealTimers();
     });
   });
 
@@ -453,7 +457,10 @@ describe('useAulaForm', () => {
     it('preenchimento pós-montagem: dataAula passa a refletir o dia real no instante T', async () => {
       const submit = jest.fn();
       jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-06-30T23:59:59.000Z'));
+      // Instantes com offset explícito `-03:00`: `todayLocalDate` lê o
+      // relógio no fuso local, não em UTC — usar `Z` aqui deslocaria a
+      // fronteira do dia em 3h e o teste passaria a afirmar o dia errado.
+      jest.setSystemTime(new Date('2026-06-30T23:59:59.000-03:00'));
 
       const hook1 = mountHookRaw({ id: null, submit });
       expect(hook1.getDataAula()).toBeNull();
@@ -461,7 +468,7 @@ describe('useAulaForm', () => {
       expect(hook1.getDataAula()).toBe('2026-06-30');
       hook1.unmount();
 
-      jest.setSystemTime(new Date('2026-07-01T00:00:01.000Z'));
+      jest.setSystemTime(new Date('2026-07-01T00:00:01.000-03:00'));
       const hook2 = mountHookRaw({ id: null, submit });
       expect(hook2.getDataAula()).toBeNull();
       await hook2.flush();

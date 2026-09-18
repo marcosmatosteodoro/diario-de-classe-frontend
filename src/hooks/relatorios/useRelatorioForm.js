@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { getDatasPadrao } from '@/utils/getDatasPadrao';
+
+const JANELA_PADRAO_MESES = 6;
 
 export function useRelatorioForm({ relatorio, submit }) {
   const setInitialFiltros = filtros => {
@@ -28,12 +31,12 @@ export function useRelatorioForm({ relatorio, submit }) {
   );
 
   useEffect(() => {
-    const hoje = new Date();
-    const dataInicioFormatada = hoje.toISOString().split('T')[0];
-    const dataFinal = new Date();
-    dataFinal.setMonth(dataFinal.getMonth() + 6);
-    const dataFinalFormatada = dataFinal.toISOString().split('T')[0];
+    const { dataInicioFormatada, dataTerminoFormatada: dataFinalFormatada } =
+      getDatasPadrao(JANELA_PADRAO_MESES);
 
+    // Efeito roda uma única vez, na montagem, para preencher datas que
+    // nasceram nulas por desenho (paridade SSR — ver DEC-002-003/PLAN-002);
+    // dependências vazias são intencionais, não esquecidas.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFiltros(prev => ({
       ...prev,

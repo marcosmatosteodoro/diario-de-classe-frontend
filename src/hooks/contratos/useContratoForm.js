@@ -14,6 +14,7 @@ import {
 } from '@/utils/calculateHoraFim';
 import { calculateDuracaoAula } from '@/utils/calculateDuracaoAula';
 import { startOfTodayUTC } from '@/utils/startOfTodayUTC';
+import { todayLocalDate } from '@/utils/todayLocalDate';
 
 export function useContratoForm({
   alunos,
@@ -388,7 +389,7 @@ export function useContratoForm({
   }, []);
 
   useEffect(() => {
-    const dataInicioFormatada = new Date().toISOString().split('T')[0];
+    const dataInicioFormatada = todayLocalDate();
     setFormData(prev =>
       prev.dataInicio === null
         ? { ...prev, dataInicio: dataInicioFormatada }

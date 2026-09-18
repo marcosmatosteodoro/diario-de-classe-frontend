@@ -1,5 +1,6 @@
 import { DURACAO_AULA } from '@/constants';
 import { calculateHoraFimByDuracaoAula } from '@/utils/calculateHoraFim';
+import { todayLocalDate } from '@/utils/todayLocalDate';
 import { useState, useEffect } from 'react';
 
 export function useAulaForm({ id = null, submit }) {
@@ -17,7 +18,10 @@ export function useAulaForm({ id = null, submit }) {
   });
 
   useEffect(() => {
-    const dataInicioFormatada = new Date().toISOString().split('T')[0];
+    const dataInicioFormatada = todayLocalDate();
+    // Efeito roda uma única vez, na montagem, para preencher `dataAula` que
+    // nasceu nula por desenho (paridade SSR — ver DEC-002-003/PLAN-002);
+    // dependências vazias são intencionais, não esquecidas.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormData(prev =>
       prev.dataAula !== null ? prev : { ...prev, dataAula: dataInicioFormatada }

@@ -1204,7 +1204,10 @@ describe('useContratoForm Hook', () => {
     it('preenchimento pós-montagem: dataInicio passa a refletir o dia real no instante T', async () => {
       const submit = jest.fn();
       jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-06-30T23:59:59.000Z'));
+      // Instantes com offset explícito `-03:00`: `todayLocalDate` lê o
+      // relógio no fuso local, não em UTC — usar `Z` aqui deslocaria a
+      // fronteira do dia em 3h e o teste passaria a afirmar o dia errado.
+      jest.setSystemTime(new Date('2026-06-30T23:59:59.000-03:00'));
 
       const hook1 = mountHookRaw({ alunos, professores, submit });
       expect(hook1.getDataInicio()).toBeNull();
@@ -1212,7 +1215,7 @@ describe('useContratoForm Hook', () => {
       expect(hook1.getDataInicio()).toBe('2026-06-30');
       hook1.unmount();
 
-      jest.setSystemTime(new Date('2026-07-01T00:00:01.000Z'));
+      jest.setSystemTime(new Date('2026-07-01T00:00:01.000-03:00'));
       const hook2 = mountHookRaw({ alunos, professores, submit });
       expect(hook2.getDataInicio()).toBeNull();
       await hook2.flush();

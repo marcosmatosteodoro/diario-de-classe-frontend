@@ -202,17 +202,18 @@ describe('useDashboard', () => {
 
     it('preenchimento pós-montagem: datas passam a refletir o relógio real (sem filtro salvo)', async () => {
       jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-06-30T00:00:00.000Z'));
+      jest.setSystemTime(new Date('2026-06-30T00:00:00.000-03:00'));
 
       const hook = mountHookRaw();
       expect(hook.getDatas()).toEqual({ dataInicio: null, dataTermino: null });
       await hook.flush();
 
-      const expectedFim = new Date('2026-06-30T00:00:00.000Z');
-      expectedFim.setMonth(expectedFim.getMonth() + 6);
+      // Literais fixos (fuso local, `todayLocalDate`) — não recalculados
+      // pelo mesmo algoritmo da produção, para o teste discriminar um bug
+      // real de fuso/mês (ACH-08).
       expect(hook.getDatas()).toEqual({
         dataInicio: '2026-06-30',
-        dataTermino: expectedFim.toISOString().split('T')[0],
+        dataTermino: '2026-12-30',
       });
       hook.unmount();
     });
@@ -234,6 +235,24 @@ describe('useDashboard', () => {
       expect(hook.getDatas()).toEqual({
         dataInicio: '2024-05-05',
         dataTermino: '2024-08-08',
+      });
+      hook.unmount();
+    });
+
+    it('busca dispara uma única vez por montagem, nunca com datas null (ACH-06)', async () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T00:00:00.000-03:00'));
+
+      const hook = mountHookRaw();
+      await hook.flush();
+
+      // Antes da correção: 2 dispatches (o primeiro com dataInicio/
+      // dataTermino ainda null, descartado pelo backend como "sem filtro" —
+      // tabela inteira sem paginação). Depois: 1, só com datas resolvidas.
+      expect(dispatchMock).toHaveBeenCalledTimes(1);
+      expect(hook.getDatas()).toEqual({
+        dataInicio: '2026-06-30',
+        dataTermino: '2026-12-30',
       });
       hook.unmount();
     });

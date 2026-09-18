@@ -13,19 +13,9 @@ import { useToast } from '@/providers/ToastProvider';
 import useSweetAlert from '@/hooks/useSweetAlert';
 import { classNameDefault } from '@/components/ui/Fields/base';
 import { loadFilters, saveFilters, clearFilters } from '@/utils/filterStorage';
+import { getDatasPadrao } from '@/utils/getDatasPadrao';
 
-// Calcula os defaults de data client-side. Chamado tanto pelo efeito de
-// montagem (que só grava se o campo ainda for `null`) quanto por
-// `handleClearFilter` (evento do usuário, sempre pós-montagem, sem risco de
-// divergência SSR/CSR).
-const getDatasPadrao = () => {
-  const hoje = new Date();
-  const dataInicioFormatada = hoje.toISOString().split('T')[0];
-  const dataFim = new Date(hoje);
-  dataFim.setMonth(dataFim.getMonth() + 6);
-  const dataTerminoFormatada = dataFim.toISOString().split('T')[0];
-  return { dataInicioFormatada, dataTerminoFormatada };
-};
+const JANELA_PADRAO_MESES = 6;
 
 export function useDashboard() {
   const dispatch = useDispatch();
@@ -58,7 +48,11 @@ export function useDashboard() {
   );
 
   useEffect(() => {
-    const { dataInicioFormatada, dataTerminoFormatada } = getDatasPadrao();
+    const { dataInicioFormatada, dataTerminoFormatada } =
+      getDatasPadrao(JANELA_PADRAO_MESES);
+    // Efeito roda uma única vez, na montagem, para preencher datas que
+    // nasceram nulas por desenho (paridade SSR — ver DEC-002-003/PLAN-002);
+    // dependências vazias são intencionais, não esquecidas.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFormData(prev => ({
       ...prev,
@@ -85,7 +79,8 @@ export function useDashboard() {
   };
 
   const handleClearFilter = () => {
-    const { dataInicioFormatada, dataTerminoFormatada } = getDatasPadrao();
+    const { dataInicioFormatada, dataTerminoFormatada } =
+      getDatasPadrao(JANELA_PADRAO_MESES);
     clearFilters(FILTER_STORAGE_KEYS.dashboard);
     setFormData({
       ...defaultFormData,
@@ -152,6 +147,14 @@ export function useDashboard() {
   };
 
   useEffect(() => {
+    // Guarda contra a janela em que `dataInicio`/`dataTermino` ainda são
+    // `null` (valor estável até montar, DEC-002-003): sem ela, este efeito
+    // dispara uma vez ANTES do efeito de default corrigir o estado, e o
+    // backend trata ausência de filtro de data como "sem filtro" — busca a
+    // tabela inteira, sem paginação, descartada em seguida (ACH-06, lição
+    // `neutralizar-valor-ate-montar-exige-inventariar-consumidores`).
+    if (formData.dataInicio === null || formData.dataTermino === null) return;
+
     saveFilters(FILTER_STORAGE_KEYS.dashboard, formData);
     handleSubmit(formData);
   }, [handleSubmit, formData]);
