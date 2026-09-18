@@ -1286,5 +1286,100 @@ describe('PainelFiltrosColapsavel', () => {
         expect(mediaReduzido.toString()).toMatch(/transition-property:\s*none/);
       });
     });
+
+    describe('Risco 4 (achado bloqueante do gate 8): o bloqueio de foco/a11y é síncrono, não depende do fim da transição', () => {
+      // Medido em Chrome real via Playwright (fora desta suíte, jsdom não
+      // anima): fechando o painel, em t~80ms de uma transição de 200ms, Tab
+      // a partir do controle ainda ALCANÇAVA o campo interno — `visibility`
+      // só troca de fato no fim da transição (propriedade discreta, spec).
+      // `inert` resolve porque muda por atributo, não por estilo computado
+      // dependente de tempo: não precisa de motor de renderização real para
+      // provar que muda na hora certa, só de reler o atributo sem esperar
+      // nada — o que os dois testes abaixo fazem.
+      it('fechar: o atributo `inert` aparece no conteúdo na MESMA passada síncrona do rerender, sem aguardar a transição', () => {
+        const { rerender } = render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={true}
+            onToggle={() => {}}
+            storageKey="panel_teste_brief003_inert_sincrono_fechar"
+          >
+            <input data-testid="campo-inert-fechar" aria-label="campo" />
+          </PainelFiltrosColapsavel>
+        );
+
+        expect(
+          screen.getByTestId('painel-filtros-conteudo')
+        ).not.toHaveAttribute('inert');
+
+        rerender(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={false}
+            onToggle={() => {}}
+            storageKey="panel_teste_brief003_inert_sincrono_fechar"
+          >
+            <input data-testid="campo-inert-fechar" aria-label="campo" />
+          </PainelFiltrosColapsavel>
+        );
+
+        // Síncrono: nenhum await/waitFor/timer entre o rerender e a leitura
+        // — se o mecanismo dependesse do fim de uma transição (como
+        // `visibility` dependia), este atributo ainda não estaria presente
+        // aqui, e é exatamente essa janela que o achado mediu como aberta.
+        expect(screen.getByTestId('painel-filtros-conteudo')).toHaveAttribute(
+          'inert'
+        );
+      });
+
+      it('reabrir: o atributo `inert` desaparece do conteúdo na mesma passada síncrona do rerender', () => {
+        const { rerender } = render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={false}
+            onToggle={() => {}}
+            storageKey="panel_teste_brief003_inert_sincrono_abrir"
+          >
+            <input data-testid="campo-inert-abrir" aria-label="campo" />
+          </PainelFiltrosColapsavel>
+        );
+
+        expect(screen.getByTestId('painel-filtros-conteudo')).toHaveAttribute(
+          'inert'
+        );
+
+        rerender(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={true}
+            onToggle={() => {}}
+            storageKey="panel_teste_brief003_inert_sincrono_abrir"
+          >
+            <input data-testid="campo-inert-abrir" aria-label="campo" />
+          </PainelFiltrosColapsavel>
+        );
+
+        expect(
+          screen.getByTestId('painel-filtros-conteudo')
+        ).not.toHaveAttribute('inert');
+      });
+
+      it('montagem direta recolhida: o atributo já está presente sem interação prévia (mesmo invariante de repouso do achado A)', () => {
+        render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={false}
+            onToggle={() => {}}
+            storageKey="panel_teste_brief003_inert_montagem_direta"
+          >
+            <input data-testid="campo-inert-montagem" aria-label="campo" />
+          </PainelFiltrosColapsavel>
+        );
+
+        expect(screen.getByTestId('painel-filtros-conteudo')).toHaveAttribute(
+          'inert'
+        );
+      });
+    });
   });
 });
