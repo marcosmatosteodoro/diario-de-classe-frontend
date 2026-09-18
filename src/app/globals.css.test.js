@@ -4,11 +4,13 @@ import path from 'node:path';
 // BI-40: ícone nativo do seletor de data/hora ilegível no tema dark.
 // jsdom não processa o pipeline do Tailwind (@layer/@apply/nesting nativo),
 // então a prova combina duas pernas independentes:
-// 1) inspeção textual do fonte real, com contagem de chaves, para garantir
-//    que a regra existe, está escopada exatamente sob `[data-theme='dark']`
-//    (nunca solta, o que vazaria pro tema light) e mira só
-//    `input[type='date']`/`input[type='time']` com `.input-field` (nunca
-//    `.input-field` isolado, o que afetaria os outros inputs);
+// 1) inspeção textual do fonte real, com contagem de chaves e de
+//    declarações `color-scheme` (não a primeira ocorrência, para não deixar
+//    passar uma segunda regra solta), para garantir que existe exatamente
+//    UMA declaração no bloco `[data-theme='dark']`, e que ela pertence à
+//    regra composta `input[type='date']`/`input[type='time']` com
+//    `.input-field` — nunca uma regra `.input-field` isolada, que afetaria
+//    os outros inputs, e nunca fora do bloco dark;
 // 2) verificação de estilo computado via jsdom, injetando no documento a
 //    MESMA regra extraída do arquivo real (seletor e corpo vêm do fonte,
 //    não de uma cópia manual) — prova que essa regra, tal como escrita em
@@ -56,7 +58,8 @@ function extractBlockBody(source, openerLiteral, fromIndex = 0) {
 /**
  * Extrai uma regra ancorada por `selectorAnchor` (início literal do seletor,
  * sem o `{`), devolvendo o texto completo do seletor (pode ser lista
- * separada por vírgula) e o corpo.
+ * separada por vírgula) e o corpo — delega a contagem de chaves a
+ * `extractBlockBodyAt`, em vez de duplicá-la.
  */
 function extractRuleBySelectorAnchor(source, selectorAnchor, fromIndex = 0) {
   const start = source.indexOf(selectorAnchor, fromIndex);
@@ -65,34 +68,19 @@ function extractRuleBySelectorAnchor(source, selectorAnchor, fromIndex = 0) {
   if (openBrace === -1) return null;
   const selectorText = source.slice(start, openBrace).trim();
 
-  let depth = 1;
-  let i = openBrace + 1;
-  for (; i < source.length && depth > 0; i++) {
-    if (source[i] === '{') depth++;
-    if (source[i] === '}') depth--;
-  }
-  if (depth !== 0) return null;
+  const block = extractBlockBodyAt(source, start);
+  if (!block) return null;
 
-  return {
-    selectorText,
-    body: source.slice(openBrace + 1, i - 1),
-    start,
-    end: i,
-  };
+  return { selectorText, ...block };
 }
 
 /**
- * Índice da regra `.input-field { ... }` SOLTA (não composta, ex.:
- * `input[type='date'].input-field`). Ancorado por lookbehind negativo: o
- * caractere antes de `.input-field` não pode ser `]`/letra/dígito — o que
- * excluiria compostos como `...'].input-field` sem depender da ordem em que
- * as regras aparecem no arquivo.
+ * Remove comentários de bloco CSS antes de qualquer contagem textual — sem
+ * isso, o texto do próprio comentário explicativo (que cita
+ * `color-scheme: dark` em prosa) inflaria a contagem de declarações reais.
  */
-function findBareInputFieldRuleStart(source, fromIndex = 0) {
-  const regex = /(?<![\w\]])\.input-field\s*\{/g;
-  regex.lastIndex = fromIndex;
-  const match = regex.exec(source);
-  return match ? match.index : -1;
+function stripCssComments(source) {
+  return source.replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
 describe('globals.css — ícone do seletor de data/hora no tema dark (BI-40)', () => {
@@ -113,17 +101,31 @@ describe('globals.css — ícone do seletor de data/hora no tema dark (BI-40)', 
     );
   });
 
-  it('não aplica color-scheme em .input-field fora do escopo de data/hora (não regressiona texto/select nem o tema light)', () => {
+  it('tem exatamente UMA declaração color-scheme no bloco dark, e é a da regra composta de data/hora (não regressiona texto/select nem o tema light, nem tolera uma segunda regra solta vazando o efeito)', () => {
     const darkBlock = extractBlockBody(cssSource, "[data-theme='dark'] {");
-    const bareStart = findBareInputFieldRuleStart(darkBlock.body);
-    expect(bareStart).toBeGreaterThanOrEqual(0);
+    const dateTimeIconRule = extractRuleBySelectorAnchor(
+      darkBlock.body,
+      "input[type='date'].input-field"
+    );
 
-    const bareInputFieldRule = extractBlockBodyAt(darkBlock.body, bareStart);
-    expect(bareInputFieldRule).not.toBeNull();
-    expect(bareInputFieldRule.body).not.toMatch(/color-scheme/);
+    // Contagem, não inspeção da primeira ocorrência: uma segunda regra
+    // `.input-field { color-scheme: ...; }` solta no mesmo bloco vazaria o
+    // efeito para todo input e só é pega comparando o total do bloco contra
+    // o total dentro da própria regra composta.
+    const darkBlockNoComments = stripCssComments(darkBlock.body);
+    const colorSchemeDeclarationsInBlock =
+      darkBlockNoComments.match(/color-scheme\s*:/g) || [];
+    const colorSchemeDeclarationsInRule =
+      dateTimeIconRule.body.match(/color-scheme\s*:/g) || [];
 
-    // Fora do bloco [data-theme='dark'] (tema light) não há color-scheme
-    // algum associado a input de data/hora.
+    expect(colorSchemeDeclarationsInBlock).toHaveLength(1);
+    expect(colorSchemeDeclarationsInRule).toHaveLength(1);
+    expect(colorSchemeDeclarationsInBlock.length).toBe(
+      colorSchemeDeclarationsInRule.length
+    );
+
+    // Fora do bloco [data-theme='dark'] (tema light) também não há
+    // color-scheme algum associado a input de data/hora.
     const outsideDarkBlock =
       cssSource.slice(0, darkBlock.start) + cssSource.slice(darkBlock.end);
     expect(outsideDarkBlock).not.toMatch(/color-scheme/);
