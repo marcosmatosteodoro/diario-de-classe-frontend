@@ -205,6 +205,39 @@ describe('useApplicationLayout', () => {
     });
   });
 
+  it('não deve disparar toast/redirect duplicado quando o efeito remonta antes do checkAuth resolver (Strict Mode)', async () => {
+    const resolvers = [];
+    isAuthenticatedMock.mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolvers.push(resolve);
+        })
+    );
+
+    // Simula o double-invoke do useEffect que o React Strict Mode provoca em
+    // dev: monta, desmonta antes do checkAuth() assíncrono resolver, e
+    // remonta. A invocação obsoleta (montagem 1) não deve mais agir quando
+    // resolver — só a montagem corrente (2) deve disparar toast/redirect.
+    const { unmount } = renderHook(() => useApplicationLayout());
+    unmount();
+    renderHook(() => useApplicationLayout());
+
+    expect(resolvers).toHaveLength(2);
+    resolvers[0](false);
+    resolvers[1](false);
+
+    await waitFor(() => {
+      expect(errorMock).toHaveBeenCalled();
+    });
+
+    expect(errorMock).toHaveBeenCalledTimes(1);
+    expect(errorMock).toHaveBeenCalledWith(
+      'Por favor, faça login para acessar o sistema.'
+    );
+    expect(routerMock.push).toHaveBeenCalledTimes(1);
+    expect(routerMock.push).toHaveBeenCalledWith('/login');
+  });
+
   it('deve retornar o valor correto de isMobile', () => {
     isMobileFunctionMock.mockReturnValue(true);
     const { result } = renderHook(() => useApplicationLayout());

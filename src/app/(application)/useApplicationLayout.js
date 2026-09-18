@@ -63,8 +63,13 @@ export function useApplicationLayout() {
   }, []);
 
   useEffect(() => {
+    let isCurrent = true;
+
     async function checkAuth() {
       const userIsAuth = await isAuthenticated();
+      if (!isCurrent) {
+        return;
+      }
       if (!userIsAuth) {
         error('Por favor, faça login para acessar o sistema.');
         router.push('/login');
@@ -74,6 +79,10 @@ export function useApplicationLayout() {
       }
     }
     checkAuth();
+
+    return () => {
+      isCurrent = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
