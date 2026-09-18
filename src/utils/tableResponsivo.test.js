@@ -1,7 +1,7 @@
 import { withStickyColumns } from './tableResponsivo';
 
 describe('withStickyColumns', () => {
-  it('acumula o left das colunas essenciais na ordem do array', () => {
+  it('fixa apenas a primeira coluna essencial (#, left 0px) e a coluna de ações (right 0px) — gate 11', () => {
     const columns = [
       { name: '#', essential: true, width: '75px' },
       { name: 'Aluno', essential: true, width: '160px' },
@@ -12,14 +12,15 @@ describe('withStickyColumns', () => {
 
     const result = withStickyColumns(columns);
 
+    expect(result[0].style.position).toBe('sticky');
     expect(result[0].style.left).toBe('0px');
-    expect(result[1].style.left).toBe('75px');
-    expect(result[2].style.left).toBe('235px');
+    expect(result[1].style).toBeUndefined();
+    expect(result[2].style).toBeUndefined();
     expect(result[3].style).toBeUndefined();
     expect(result[4].style.right).toBe('0px');
   });
 
-  it('não lança e não atribui right quando não há coluna isAction (readOnly)', () => {
+  it('não lança e não atribui right quando não há coluna isAction (readOnly), mas mantém # sticky', () => {
     const columns = [
       { name: '#', essential: true, width: '75px' },
       { name: 'Nome', essential: true, width: '140px' },
@@ -32,6 +33,8 @@ describe('withStickyColumns', () => {
     result.forEach(column => {
       expect(column.style?.right).toBeUndefined();
     });
+    expect(result[0].style.left).toBe('0px');
+    expect(result[1].style).toBeUndefined();
   });
 
   it('é determinístico e não muta o array recebido', () => {
