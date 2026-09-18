@@ -24,6 +24,11 @@
     }
   }
 
+  .tap-target {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
   .btn-outline {
     @apply px-2 py-1 text-sm border rounded transition-colors cursor-pointer;
 
