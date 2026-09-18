@@ -904,9 +904,14 @@ describe('PainelFiltrosColapsavel', () => {
         screen.getByRole('button', { name: /expandir filtros/i })
       ).toBeInTheDocument();
       // Mutante (remover `aria-label={titulo}` do TagTitulo): a computação
-      // de nome do heading passaria a usar a subárvore (2F) e herdaria o
-      // aria-label do botão — esta asserção reprovaria, lendo "Expandir
-      // Filtros (2), 2 filtros aplicados" em vez de "Filtros".
+      // de nome do heading passaria a usar a subárvore (2F, name-from-
+      // content) e herdaria QUALQUER TEXTO VISÍVEL dentro do botão — não
+      // o aria-label do botão (isso nunca acontece, medido com
+      // computeAccessibleName). O texto que vaza é o do <span
+      // data-testid="painel-filtros-contagem">, oculto só por classe
+      // Tailwind (CSS real, que o jsdom não processa) e não por atributo
+      // HTML — esta asserção reprovaria, lendo "Filtros (2)" em vez de
+      // "Filtros" (ocorre em qualquer isOpen, não só recolhido).
       expect(
         screen.getByRole('heading', { name: 'Filtros', level: 3 })
       ).toBeInTheDocument();

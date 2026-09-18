@@ -160,12 +160,17 @@ export const PainelFiltrosColapsavel = ({
         {/* BRIEF-002: título e seta fundidos num único controle clicável —
             heading envolve o botão (h3/h4 aceita <button> no seu modelo de
             conteúdo; o inverso não é HTML válido). `aria-label={titulo}`
-            aqui é o que mantém o NOME ACESSÍVEL do heading estável em
-            "Filtros": sem ele, a computação de nome por conteúdo (accname
-            2F) usaria o aria-label do <button> aninhado — que varia por
-            estado ("Expandir Filtros"/"Recolher Filtros") — como nome do
-            próprio heading. `aria-label` no nó (2B) sempre vence 2F, e não
-            afeta o nome do botão, que continua vindo do PRÓPRIO aria-label. */}
+            aqui trava o NOME ACESSÍVEL do próprio heading (accname 2B) em
+            "Filtros", protegendo o invariante testado nas 3 superfícies +
+            dashboard desde a TASK-002-005. Medido com
+            computeAccessibleName (dom-accessibility-api): sem esse
+            aria-label, o nome por conteúdo (2F) NÃO herda o aria-label do
+            <button> aninhado — isso nunca acontece, nem neste jsdom — e
+            sim QUALQUER TEXTO VISÍVEL dentro do botão, inclusive o <span>
+            da contagem, que só está oculto por classe Tailwind (CSS real,
+            que o jsdom não processa) e não por atributo HTML. Resultado
+            medido sem o aria-label: "Filtros (2)", em qualquer estado de
+            isOpen — não é específico do recolhido. */}
         <TagTitulo
           className={classeTitulo}
           aria-label={titulo}
