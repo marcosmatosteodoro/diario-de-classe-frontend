@@ -76,11 +76,11 @@ describe('Filter Component', () => {
     jest.clearAllMocks();
   });
 
-  it('should render the filter component', () => {
+  it('should render the filter form without an internal "Filtros" heading (owned by the collapsible panel wrapper)', () => {
     render(<Filter {...defaultProps} />);
 
-    expect(screen.getByText('Filtros')).toBeInTheDocument();
     expect(screen.getByTestId('filter-form')).toBeInTheDocument();
+    expect(screen.queryByText('Filtros')).not.toBeInTheDocument();
   });
 
   it('should render all required input fields', () => {

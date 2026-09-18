@@ -7,6 +7,7 @@ import { useContratosList } from '@/hooks/contratos/useContratosList';
 import { Filter } from './filter';
 import { ListPage } from '@/components';
 import { useAlunos } from '@/hooks/alunos/useAlunos';
+import { FILTER_PANEL_STORAGE_KEYS } from '@/constants';
 
 export default function Contratos() {
   const { currentUser, isAdmin } = useUserAuth();
@@ -18,6 +19,7 @@ export default function Contratos() {
     handleChange,
     handleClearFilter,
     formData,
+    appliedCount,
   } = useContratos();
   const { alunos } = useAlunos();
   const { handleDeleteContrato } = useDeletarContrato();
@@ -49,12 +51,14 @@ export default function Contratos() {
         initialValue: formData?.q,
       }}
       Filter={Filter}
+      filterStorageKey={FILTER_PANEL_STORAGE_KEYS.contratos}
       filterParams={{
         handleSubmit,
         handleChange,
         handleClearFilter,
         formData,
         alunos,
+        appliedCount,
       }}
       columns={columns}
       data={data}

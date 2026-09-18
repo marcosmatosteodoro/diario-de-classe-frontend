@@ -6,11 +6,13 @@ import {
   STATUS_AULA_LABEL,
   TIPO_AULA,
   TIPO_AULA_LABEL,
+  FILTER_PANEL_STORAGE_KEYS,
 } from '@/constants';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useAlunos } from '@/hooks/alunos/useAlunos';
 import { useDashboard } from '@/hooks/dashboard/useDashboard';
 import { useProfessores } from '@/hooks/professores/useProfessores';
+import { useCollapsiblePanelState } from '@/hooks/useCollapsiblePanelState';
 import { makeEmailLabel } from '@/utils/makeEmailLabel';
 import { makeFullNameLabel } from '@/utils/makeFullNameLabel';
 import {
@@ -22,6 +24,7 @@ import {
   CheckboxField,
   Loading,
   ClearFiltersButton,
+  PainelFiltrosColapsavel,
 } from '@/components';
 
 // TODO passas os componetes para arquivos separados
@@ -171,7 +174,11 @@ export default function Home() {
     handleChange,
     handleClearFilter,
     handleClick,
+    appliedCount,
   } = useDashboard();
+  const { isOpen, toggle } = useCollapsiblePanelState(
+    FILTER_PANEL_STORAGE_KEYS.dashboard
+  );
 
   return (
     <>
@@ -190,81 +197,88 @@ export default function Home() {
       </div>
 
       <div className="mb-8">
-        <Form handleSubmit={handleSubmit}>
-          <h3 className="text-xl font-semibold text-main mb-4">Filtros</h3>
-          <FormGroup cols={2}>
-            <InputField
-              required
-              htmlFor="dataInicio"
-              label="Data de inicio do contrato"
-              type="date"
-              onChange={handleChange}
-              value={formData.dataInicio}
-            />
-            <InputField
-              required
-              htmlFor="dataTermino"
-              label="Data de término do contrato"
-              type="date"
-              onChange={handleChange}
-              value={formData.dataTermino}
-            />
-            <SelectField
-              required
-              htmlFor="tipo"
-              label="Tipo da aula"
-              options={TIPO_AULA.map(tipo => ({
-                label: TIPO_AULA_LABEL[tipo],
-                value: tipo,
-              }))}
-              onChange={handleChange}
-              value={formData.tipo}
-            />
-            <SelectField
-              required
-              htmlFor="status"
-              label="Status da aula"
-              options={STATUS_AULA.map(status => ({
-                label: STATUS_AULA_LABEL[status],
-                value: status,
-              }))}
-              onChange={handleChange}
-              value={formData.status}
-            />
-            <SelectField
-              htmlFor="alunoId"
-              label="Aluno"
-              placeholder="Selecione o aluno"
-              onChange={handleChange}
-              value={formData.alunoId}
-              options={alunoOptions}
-            />
-            {isAdmin() && !formData.minhasAulas && (
+        <PainelFiltrosColapsavel
+          titulo="Filtros"
+          isOpen={isOpen}
+          onToggle={toggle}
+          appliedCount={appliedCount}
+          storageKey={FILTER_PANEL_STORAGE_KEYS.dashboard}
+        >
+          <Form handleSubmit={handleSubmit}>
+            <FormGroup cols={2}>
+              <InputField
+                required
+                htmlFor="dataInicio"
+                label="Data de inicio do contrato"
+                type="date"
+                onChange={handleChange}
+                value={formData.dataInicio}
+              />
+              <InputField
+                required
+                htmlFor="dataTermino"
+                label="Data de término do contrato"
+                type="date"
+                onChange={handleChange}
+                value={formData.dataTermino}
+              />
               <SelectField
                 required
-                htmlFor="professorId"
-                label="Professor"
-                placeholder="Selecione o professor"
+                htmlFor="tipo"
+                label="Tipo da aula"
+                options={TIPO_AULA.map(tipo => ({
+                  label: TIPO_AULA_LABEL[tipo],
+                  value: tipo,
+                }))}
                 onChange={handleChange}
-                value={formData.professorId}
-                options={professorOptions}
+                value={formData.tipo}
               />
-            )}
-          </FormGroup>
-
-          {isAdmin() && (
-            <FormGroup cols={1} className=" mt-6">
-              <CheckboxField
-                htmlFor={'minhasAulas'}
-                label="Somente minhas Aulas"
-                checked={formData.minhasAulas}
+              <SelectField
+                required
+                htmlFor="status"
+                label="Status da aula"
+                options={STATUS_AULA.map(status => ({
+                  label: STATUS_AULA_LABEL[status],
+                  value: status,
+                }))}
                 onChange={handleChange}
+                value={formData.status}
               />
+              <SelectField
+                htmlFor="alunoId"
+                label="Aluno"
+                placeholder="Selecione o aluno"
+                onChange={handleChange}
+                value={formData.alunoId}
+                options={alunoOptions}
+              />
+              {isAdmin() && !formData.minhasAulas && (
+                <SelectField
+                  required
+                  htmlFor="professorId"
+                  label="Professor"
+                  placeholder="Selecione o professor"
+                  onChange={handleChange}
+                  value={formData.professorId}
+                  options={professorOptions}
+                />
+              )}
             </FormGroup>
-          )}
 
-          <ClearFiltersButton onClick={handleClearFilter} />
-        </Form>
+            {isAdmin() && (
+              <FormGroup cols={1} className=" mt-6">
+                <CheckboxField
+                  htmlFor={'minhasAulas'}
+                  label="Somente minhas Aulas"
+                  checked={formData.minhasAulas}
+                  onChange={handleChange}
+                />
+              </FormGroup>
+            )}
+
+            <ClearFiltersButton onClick={handleClearFilter} />
+          </Form>
+        </PainelFiltrosColapsavel>
       </div>
 
       <section className="bg-main p-8 rounded-lg shadow-md border border-main mb-8">

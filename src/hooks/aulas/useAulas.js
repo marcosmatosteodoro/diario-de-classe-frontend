@@ -4,6 +4,7 @@ import { STATUS, FILTER_STORAGE_KEYS } from '@/constants';
 import { getAulas } from '@/store/slices/aulasSlice';
 import { loadFilters, saveFilters, clearFilters } from '@/utils/filterStorage';
 import { getDatasPadrao } from '@/utils/getDatasPadrao';
+import { countAppliedFilters } from '@/utils/filterCount';
 
 const JANELA_PADRAO_MESES = 3;
 
@@ -24,6 +25,13 @@ export function useAulas() {
   const [formData, setFormData] = useState(() =>
     loadFilters(FILTER_STORAGE_KEYS.aulas, defaultFormData)
   );
+
+  // Datas padrão computadas (não nulas), usadas só como base de comparação
+  // de `appliedCount` — nascem `null` (mesma paridade SSR do `formData`) para
+  // não contar como "filtro aplicado" o preenchimento automático do efeito
+  // abaixo, que ainda não é escolha do usuário (lição
+  // `flag-de-escolha-deriva-da-presenca-nunca-de-comparacao-com-default`).
+  const [datasPadraoDefault, setDatasPadraoDefault] = useState(null);
 
   useEffect(() => {
     const { dataInicioFormatada, dataTerminoFormatada } =
@@ -48,6 +56,7 @@ export function useAulas() {
                 : prev.dataTermino,
           }
     );
+    setDatasPadraoDefault({ dataInicioFormatada, dataTerminoFormatada });
   }, []);
 
   const searchParams = query =>
@@ -99,6 +108,12 @@ export function useAulas() {
     action === 'getAulas' &&
     (status === STATUS.IDLE || status === STATUS.LOADING);
 
+  const appliedCount = countAppliedFilters(formData, {
+    ...defaultFormData,
+    dataInicio: datasPadraoDefault?.dataInicioFormatada ?? null,
+    dataTermino: datasPadraoDefault?.dataTerminoFormatada ?? null,
+  });
+
   return {
     aulas: list,
     status,
@@ -108,5 +123,6 @@ export function useAulas() {
     handleChange,
     handleClearFilter,
     formData,
+    appliedCount,
   };
 }
