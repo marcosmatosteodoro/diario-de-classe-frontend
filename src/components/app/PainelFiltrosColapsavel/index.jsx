@@ -217,12 +217,37 @@ export const PainelFiltrosColapsavel = ({
           </button>
         </TagTitulo>
       </div>
+      {/* BRIEF-003: animação de altura sem `display` (que não interpola por
+          transição CSS). `grid-template-rows` anima 1fr→0fr; o filho com
+          `overflow-hidden` é o que faz o track realmente colapsar a 0 — sem
+          ele, o item de grid manteria seu tamanho mínimo automático
+          (min-content) e a transição não teria efeito visual algum
+          (`overflow` diferente de `visible` zera o minimum-size automático
+          do item, por especificação). `visibility` entra na MESMA lista de
+          `transition-property` do grid-rows: é a forma CSS-only, sem
+          `@starting-style`, de fazer o conteúdo permanecer visível durante
+          TODA a contração (a troca para `hidden` só ocorre no fim da
+          transição, comportamento definido na spec para propriedades
+          discretas) e reaparecer instantaneamente ao expandir.
+
+          Por que não `inert`: medido neste jsdom (26.1.0) que a IDL `inert`
+          nem existe (`el.inert === undefined`) e `.focus()` num descendente
+          continua funcionando com o atributo presente — o harness de teste
+          não seria capaz de provar o próprio mecanismo. `visibility:hidden`,
+          em contraste, é respeitado por `getComputedStyle` (herda para os
+          descendentes) e é exatamente o que `@testing-library/dom` usa para
+          excluir da árvore de acessibilidade (`isInaccessible`) e o que
+          `user-event` usa para pular no Tab (`isVisible`) — medido nos
+          testes deste arquivo compilando o Tailwind real. Por isso também
+          não precisa de `aria-hidden`: seria uma segunda fonte de verdade
+          sem variante de CSS, reabrindo a classe de defeito de
+          `estado-de-localstorage-tem-uma-fonte-so-antes-da-hidratacao`. */}
       <div
         id={contentId}
         data-testid="painel-filtros-conteudo"
-        className="group-data-[panel-state=recolhido]:hidden"
+        className="grid grid-rows-[1fr] visible transition-[grid-template-rows,visibility] duration-200 ease-in-out motion-reduce:transition-none group-data-[panel-state=recolhido]:grid-rows-[0fr] group-data-[panel-state=recolhido]:invisible"
       >
-        {children}
+        <div className="overflow-hidden">{children}</div>
       </div>
     </div>
   );

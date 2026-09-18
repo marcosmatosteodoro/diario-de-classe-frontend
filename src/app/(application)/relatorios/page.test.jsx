@@ -135,12 +135,20 @@ describe('CardRelatorio — collapse por card (TASK-002-007, COMP-002-007)', () 
     );
     // Segunda metade do mesmo mecanismo: a classe da variante mora no FILHO
     // (o wrapper do conteúdo), não na raiz — `classList.contains`, nunca
-    // substring (`toContain` em `class` casaria com a variante inteira e
-    // esconderia a ausência da classe base `hidden`).
+    // substring. BRIEF-003: a ocultação deixou de ser por `display:none`
+    // (`hidden`) — agora anima via `grid-template-rows` + `visibility`, para
+    // permitir a transição CSS que `display` nunca interpola.
     expect(conteudo.classList.contains('hidden')).toBe(false);
-    expect(conteudo.getAttribute('class')).toContain(
-      'group-data-[panel-state=recolhido]:hidden'
-    );
+    expect(
+      conteudo.classList.contains(
+        'group-data-[panel-state=recolhido]:grid-rows-[0fr]'
+      )
+    ).toBe(true);
+    expect(
+      conteudo.classList.contains(
+        'group-data-[panel-state=recolhido]:invisible'
+      )
+    ).toBe(true);
   });
 
   it('COMP-002-007: CardRelatorio passa tagTitulo="h4" ao painel — o título "Filtros" renderiza h4, sob o h3 do card', () => {

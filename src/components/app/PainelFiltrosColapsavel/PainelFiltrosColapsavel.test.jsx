@@ -6,6 +6,12 @@ import userEvent from '@testing-library/user-event';
 import { act } from 'react';
 import { renderToStaticMarkup, renderToString } from 'react-dom/server';
 import { hydrateRoot } from 'react-dom/client';
+import postcssModule from 'postcss';
+import tailwindcssPostcss from '@tailwindcss/postcss';
+import {
+  transform as achatarComLightningcss,
+  browserslistToTargets,
+} from 'lightningcss';
 import { PainelFiltrosColapsavel, buildAntiFlashScript } from './index';
 import { PainelFiltrosColapsavel as PainelDoBarrel } from '@/components/app';
 import { useCollapsiblePanelState } from '@/hooks/useCollapsiblePanelState';
@@ -968,6 +974,316 @@ describe('PainelFiltrosColapsavel', () => {
         // exatamente o tipo de classe que quebraria a herança medida acima.
         expect(classes.some(classe => classe.startsWith('text-'))).toBe(false);
         expect(classes.some(classe => classe.startsWith('font-'))).toBe(false);
+      });
+    });
+  });
+
+  describe('BRIEF-003: animação de abrir/fechar sem `display` (grid-template-rows + visibility)', () => {
+    // Caminho usado só como contexto de resolução para `@import 'tailwindcss'`
+    // (precisa estar dentro do projeto para o Node achar o pacote via
+    // resolução relativa) — não precisa existir; é a pasta do `globals.css`
+    // real.
+    const CAMINHO_GLOBALS_CSS = path.join(
+      __dirname,
+      '..',
+      '..',
+      '..',
+      'app',
+      'globals.css'
+    );
+
+    /**
+     * Compila as classes Tailwind REALMENTE renderizadas pelo componente
+     * (via `@source inline`, que gera a partir de uma lista explícita,
+     * independente de qualquer scanner de arquivo) e achata o resultado
+     * para CSS que o parser de stylesheet do jsdom (26.1.0) consegue
+     * processar.
+     *
+     * Medido isolando cada sintaxe: o parser do jsdom lança `Could not
+     * parse CSS stylesheet` — e DESCARTA A FOLHA INTEIRA, não só a regra
+     * — diante de CSS Nesting (`&:is(...)`, `@media` aninhado dentro de
+     * uma regra), que é exatamente o que `@tailwindcss/postcss` v4 gera
+     * para toda variante (`group-data-*`, `motion-reduce:*`).
+     * `lightningcss`, com um alvo antigo o bastante para não ter suporte a
+     * CSS Nesting (`chrome 90`), achata isso em seletores/regras de nível
+     * único, que o jsdom entende. `@layer`, por outro lado, sobrevive ao
+     * lightningcss para QUALQUER alvo (medido até com `ie 11`) — e o
+     * jsdom, sem lançar erro, simplesmente NUNCA aplica o que está dentro
+     * de um `@layer` a computed style. Por isso o unwrap manual abaixo,
+     * depois do lightningcss.
+     */
+    async function compilarCssRealAchatadoParaJsdom(classes) {
+      const entrada = `@import 'tailwindcss';\n@source inline("${classes.join(' ')}");\n`;
+      const compilado = await postcssModule([tailwindcssPostcss()]).process(
+        entrada,
+        { from: CAMINHO_GLOBALS_CSS }
+      );
+
+      const { code } = achatarComLightningcss({
+        filename: 'probe-brief-003.css',
+        code: Buffer.from(compilado.css),
+        targets: browserslistToTargets(['chrome 90']),
+        minify: false,
+      });
+
+      const arvore = postcssModule.parse(code.toString());
+      let haviaLayer = true;
+      while (haviaLayer) {
+        haviaLayer = false;
+        arvore.walkAtRules('layer', atRule => {
+          haviaLayer = true;
+          if (atRule.nodes && atRule.nodes.length > 0) {
+            atRule.replaceWith(atRule.nodes);
+          } else {
+            atRule.remove();
+          }
+        });
+      }
+      return arvore.toString();
+    }
+
+    function coletarClassesRenderizadas(container) {
+      const classes = new Set();
+      container.querySelectorAll('*').forEach(no => {
+        no.classList.forEach(classe => classes.add(classe));
+      });
+      return Array.from(classes);
+    }
+
+    function encontrarRegra(cssTexto, trechoDoSeletor) {
+      const arvore = postcssModule.parse(cssTexto);
+      let achada = null;
+      arvore.walkRules(regra => {
+        if (regra.selector.includes(trechoDoSeletor)) {
+          achada = regra;
+        }
+      });
+      return achada;
+    }
+
+    function encontrarMedia(cssTexto, trechoDosParametros) {
+      const arvore = postcssModule.parse(cssTexto);
+      let achado = null;
+      arvore.walkAtRules('media', atRule => {
+        if (atRule.params.includes(trechoDosParametros)) {
+          achado = atRule;
+        }
+      });
+      return achado;
+    }
+
+    /**
+     * Injeta o CSS real compilado como `<style>` no MESMO documento onde o
+     * `render()` do Testing Library monta a árvore — só assim
+     * `getComputedStyle` (usado por `user-event` para decidir o que o Tab
+     * alcança, e por `@testing-library/dom` para excluir da árvore de
+     * acessibilidade) reflete o mecanismo real, em vez do estilo padrão do
+     * jsdom (sem nenhuma folha carregada).
+     */
+    function injetarCssReal(cssTexto) {
+      const estilo = document.createElement('style');
+      estilo.setAttribute('data-testid', 'estilo-tailwind-real-brief-003');
+      estilo.textContent = cssTexto;
+      document.head.appendChild(estilo);
+      return () => estilo.remove();
+    }
+
+    let cssReal;
+
+    beforeAll(async () => {
+      const { container, unmount } = render(
+        <PainelFiltrosColapsavel
+          titulo="Filtros"
+          isOpen={true}
+          onToggle={() => {}}
+          appliedCount={2}
+          storageKey="panel_teste_brief003_coleta_classes"
+        >
+          <input data-testid="campo-coleta" />
+        </PainelFiltrosColapsavel>
+      );
+      const classes = coletarClassesRenderizadas(container);
+      unmount();
+      cssReal = await compilarCssRealAchatadoParaJsdom(classes);
+    }, 20000);
+
+    describe('mecanismo: o conteúdo anima via grid-template-rows, nunca mais via display', () => {
+      it('aberto: carrega grid + grid-rows-[1fr] + visible, e as duas variantes group-data que valem para o estado recolhido', () => {
+        render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={true}
+            onToggle={() => {}}
+            storageKey="panel_teste_brief003_classes"
+          >
+            <div>conteudo</div>
+          </PainelFiltrosColapsavel>
+        );
+
+        const conteudo = screen.getByTestId('painel-filtros-conteudo');
+        expect(conteudo.classList.contains('grid')).toBe(true);
+        expect(conteudo.classList.contains('grid-rows-[1fr]')).toBe(true);
+        expect(conteudo.classList.contains('visible')).toBe(true);
+        expect(
+          conteudo.classList.contains(
+            'group-data-[panel-state=recolhido]:grid-rows-[0fr]'
+          )
+        ).toBe(true);
+        expect(
+          conteudo.classList.contains(
+            'group-data-[panel-state=recolhido]:invisible'
+          )
+        ).toBe(true);
+
+        // Nunca mais a técnica anterior: `display:none` não interpola por
+        // transição CSS — é exatamente o problema que este BRIEF resolve.
+        expect(conteudo.classList.contains('hidden')).toBe(false);
+        expect(
+          conteudo.classList.contains(
+            'group-data-[panel-state=recolhido]:hidden'
+          )
+        ).toBe(false);
+      });
+
+      it('o seletor compilado exige as DUAS metades (ancestral .group + atributo, variante no descendente) — mutante: remover qualquer uma quebra a regra', () => {
+        const regraFechamento = encontrarRegra(
+          cssReal,
+          'group-data-\\[panel-state\\=recolhido\\]\\:grid-rows-\\[0fr\\]'
+        );
+        expect(regraFechamento).not.toBeNull();
+        expect(regraFechamento.selector).toContain(':where(.group)');
+        expect(regraFechamento.selector).toContain(
+          '[data-panel-state="recolhido"]'
+        );
+        expect(regraFechamento.toString()).toContain('grid-template-rows: 0fr');
+
+        const regraInvisivel = encontrarRegra(
+          cssReal,
+          'group-data-\\[panel-state\\=recolhido\\]\\:invisible'
+        );
+        expect(regraInvisivel).not.toBeNull();
+        expect(regraInvisivel.selector).toContain(':where(.group)');
+        expect(regraInvisivel.selector).toContain(
+          '[data-panel-state="recolhido"]'
+        );
+        expect(regraInvisivel.toString()).toContain('visibility: hidden');
+      });
+
+      it('a transição declarada cobre as duas propriedades que mudam (altura e visibilidade), na mesma regra', () => {
+        const regraTransicao = encontrarRegra(
+          cssReal,
+          'transition-\\[grid-template-rows\\,visibility\\]'
+        );
+        expect(regraTransicao).not.toBeNull();
+        expect(regraTransicao.toString()).toMatch(
+          /transition-property:\s*grid-template-rows,\s*visibility/
+        );
+      });
+    });
+
+    describe('Risco 1 (AC): foco por teclado não alcança o conteúdo recolhido', () => {
+      function renderComFocoDepois(isOpen) {
+        return render(
+          <>
+            <PainelFiltrosColapsavel
+              titulo="Filtros"
+              isOpen={isOpen}
+              onToggle={() => {}}
+              storageKey={`panel_teste_brief003_foco_${isOpen}`}
+            >
+              <input
+                data-testid="campo-interno-foco"
+                aria-label="campo interno"
+              />
+            </PainelFiltrosColapsavel>
+            <button data-testid="botao-depois-do-painel" type="button">
+              depois
+            </button>
+          </>
+        );
+      }
+
+      it('recolhido: Tab a partir do controle PULA o campo interno e vai direto para o próximo elemento focável da página', async () => {
+        const removerCss = injetarCssReal(cssReal);
+        const user = userEvent.setup();
+        renderComFocoDepois(false);
+
+        const controle = screen.getByRole('button', {
+          name: /expandir filtros/i,
+        });
+        controle.focus();
+        await user.tab();
+
+        expect(screen.getByTestId('botao-depois-do-painel')).toHaveFocus();
+        removerCss();
+      });
+
+      it('controle positivo — aberto: Tab a partir do controle ALCANÇA o campo interno antes do próximo elemento', async () => {
+        const removerCss = injetarCssReal(cssReal);
+        const user = userEvent.setup();
+        renderComFocoDepois(true);
+
+        const controle = screen.getByRole('button', {
+          name: /recolher filtros/i,
+        });
+        controle.focus();
+        await user.tab();
+
+        expect(screen.getByTestId('campo-interno-foco')).toHaveFocus();
+        removerCss();
+      });
+    });
+
+    describe('Risco 2 (AC): árvore de acessibilidade não inclui o conteúdo recolhido', () => {
+      it('recolhido: o campo interno não é encontrado por getByRole a partir da raiz', () => {
+        const removerCss = injetarCssReal(cssReal);
+        render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={false}
+            onToggle={() => {}}
+            storageKey="panel_teste_brief003_a11y_recolhido"
+          >
+            <input aria-label="campo interno a11y" data-testid="campo-a11y" />
+          </PainelFiltrosColapsavel>
+        );
+
+        expect(
+          screen.queryByRole('textbox', { name: /campo interno a11y/i })
+        ).not.toBeInTheDocument();
+        removerCss();
+      });
+
+      it('controle positivo — aberto: o mesmo campo é encontrado por getByRole', () => {
+        const removerCss = injetarCssReal(cssReal);
+        render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={true}
+            onToggle={() => {}}
+            storageKey="panel_teste_brief003_a11y_aberto"
+          >
+            <input aria-label="campo interno a11y" data-testid="campo-a11y" />
+          </PainelFiltrosColapsavel>
+        );
+
+        expect(
+          screen.getByRole('textbox', { name: /campo interno a11y/i })
+        ).toBeInTheDocument();
+        removerCss();
+      });
+    });
+
+    describe('Risco 3 (AC): prefers-reduced-motion remove a transição', () => {
+      it('a regra compilada de motion-reduce zera transition-property dentro de @media (prefers-reduced-motion: reduce)', () => {
+        const mediaReduzido = encontrarMedia(
+          cssReal,
+          'prefers-reduced-motion: reduce'
+        );
+
+        expect(mediaReduzido).not.toBeNull();
+        expect(mediaReduzido.toString()).toContain('motion-reduce');
+        expect(mediaReduzido.toString()).toMatch(/transition-property:\s*none/);
       });
     });
   });
