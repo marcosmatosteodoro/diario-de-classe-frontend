@@ -1,3 +1,23 @@
+# [1.2.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.1.0...v1.2.0) (2026-09-18)
+
+### Bug Fixes
+
+- **hidratacao:** [gate 7, ACH-09] add porquê comment above eslint-disable ([40824c5](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/40824c567c9ef61a75b72cb765f4e70c8e8af281))
+- **hidratacao:** [gate 7, NOVO-01] fixa TZ do runner de testes ([0f273d8](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/0f273d8f2f53a002fca20a22b1ca5587aec60009))
+- **hidratacao:** [gate 7/10, ACH-01..05] correct theme migration mechanism ([ffe4452](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/ffe44528ad19c389f515d5c37e91569fef90b5dc))
+- **hidratacao:** [gate 7/10, ACH-06..08] guard search effects and use todayLocalDate ([5d156c9](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/5d156c907d1fa1fc78e36aadc760dbd55733d05b))
+- **hidratacao:** [gate 7/10, NOVO-05] evita busca duplicada com filtro salvo ([15ef82e](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/15ef82e3a15c60db876121c241ee003de8ea6679))
+- **hidratacao:** resolve theme from cookie in RootLayout (TASK-002-001) ([61f78d8](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/61f78d8bdf2737da301bb1138d46035b0e536183))
+- **hidratacao:** TASK-002-003 stabilize relative time text until mount ([1309b36](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/1309b36a3c5a92fe816d687bf4ba960c66c3a4b6))
+- **hidratacao:** TASK-002-004 stabilize footer year until mount ([d0f2cb0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/d0f2cb02cec41a6184759d8ea5f816969fb3eb5e))
+- **hidratacao:** TASK-002-005 stabilize form date defaults until mount ([204a964](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/204a9640bec4dff86eb0de303f6f3a40c4495f26))
+- **hidratacao:** TASK-002-006 corrige migração de legado 'light' e adiciona controle positivo faltante ([c2dc58a](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/c2dc58a4823adc810e1f7dd71f9fef7edd9520d4))
+- **hidratacao:** TASK-002-006 escopa [@media](https://github.com/media) de SO ao terceiro estado data-theme ([ff5ec29](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/ff5ec290ebd270a1d0d07d3638b7d60c094d7658))
+
+### Features
+
+- **hidratacao:** TASK-002-006 respeita modo escuro do SO na primeira visita ([2a60ae2](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/2a60ae26d66b3b1f91c9d25fe1c47030af7d58fb))
+
 # [1.1.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.0.3...v1.1.0) (2026-09-18)
 
 ### Bug Fixes
