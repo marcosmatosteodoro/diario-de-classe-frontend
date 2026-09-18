@@ -230,5 +230,27 @@ describe('useDashboard', () => {
       });
       hook.unmount();
     });
+
+    it('busca dispara uma única vez por montagem quando há filtro salvo (NOVO-05)', async () => {
+      localStorage.setItem(
+        FILTER_STORAGE_KEYS.dashboard,
+        JSON.stringify({ dataInicio: '2024-05-05', dataTermino: '2024-08-08' })
+      );
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T00:00:00.000-03:00'));
+
+      const hook = mountHookRaw();
+      await hook.flush();
+
+      // Com filtro salvo (datas já não-nulas), o efeito de preenchimento não
+      // pode gerar identidade nova de `formData` — senão o efeito de busca,
+      // que depende dela, dispara de novo com os mesmos parâmetros.
+      expect(dispatchMock).toHaveBeenCalledTimes(1);
+      expect(hook.getDatas()).toEqual({
+        dataInicio: '2024-05-05',
+        dataTermino: '2024-08-08',
+      });
+      hook.unmount();
+    });
   });
 });

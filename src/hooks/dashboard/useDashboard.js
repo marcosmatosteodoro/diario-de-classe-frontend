@@ -53,14 +53,23 @@ export function useDashboard() {
     // Efeito roda uma única vez, na montagem, para preencher datas que
     // nasceram nulas por desenho (paridade SSR — ver DEC-002-003/PLAN-002);
     // dependências vazias são intencionais, não esquecidas.
+    // Devolve a mesma referência (`prev`) quando as duas já estão
+    // preenchidas (filtro salvo) — senão o efeito de busca, que depende de
+    // `formData`, dispara de novo por causa da identidade nova do objeto.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFormData(prev => ({
-      ...prev,
-      dataInicio:
-        prev.dataInicio === null ? dataInicioFormatada : prev.dataInicio,
-      dataTermino:
-        prev.dataTermino === null ? dataTerminoFormatada : prev.dataTermino,
-    }));
+    setFormData(prev =>
+      prev.dataInicio !== null && prev.dataTermino !== null
+        ? prev
+        : {
+            ...prev,
+            dataInicio:
+              prev.dataInicio === null ? dataInicioFormatada : prev.dataInicio,
+            dataTermino:
+              prev.dataTermino === null
+                ? dataTerminoFormatada
+                : prev.dataTermino,
+          }
+    );
   }, []);
 
   const handleSubmit = useCallback(

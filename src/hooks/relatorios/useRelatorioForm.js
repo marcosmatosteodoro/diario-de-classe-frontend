@@ -37,12 +37,21 @@ export function useRelatorioForm({ relatorio, submit }) {
     // Efeito roda uma única vez, na montagem, para preencher datas que
     // nasceram nulas por desenho (paridade SSR — ver DEC-002-003/PLAN-002);
     // dependências vazias são intencionais, não esquecidas.
+    // Mesma causa raiz de useAulas.js/useDashboard.js (identidade nova mesmo
+    // sem nada a preencher): devolve `prev` quando as duas já estão
+    // preenchidas — aqui sem consequência de rede, mas pela mesma disciplina.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFiltros(prev => ({
-      ...prev,
-      ...(prev.dataInicial === null && { dataInicial: dataInicioFormatada }),
-      ...(prev.dataFinal === null && { dataFinal: dataFinalFormatada }),
-    }));
+    setFiltros(prev =>
+      prev.dataInicial !== null && prev.dataFinal !== null
+        ? prev
+        : {
+            ...prev,
+            ...(prev.dataInicial === null && {
+              dataInicial: dataInicioFormatada,
+            }),
+            ...(prev.dataFinal === null && { dataFinal: dataFinalFormatada }),
+          }
+    );
   }, []);
 
   const handleSubmit = () => {
