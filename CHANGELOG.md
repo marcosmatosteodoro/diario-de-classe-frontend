@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.0.1...v1.0.2) (2026-09-18)
+
+### Bug Fixes
+
+- **auth:** evita toast e redirect duplicados ao checar sessão no login ([c931b0b](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/c931b0bef5d5b818115c6896b91dfb55370e4eb9))
+
 ## [1.0.1](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.0.0...v1.0.1) (2026-09-18)
 
 ### Bug Fixes
