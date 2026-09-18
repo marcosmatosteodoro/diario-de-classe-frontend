@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.0.0...v1.0.1) (2026-09-18)
+
+### Bug Fixes
+
+- BI-40 corrige gate 7 e amplia fix de color-scheme para input de hora ([8e31de0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/8e31de04ebf6d0b8930dd86169ef0e48d3c68158))
+- BI-40 corrige ícone do seletor de data ilegível no tema dark ([79b6427](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/79b642725207613c7615b8fe8fc7e524e9196600))
+
 # 1.0.0 (2026-09-17)
 
 ### Bug Fixes
