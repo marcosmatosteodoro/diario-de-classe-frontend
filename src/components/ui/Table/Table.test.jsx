@@ -1,6 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import { Table } from './index';
+import { ThemeProvider } from '@/providers/ThemeProvider';
 
 // Mock do react-data-table-component para tornar o componente testável
 jest.mock('react-data-table-component', () => {
@@ -11,6 +12,7 @@ jest.mock('react-data-table-component', () => {
       progressPending,
       progressComponent,
       noDataComponent,
+      customStyles = {},
     } = props;
     return (
       <div>
@@ -29,6 +31,15 @@ jest.mock('react-data-table-component', () => {
         </div>
         <div data-testid="no-data-component">
           {data.length === 0 ? noDataComponent : null}
+        </div>
+        {/* Exposição do customStyles recebido pela lib — só assim o teste
+            consegue provar o que é passado como prop, já que
+            react-data-table-component não repassa customStyles para o DOM. */}
+        <div data-testid="custom-styles">
+          {JSON.stringify({
+            progress: customStyles.progress ?? null,
+            noData: customStyles.noData ?? null,
+          })}
         </div>
       </div>
     );
@@ -90,5 +101,51 @@ describe('Table component', () => {
     );
 
     expect(getByTestId('no-data').textContent).toContain('Nada');
+  });
+});
+
+// BI-41: sem customStyles em progress/noData no tema dark, esses containers
+// caem no fundo branco padrão da lib nos estados de carregando/vazio.
+describe('Table component - customStyles do tema dark (BI-41)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  const renderWithTheme = theme => {
+    localStorage.setItem('theme', theme);
+    const columns = [{ name: 'Col' }];
+    return render(
+      <ThemeProvider>
+        <Table columns={columns} data={[]} isLoading notFoundMessage="Nada" />
+      </ThemeProvider>
+    );
+  };
+
+  it('aplica fundo escuro em progress e noData no tema dark (estados de carregando/vazio)', () => {
+    const { getByTestId } = renderWithTheme('dark');
+
+    const customStyles = JSON.parse(getByTestId('custom-styles').textContent);
+
+    expect(customStyles.progress).toEqual({
+      style: {
+        backgroundColor: '#1f2937',
+        color: 'var(--color-gray-300)',
+      },
+    });
+    expect(customStyles.noData).toEqual({
+      style: {
+        backgroundColor: '#1f2937',
+        color: 'var(--color-gray-300)',
+      },
+    });
+  });
+
+  it('não define customStyles (mantém padrão da lib) no tema claro', () => {
+    const { getByTestId } = renderWithTheme('light');
+
+    const customStyles = JSON.parse(getByTestId('custom-styles').textContent);
+
+    expect(customStyles.progress).toBeNull();
+    expect(customStyles.noData).toBeNull();
   });
 });
