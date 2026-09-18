@@ -7,8 +7,6 @@ import { UserAuthProvider } from '@/providers/UserAuthProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { getKey, parseThemeCookie } from '@/utils/themeCookie';
 
-const DEFAULT_THEME = 'light';
-
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -26,8 +24,12 @@ export const metadata = {
 
 export default async function RootLayout({ children }) {
   const cookieStore = await cookies();
-  const initialTheme =
-    parseThemeCookie(cookieStore.get(getKey())?.value) ?? DEFAULT_THEME;
+  // `null` (cookie ausente/inválido) chega como está a `ThemeProvider` — é o
+  // sinal, idêntico nos dois lados, de "nada para herdar" (DEC-002-001);
+  // colapsar aqui para `DEFAULT_THEME` impediria o provider de distinguir
+  // "sem cookie" de "cookie=light" e de disparar a migração de
+  // `localStorage`.
+  const initialTheme = parseThemeCookie(cookieStore.get(getKey())?.value);
 
   return (
     <html lang="pt-BR">

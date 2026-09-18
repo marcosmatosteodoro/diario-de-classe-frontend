@@ -28,7 +28,7 @@ describe('RootLayout', () => {
   });
 
   it('resolves initialTheme from the theme cookie and passes it to ThemeProvider', async () => {
-    cookies.mockReturnValue({ get: () => ({ value: 'dark' }) });
+    cookies.mockResolvedValue({ get: () => ({ value: 'dark' }) });
 
     const tree = await RootLayout({ children: 'conteudo' });
 
@@ -37,13 +37,13 @@ describe('RootLayout', () => {
     );
   });
 
-  it('falls back to light when the theme cookie is absent', async () => {
-    cookies.mockReturnValue({ get: () => undefined });
+  it('passes null (not a collapsed default) when the theme cookie is absent, so ThemeProvider can tell "no cookie" from "cookie=light"', async () => {
+    cookies.mockResolvedValue({ get: () => undefined });
 
     const tree = await RootLayout({ children: 'conteudo' });
 
     expect(findThemeProviderProps(tree)).toEqual(
-      expect.objectContaining({ initialTheme: 'light' })
+      expect.objectContaining({ initialTheme: null })
     );
   });
 });
