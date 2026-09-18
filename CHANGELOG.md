@@ -1,3 +1,29 @@
+# [1.1.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.0.3...v1.1.0) (2026-09-18)
+
+### Bug Fixes
+
+- **filtros:** BI-5 BI-56 TASK-002-007 prova props de tagTitulo/classeTitulo e corrige comentário de degradação ([9d28363](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/9d2836368568ae6ab53ea83a89abd4a187d944a4))
+- **filtros:** BRIEF-003 bloqueio de foco/a11y síncrono via inert (retry 1) ([89f33e2](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/89f33e2ac5ea74b77dff784f0c51f554a0fba8d4))
+- **filtros:** BRIEF-003 fecha janela commit-vs-efeito da guarda de hidratado (retry 2) ([36f9010](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/36f901079067f82c7381d280122a9429d87782ce))
+- **filtros:** funde título e seta em um único controle clicável ([e133543](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/e13354329c0ff33ff7f4d287d5a5bc6572185357))
+- **filtros:** TASK-002-003 TASK-002-004 corrige gates de segurança/design/QA (retry wave 2) ([85d23a0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/85d23a0f4be47266c40282b65a6a76f829f11b5a))
+- **filtros:** TASK-002-005 remove duplicação de "Filtros" e ajusta rótulo do painel ([833c4fc](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/833c4fc4e9816cc27336aa45965cd21083db7bc2))
+- **filtros:** TASK-002-005 reverte rótulo dependente de isOpen do painel ([e4d51ce](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/e4d51ceac49bf2214449ee1b299ff715b29bb60b))
+- **filtros:** TASK-002-007 corrige gates 1-7 e 11 (retry 1) ([ef6b1b3](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/ef6b1b375d6abbac59b58cbdab33e9a305d28427))
+- **filtros:** TASK-002-008 controle coerente antes da hidratação ([fc1f0eb](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/fc1f0eb0336411f7cc37159603af44473ad5fb95))
+- **filtros:** TASK-002-008 corrige gate 1-7 (retry 1) ([243f1bb](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/243f1bb588697ae69336529ea9ebac1eac13bb04))
+
+### Features
+
+- **filtros:** anima abrir/fechar do painel de filtros (BRIEF-003) ([389b6af](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/389b6afaf6ca7beb3f816587516ebd589dc78754))
+- **filtros:** TASK-002-001 estender persistência para estado do painel de filtros ([363ae9c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/363ae9c9c7c1fe206fc60168948f2255b34b5cac))
+- **filtros:** TASK-002-002 utilitário puro de contagem de filtros aplicados ([dd4a822](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/dd4a822b0d745310ffd76161187a36e01a4ac498))
+- **filtros:** TASK-002-003 componente PainelFiltrosColapsavel ([a4758dd](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a4758dd9cd91ec39aca0147b82cc3215c2f26397))
+- **filtros:** TASK-002-004 hook useCollapsiblePanelState ([4006957](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/400695704e8f8c8d518223232a427a639e9c379a))
+- **filtros:** TASK-002-005 collapse em ListPage — /aulas e /contratos ([2a17827](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/2a17827323534ef53a711db01e3aa244a0ed7378))
+- **filtros:** TASK-002-006 collapse no painel inicial (/) ([06aecdf](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/06aecdf37ab7a1f9c61e45430bb174357a4ed82b))
+- **filtros:** TASK-002-007 collapse por card em /relatorios ([ddd16e7](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/ddd16e76833d68bd482a821bb479607e6a051d85))
+
 ## [1.0.3](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.0.2...v1.0.3) (2026-09-18)
 
 ### Bug Fixes
