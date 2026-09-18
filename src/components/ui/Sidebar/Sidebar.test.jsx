@@ -69,9 +69,9 @@ describe('Sidebar', () => {
 
   it('com isExpanded=true, translate-x-0 (não-prefixado) e md:translate-x-0 convivem', () => {
     render(<Sidebar isExpanded={true} toggleSidebar={() => {}} />);
-    const sidebar = screen.getByTestId('sidebar');
-    expect(sidebar.className).toContain('translate-x-0');
-    expect(sidebar.className).toContain('md:translate-x-0');
+    const classes = screen.getByTestId('sidebar').className.split(' ');
+    expect(classes).toContain('translate-x-0');
+    expect(classes).toContain('md:translate-x-0');
   });
 
   describe('visibilidade para teclado/leitor de tela nos 4 estados combinados (<md e ≥md × fechado/aberto)', () => {
