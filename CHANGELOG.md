@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.0.2...v1.0.3) (2026-09-18)
+
+### Bug Fixes
+
+- **table:** cobre containers progress/noData do tema dark (BI-41) ([5396037](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/5396037cae1434db3f994754f187f9736ec7bc76))
+
 ## [1.0.2](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.0.1...v1.0.2) (2026-09-18)
 
 ### Bug Fixes
