@@ -2,7 +2,10 @@ import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { ThemeProvider } from './ThemeProvider';
 import { parseThemeCookie, serializeThemeCookie } from '@/utils/themeCookie';
-import { lerPreferenciaSemGuard } from '@/utils/__fixtures__/regressaoHidratacao.fixture';
+import {
+  lerPreferenciaSemGuard,
+  gravarPreferenciaSemGuard,
+} from '@/utils/__fixtures__/regressaoHidratacao.fixture';
 
 describe('ThemeProvider — ausência de I/O de browser em funções puras', () => {
   it('parseThemeCookie/serializeThemeCookie nunca tocam Storage.prototype', () => {
@@ -29,6 +32,16 @@ describe('ThemeProvider — a rede de teste pega a regressão (NFR-001-001/002, 
     expect(getItemSpy).toHaveBeenCalled();
 
     getItemSpy.mockRestore();
+  });
+
+  it('regressão fixture: uma gravação sem guard É detectada pelo mesmo spy de Storage.prototype.setItem (achado gate 11/code-review, ACH-W2-02 — controle positivo da ausência afirmada acima)', () => {
+    const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
+
+    gravarPreferenciaSemGuard();
+
+    expect(setItemSpy).toHaveBeenCalled();
+
+    setItemSpy.mockRestore();
   });
 });
 

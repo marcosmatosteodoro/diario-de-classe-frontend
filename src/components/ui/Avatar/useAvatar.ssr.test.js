@@ -1,6 +1,9 @@
 import { renderHook } from '@testing-library/react';
 import { useAvatar } from './useAvatar';
-import { calcularValorComSorteio } from '@/utils/__fixtures__/regressaoHidratacao.fixture';
+import {
+  calcularValorComSorteio,
+  gravarPreferenciaSemGuard,
+} from '@/utils/__fixtures__/regressaoHidratacao.fixture';
 
 describe('useAvatar (SSR-safety)', () => {
   it('never touches localStorage or Math.random when computing the color', () => {
@@ -53,5 +56,15 @@ describe('useAvatar — a rede de teste pega a regressão (NFR-001-001/002, AC-0
     expect(randomSpy).toHaveBeenCalled();
 
     randomSpy.mockRestore();
+  });
+
+  it('regressão fixture: uma gravação sem guard É detectada pelo mesmo spy de Storage.prototype.setItem (achado gate 11/code-review, ACH-W2-02 — controle positivo da ausência afirmada acima)', () => {
+    const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
+
+    gravarPreferenciaSemGuard();
+
+    expect(setItemSpy).toHaveBeenCalled();
+
+    setItemSpy.mockRestore();
   });
 });

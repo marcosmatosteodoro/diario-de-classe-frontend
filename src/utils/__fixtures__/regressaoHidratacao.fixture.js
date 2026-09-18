@@ -9,6 +9,10 @@ export const lerPreferenciaSemGuard = () => {
   return localStorage.getItem('theme');
 };
 
+export const gravarPreferenciaSemGuard = () => {
+  localStorage.setItem('theme', 'dark');
+};
+
 export const calcularValorComSorteio = () => {
   return Math.random();
 };

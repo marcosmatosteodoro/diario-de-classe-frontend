@@ -23,14 +23,17 @@ describe('ThemeProvider', () => {
     document.cookie = 'theme=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
   });
 
-  it('should use light as default if nothing is set', () => {
+  it('should use light as default if nothing is set (SO claro, sem cookie → atributo "system", DEC-002-004)', () => {
     const { getByTestId } = render(
       <ThemeProvider>
         <TestComponent />
       </ThemeProvider>
     );
     expect(getByTestId('theme').textContent).toBe('light');
-    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    // Sem escolha explícita registrada (sem cookie, sem legado), o atributo
+    // lido pelo CSS fica em 'system' — é o `matchMedia`/`@media` escopado
+    // que decide o estilo, nunca um espelho direto de `theme` (DEC-002-004).
+    expect(document.documentElement.getAttribute('data-theme')).toBe('system');
   });
 
   it('migrates a legacy localStorage theme into state when there is no cookie-resolved initialTheme (DEC-002-001)', () => {
@@ -68,6 +71,16 @@ describe('ThemeProvider', () => {
       </ThemeProvider>
     );
     expect(getByTestId('theme').textContent).toBe('light');
+  });
+
+  it('cookie escuro explícito mantém o atributo "dark" (escolha já resolvida pelo servidor)', () => {
+    const { getByTestId } = render(
+      <ThemeProvider initialTheme="dark">
+        <TestComponent />
+      </ThemeProvider>
+    );
+    expect(getByTestId('theme').textContent).toBe('dark');
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
   });
 
   it('should toggle theme and persist in localStorage', () => {
@@ -118,7 +131,7 @@ describe('ThemeProvider', () => {
       delete window.matchMedia;
     });
 
-    it('Caso A — corrige para dark quando não há cookie, não há legado em localStorage e o SO está em modo escuro', () => {
+    it('Caso A — corrige para dark quando não há cookie, não há legado em localStorage e o SO está em modo escuro (atributo fica "system", não "dark" — quem decide o estilo é o @media escopado)', () => {
       mockMatchMedia(true);
 
       const { getByTestId } = render(
@@ -128,9 +141,12 @@ describe('ThemeProvider', () => {
       );
 
       expect(getByTestId('theme').textContent).toBe('dark');
+      expect(document.documentElement.getAttribute('data-theme')).toBe(
+        'system'
+      );
     });
 
-    it('Caso B — permanece no default light quando o SO não está em modo escuro', () => {
+    it('Caso B — permanece no default light quando o SO não está em modo escuro (atributo "system")', () => {
       mockMatchMedia(false);
 
       const { getByTestId } = render(
@@ -140,6 +156,22 @@ describe('ThemeProvider', () => {
       );
 
       expect(getByTestId('theme').textContent).toBe('light');
+      expect(document.documentElement.getAttribute('data-theme')).toBe(
+        'system'
+      );
+    });
+
+    it('Caso crítico (achado gate 11) — cookie claro explícito NÃO é sobreposto pelo SO em modo escuro: atributo permanece "light", nunca "system"', () => {
+      mockMatchMedia(true);
+
+      const { getByTestId } = render(
+        <ThemeProvider initialTheme="light">
+          <TestComponent />
+        </ThemeProvider>
+      );
+
+      expect(getByTestId('theme').textContent).toBe('light');
+      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
     });
 
     it('Caso C — legado em localStorage vence a preferência do SO em ambas as direções', () => {

@@ -76,7 +76,10 @@ describe('Header Component', () => {
     );
     // O primeiro botão é o de tema
     const [themeButton] = screen.getAllByRole('button');
-    expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+    // Sem escolha explícita ainda (sem cookie), o atributo começa em
+    // 'system' — só o clique (escolha explícita) fixa 'light'/'dark'
+    // (DEC-002-004).
+    expect(document.documentElement.getAttribute('data-theme')).toBe('system');
     fireEvent.click(themeButton);
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
     fireEvent.click(themeButton);
