@@ -94,7 +94,7 @@ describe('ApplicationLayout', () => {
     await waitFor(() => expect(toggleSidebar).toHaveBeenCalled());
   });
 
-  it('main tem min-w-0, para não crescer pelo conteúdo mínimo de um filho flex (achado do gate 9, tabela forçando rolagem de página em /alunos)', () => {
+  it('main tem min-w-0, para não crescer pelo conteúdo mínimo de um filho flex quando o conteúdo é mais largo que a viewport', () => {
     render(
       <ApplicationLayout>
         {' '}
