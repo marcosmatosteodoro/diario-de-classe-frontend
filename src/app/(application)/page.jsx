@@ -127,6 +127,11 @@ const HomeInfoCard = ({
 
   useEffect(() => {
     setTime(getTimeText(dataAula, horaInicial, horaFinal));
+    // Efeito roda uma única vez, na montagem, para preencher `time` que
+    // nasceu nulo por desenho (paridade SSR — ver DEC-002-003/PLAN-002);
+    // dependências vazias são intencionais, não esquecidas — recalcular a
+    // cada mudança de `dataAula`/`horaInicial`/`horaFinal` está fora do
+    // escopo desta correção (só a paridade da primeira renderização).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
