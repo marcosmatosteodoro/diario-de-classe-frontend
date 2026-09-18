@@ -2,6 +2,7 @@ import React from 'react';
 import { render, act } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import { Footer } from './index';
 import packageJson from '../../../../package.json';
 
@@ -57,8 +58,10 @@ describe('Footer — ano estável até montar (AC-001-005)', () => {
 
     // RTL `render()` embrulha o mount em `act()`, que assenta os efeitos
     // passivos sincronamente antes de retornar — tornaria o estado
-    // pré-efeito inobservável. Montamos via `createRoot` puro (sem `act`
-    // no mount) para observar o ano ausente antes do useEffect([]) rodar.
+    // pré-efeito inobservável. `flushSync` força o commit inicial de forma
+    // síncrona e verificável (o ano ausente já visível no DOM) sem também
+    // assentar o efeito passivo, que só roda no próximo flush de efeitos
+    // (`act(async () => {...})` abaixo).
     const container = document.createElement('div');
     document.body.appendChild(container);
     const consoleErrorSpy = jest
@@ -66,7 +69,9 @@ describe('Footer — ano estável até montar (AC-001-005)', () => {
       .mockImplementation(() => {});
     const root = createRoot(container);
 
-    root.render(<Footer />);
+    flushSync(() => {
+      root.render(<Footer />);
+    });
 
     expect(container.textContent).not.toMatch(/202\d/);
 
@@ -80,7 +85,10 @@ describe('Footer — ano estável até montar (AC-001-005)', () => {
     const root2Container = document.createElement('div');
     document.body.appendChild(root2Container);
     const root2 = createRoot(root2Container);
-    root2.render(<Footer />);
+    flushSync(() => {
+      root2.render(<Footer />);
+    });
+    expect(root2Container.textContent).not.toMatch(/202\d/);
     await act(async () => {
       await Promise.resolve();
     });

@@ -1,6 +1,7 @@
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { renderToString } from 'react-dom/server';
 import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import Home from './page';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useAlunos } from '@/hooks/alunos/useAlunos';
@@ -169,12 +170,12 @@ describe('HomeInfoCard — tempo relativo estável até montar (AC-001-004)', ()
     jest.useFakeTimers();
     jest.setSystemTime(new Date('2026-06-15T13:00:00.000Z'));
 
-    // RTL `render()` embrulha o mount em `act()`, que assenta os efeitos de
-    // passivo sincronamente antes de retornar — tornaria o estado
-    // pré-efeito inobservável. Para provar que o texto nasce placeholder
-    // (não `getTimeText` já calculado) e só o `useEffect([])` o preenche,
-    // montamos via `createRoot` puro (sem `act` no mount) e assentamos o
-    // efeito manualmente depois.
+    // RTL `render()` embrulha o mount em `act()`, que assenta os efeitos
+    // passivos sincronamente antes de retornar — tornaria o estado
+    // pré-efeito inobservável. `flushSync` força o commit inicial de forma
+    // síncrona e verificável (o placeholder já visível no DOM) sem também
+    // assentar o efeito passivo, que só roda no próximo flush de efeitos
+    // (`act(async () => {...})` abaixo).
     const container = document.createElement('div');
     document.body.appendChild(container);
     const consoleErrorSpy = jest
@@ -182,7 +183,9 @@ describe('HomeInfoCard — tempo relativo estável até montar (AC-001-004)', ()
       .mockImplementation(() => {});
     const root = createRoot(container);
 
-    root.render(<Home />);
+    flushSync(() => {
+      root.render(<Home />);
+    });
 
     expect(container.textContent).not.toMatch(/minuto\(s\)/);
 
