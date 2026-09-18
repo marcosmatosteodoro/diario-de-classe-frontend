@@ -4,19 +4,26 @@ import { STATUS, FILTER_STORAGE_KEYS } from '@/constants';
 import { getAulas } from '@/store/slices/aulasSlice';
 import { loadFilters, saveFilters, clearFilters } from '@/utils/filterStorage';
 
-export function useAulas() {
-  const dispatch = useDispatch();
-  const { list, status, action } = useSelector(state => state.aulas);
-
+// Calcula os defaults de data client-side. Chamado tanto pelo efeito de
+// montagem (que só grava se o campo ainda for `null`) quanto por
+// `handleClearFilter` (evento do usuário, sempre pós-montagem, sem risco de
+// divergência SSR/CSR).
+const getDatasPadrao = () => {
   const hoje = new Date();
   const dataInicioFormatada = hoje.toISOString().split('T')[0];
   const dataFim = new Date(hoje);
   dataFim.setMonth(dataFim.getMonth() + 3);
   const dataTerminoFormatada = dataFim.toISOString().split('T')[0];
+  return { dataInicioFormatada, dataTerminoFormatada };
+};
+
+export function useAulas() {
+  const dispatch = useDispatch();
+  const { list, status, action } = useSelector(state => state.aulas);
 
   const defaultFormData = {
-    dataInicio: dataInicioFormatada,
-    dataTermino: dataTerminoFormatada,
+    dataInicio: null,
+    dataTermino: null,
     tipo: '',
     status: '',
     idAluno: '',
@@ -27,6 +34,18 @@ export function useAulas() {
   const [formData, setFormData] = useState(() =>
     loadFilters(FILTER_STORAGE_KEYS.aulas, defaultFormData)
   );
+
+  useEffect(() => {
+    const { dataInicioFormatada, dataTerminoFormatada } = getDatasPadrao();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFormData(prev => ({
+      ...prev,
+      dataInicio:
+        prev.dataInicio === null ? dataInicioFormatada : prev.dataInicio,
+      dataTermino:
+        prev.dataTermino === null ? dataTerminoFormatada : prev.dataTermino,
+    }));
+  }, []);
 
   const searchParams = query =>
     setFormData(prevState => ({
@@ -50,8 +69,13 @@ export function useAulas() {
   };
 
   const handleClearFilter = () => {
+    const { dataInicioFormatada, dataTerminoFormatada } = getDatasPadrao();
     clearFilters(FILTER_STORAGE_KEYS.aulas);
-    setFormData(defaultFormData);
+    setFormData({
+      ...defaultFormData,
+      dataInicio: dataInicioFormatada,
+      dataTermino: dataTerminoFormatada,
+    });
   };
 
   useEffect(() => {

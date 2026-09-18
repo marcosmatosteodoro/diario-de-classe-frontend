@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export function useRelatorioForm({ relatorio, submit }) {
   const setInitialFiltros = filtros => {
@@ -8,16 +8,10 @@ export function useRelatorioForm({ relatorio, submit }) {
     filtros.forEach(filtro => {
       switch (filtro.htmlFor) {
         case 'dataInicial':
-          const hoje = new Date();
-          const dataInicioFormatada = hoje.toISOString().split('T')[0];
-          initial[filtro.htmlFor] = dataInicioFormatada;
-          break;
-
         case 'dataFinal':
-          const dataFinal = new Date();
-          dataFinal.setMonth(dataFinal.getMonth() + 6);
-          const dataFinalFormatada = dataFinal.toISOString().split('T')[0];
-          initial[filtro.htmlFor] = dataFinalFormatada;
+          // Literal, nunca calculado aqui: `new Date()` só entra em jogo no
+          // useEffect([]) pós-montagem, abaixo.
+          initial[filtro.htmlFor] = null;
           break;
 
         default:
@@ -32,6 +26,21 @@ export function useRelatorioForm({ relatorio, submit }) {
   const [filtros, setFiltros] = useState(() =>
     setInitialFiltros(relatorio.filters)
   );
+
+  useEffect(() => {
+    const hoje = new Date();
+    const dataInicioFormatada = hoje.toISOString().split('T')[0];
+    const dataFinal = new Date();
+    dataFinal.setMonth(dataFinal.getMonth() + 6);
+    const dataFinalFormatada = dataFinal.toISOString().split('T')[0];
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFiltros(prev => ({
+      ...prev,
+      ...(prev.dataInicial === null && { dataInicial: dataInicioFormatada }),
+      ...(prev.dataFinal === null && { dataFinal: dataFinalFormatada }),
+    }));
+  }, []);
 
   const handleSubmit = () => {
     submit(relatorio.endpoint, filtros);

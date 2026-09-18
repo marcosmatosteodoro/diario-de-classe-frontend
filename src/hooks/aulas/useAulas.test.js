@@ -1,8 +1,11 @@
+import { createElement } from 'react';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { useAulas } from './useAulas';
 import { getAulas } from '@/store/slices/aulasSlice';
-import { STATUS } from '@/constants';
+import { STATUS, FILTER_STORAGE_KEYS } from '@/constants';
 
 jest.mock('react-redux', () => ({
   useDispatch: jest.fn(),
@@ -20,6 +23,57 @@ beforeEach(() => {
   // Filtros são persistidos em localStorage; limpa para isolar cada teste.
   localStorage.clear();
 });
+
+// Monta o hook via `flushSync` (fora de `act`) para observar
+// dataInicio/dataTermino ANTES do `useEffect([])` assentar. `renderHook` do
+// RTL embrulha o mount em `act()`, que assenta efeitos passivos
+// sincronamente antes de retornar — tornaria o estado pré-efeito
+// inobservável por esse caminho. O estado é lido do DOM (não de uma
+// variável capturada por fora do componente) para manter o harness puro.
+function mountHookRaw() {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  // O mount fora de `act` (necessário para o `flushSync` abaixo observar o
+  // pré-efeito) dispara o aviso "not wrapped in act(...)" do React quando o
+  // `useEffect([])` assenta depois — esperado por construção, suprimido
+  // aqui.
+  const consoleErrorSpy = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => {});
+  function Harness() {
+    const { formData } = useAulas();
+    return createElement(
+      'div',
+      { 'data-testid': 'datas' },
+      JSON.stringify({
+        dataInicio: formData.dataInicio,
+        dataTermino: formData.dataTermino,
+      })
+    );
+  }
+  const root = createRoot(container);
+  flushSync(() => {
+    root.render(createElement(Harness));
+  });
+  return {
+    getDatas() {
+      const text = container.querySelector('[data-testid="datas"]').textContent;
+      return JSON.parse(text);
+    },
+    async flush() {
+      await act(async () => {
+        await Promise.resolve();
+      });
+    },
+    unmount() {
+      act(() => {
+        root.unmount();
+      });
+      consoleErrorSpy.mockRestore();
+      document.body.removeChild(container);
+    },
+  };
+}
 
 describe('useAulas', () => {
   const mockSelectorState = {
@@ -449,6 +503,73 @@ describe('useAulas', () => {
 
       expect(result.current.formData.dataInicio).toBe(initialDataInicio);
       expect(result.current.formData.dataTermino).toBe('2024-09-30');
+    });
+  });
+
+  describe('dataInicio/dataTermino default estável até montar (AC-001-006)', () => {
+    beforeEach(() => {
+      useSelector.mockImplementation(cb => cb(mockSelectorState));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('paridade: dataInicio/dataTermino nascem null independente do relógio', () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T23:59:59.000Z'));
+      const hook1 = mountHookRaw();
+      expect(hook1.getDatas()).toEqual({
+        dataInicio: null,
+        dataTermino: null,
+      });
+      hook1.unmount();
+
+      jest.setSystemTime(new Date('2026-07-01T00:00:01.000Z'));
+      const hook2 = mountHookRaw();
+      expect(hook2.getDatas()).toEqual({
+        dataInicio: null,
+        dataTermino: null,
+      });
+      hook2.unmount();
+    });
+
+    it('preenchimento pós-montagem: datas passam a refletir o relógio real (sem filtro salvo)', async () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T00:00:00.000Z'));
+
+      const hook = mountHookRaw();
+      expect(hook.getDatas()).toEqual({ dataInicio: null, dataTermino: null });
+      await hook.flush();
+
+      const expectedFim = new Date('2026-06-30T00:00:00.000Z');
+      expectedFim.setMonth(expectedFim.getMonth() + 3);
+      expect(hook.getDatas()).toEqual({
+        dataInicio: '2026-06-30',
+        dataTermino: expectedFim.toISOString().split('T')[0],
+      });
+      hook.unmount();
+    });
+
+    it('filtro salvo não é sobrescrito pelo efeito de default', async () => {
+      localStorage.setItem(
+        FILTER_STORAGE_KEYS.aulas,
+        JSON.stringify({ dataInicio: '2024-05-05', dataTermino: '2024-08-08' })
+      );
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T00:00:00.000Z'));
+
+      const hook = mountHookRaw();
+      expect(hook.getDatas()).toEqual({
+        dataInicio: '2024-05-05',
+        dataTermino: '2024-08-08',
+      });
+      await hook.flush();
+      expect(hook.getDatas()).toEqual({
+        dataInicio: '2024-05-05',
+        dataTermino: '2024-08-08',
+      });
+      hook.unmount();
     });
   });
 });

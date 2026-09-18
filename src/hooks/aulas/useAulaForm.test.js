@@ -1,5 +1,60 @@
+import { createElement } from 'react';
 import { renderHook, act } from '@testing-library/react';
+import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import { useAulaForm } from './useAulaForm';
+
+// Monta o hook via `flushSync` (fora de `act`) para observar `dataAula` ANTES
+// do `useEffect([])` assentar. `renderHook`/`render` do RTL embrulham o mount
+// em `act()`, que assenta efeitos passivos sincronamente antes de retornar —
+// tornando esse estado pré-efeito inobservável por esse caminho. `flushSync`
+// força o commit inicial de forma síncrona e verificável sem também assentar
+// o efeito passivo, que só roda no próximo flush de efeitos
+// (`act(async () => {...})` abaixo). O estado é lido do DOM (não de uma
+// variável capturada por fora do componente) para manter `Harness` puro.
+function mountHookRaw(hookArgs) {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  // O mount fora de `act` (necessário para o `flushSync` abaixo observar o
+  // pré-efeito) dispara o aviso "not wrapped in act(...)" do React quando o
+  // `useEffect([])` assenta depois — esperado por construção, suprimido
+  // aqui.
+  const consoleErrorSpy = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => {});
+  function Harness() {
+    const { formData } = useAulaForm(hookArgs);
+    return createElement(
+      'div',
+      { 'data-testid': 'dataAula' },
+      formData.dataAula === null ? '' : formData.dataAula
+    );
+  }
+  const root = createRoot(container);
+  flushSync(() => {
+    root.render(createElement(Harness));
+  });
+  return {
+    getDataAula() {
+      const text = container.querySelector(
+        '[data-testid="dataAula"]'
+      ).textContent;
+      return text === '' ? null : text;
+    },
+    async flush() {
+      await act(async () => {
+        await Promise.resolve();
+      });
+    },
+    unmount() {
+      act(() => {
+        root.unmount();
+      });
+      consoleErrorSpy.mockRestore();
+      document.body.removeChild(container);
+    },
+  };
+}
 
 describe('useAulaForm', () => {
   describe('Form State Management', () => {
@@ -372,6 +427,46 @@ describe('useAulaForm', () => {
         });
         expect(result.current.formData.horaFinal).toBe(expected);
       });
+    });
+  });
+
+  describe('dataAula default estável até montar (AC-001-006)', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('paridade: dataAula nasce null independente do relógio do sistema', () => {
+      const submit = jest.fn();
+
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T23:59:59.000Z'));
+      const hook1 = mountHookRaw({ id: null, submit });
+      expect(hook1.getDataAula()).toBeNull();
+      hook1.unmount();
+
+      jest.setSystemTime(new Date('2026-07-01T00:00:01.000Z'));
+      const hook2 = mountHookRaw({ id: null, submit });
+      expect(hook2.getDataAula()).toBeNull();
+      hook2.unmount();
+    });
+
+    it('preenchimento pós-montagem: dataAula passa a refletir o dia real no instante T', async () => {
+      const submit = jest.fn();
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T23:59:59.000Z'));
+
+      const hook1 = mountHookRaw({ id: null, submit });
+      expect(hook1.getDataAula()).toBeNull();
+      await hook1.flush();
+      expect(hook1.getDataAula()).toBe('2026-06-30');
+      hook1.unmount();
+
+      jest.setSystemTime(new Date('2026-07-01T00:00:01.000Z'));
+      const hook2 = mountHookRaw({ id: null, submit });
+      expect(hook2.getDataAula()).toBeNull();
+      await hook2.flush();
+      expect(hook2.getDataAula()).toBe('2026-07-01');
+      hook2.unmount();
     });
   });
 });

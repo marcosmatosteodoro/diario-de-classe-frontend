@@ -1,4 +1,7 @@
+import { createElement } from 'react';
 import { renderHook, act } from '@testing-library/react';
+import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import { useContratoForm } from './useContratoForm';
 
 jest.mock('@/providers/UserAuthProvider', () => ({
@@ -14,6 +17,56 @@ jest.mock('@/hooks/useSweetAlert', () => () => ({
   showForm: jest.fn(async () => ({ isConfirmed: false })),
   showSuccess: jest.fn(),
 }));
+
+// Monta o hook via `flushSync` (fora de `act`) para observar `dataInicio`
+// ANTES do `useEffect([])` assentar. `renderHook` do RTL embrulha o mount em
+// `act()`, que assenta efeitos passivos sincronamente antes de retornar —
+// tornaria o estado pré-efeito inobservável por esse caminho. O estado é
+// lido do DOM (não de uma variável capturada por fora do componente) para
+// manter o harness puro.
+function mountHookRaw(hookArgs) {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  // O mount fora de `act` (necessário para o `flushSync` abaixo observar o
+  // pré-efeito) dispara o aviso "not wrapped in act(...)" do React quando o
+  // `useEffect([])` assenta depois — esperado por construção, suprimido
+  // aqui.
+  const consoleErrorSpy = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => {});
+  function Harness() {
+    const { formData } = useContratoForm(hookArgs);
+    return createElement(
+      'div',
+      { 'data-testid': 'dataInicio' },
+      formData.dataInicio === null ? '' : formData.dataInicio
+    );
+  }
+  const root = createRoot(container);
+  flushSync(() => {
+    root.render(createElement(Harness));
+  });
+  return {
+    getDataInicio() {
+      const text = container.querySelector(
+        '[data-testid="dataInicio"]'
+      ).textContent;
+      return text === '' ? null : text;
+    },
+    async flush() {
+      await act(async () => {
+        await Promise.resolve();
+      });
+    },
+    unmount() {
+      act(() => {
+        root.unmount();
+      });
+      consoleErrorSpy.mockRestore();
+      document.body.removeChild(container);
+    },
+  };
+}
 
 describe('useContratoForm Hook', () => {
   const alunos = [
@@ -1125,6 +1178,46 @@ describe('useContratoForm Hook', () => {
         d => d.diaSemana === 'SEGUNDA'
       );
       expect(segundaDia.horaInicial).toBe('21:30');
+    });
+  });
+
+  describe('dataInicio default estável até montar (AC-001-006)', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('paridade: dataInicio nasce null independente do relógio do sistema', () => {
+      const submit = jest.fn();
+
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T23:59:59.000Z'));
+      const hook1 = mountHookRaw({ alunos, professores, submit });
+      expect(hook1.getDataInicio()).toBeNull();
+      hook1.unmount();
+
+      jest.setSystemTime(new Date('2026-07-01T00:00:01.000Z'));
+      const hook2 = mountHookRaw({ alunos, professores, submit });
+      expect(hook2.getDataInicio()).toBeNull();
+      hook2.unmount();
+    });
+
+    it('preenchimento pós-montagem: dataInicio passa a refletir o dia real no instante T', async () => {
+      const submit = jest.fn();
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T23:59:59.000Z'));
+
+      const hook1 = mountHookRaw({ alunos, professores, submit });
+      expect(hook1.getDataInicio()).toBeNull();
+      await hook1.flush();
+      expect(hook1.getDataInicio()).toBe('2026-06-30');
+      hook1.unmount();
+
+      jest.setSystemTime(new Date('2026-07-01T00:00:01.000Z'));
+      const hook2 = mountHookRaw({ alunos, professores, submit });
+      expect(hook2.getDataInicio()).toBeNull();
+      await hook2.flush();
+      expect(hook2.getDataInicio()).toBe('2026-07-01');
+      hook2.unmount();
     });
   });
 });

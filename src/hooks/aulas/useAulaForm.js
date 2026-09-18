@@ -1,15 +1,13 @@
 import { DURACAO_AULA } from '@/constants';
 import { calculateHoraFimByDuracaoAula } from '@/utils/calculateHoraFim';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export function useAulaForm({ id = null, submit }) {
-  const hoje = new Date();
-  const dataInicioFormatada = hoje.toISOString().split('T')[0];
   const [formData, setFormData] = useState({
     idAluno: '',
     idProfessor: '',
     idContrato: '',
-    dataAula: dataInicioFormatada,
+    dataAula: null,
     duracaoAula: DURACAO_AULA[40],
     horaInicial: '',
     horaFinal: '',
@@ -17,6 +15,14 @@ export function useAulaForm({ id = null, submit }) {
     status: 'AGENDADA',
     observacao: '',
   });
+
+  useEffect(() => {
+    const dataInicioFormatada = new Date().toISOString().split('T')[0];
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFormData(prev =>
+      prev.dataAula !== null ? prev : { ...prev, dataAula: dataInicioFormatada }
+    );
+  }, []);
 
   const handleChange = e => {
     const { name, value } = e.target;

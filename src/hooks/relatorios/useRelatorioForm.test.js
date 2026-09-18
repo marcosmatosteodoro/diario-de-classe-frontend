@@ -1,5 +1,61 @@
+import { createElement } from 'react';
 import { renderHook, act } from '@testing-library/react';
+import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import { useRelatorioForm } from './useRelatorioForm';
+
+// Monta o hook via `flushSync` (fora de `act`) para observar
+// dataInicial/dataFinal ANTES do `useEffect([])` assentar. `renderHook` do
+// RTL embrulha o mount em `act()`, que assenta efeitos passivos
+// sincronamente antes de retornar — tornaria o estado pré-efeito
+// inobservável por esse caminho. O estado é lido do DOM (não de uma
+// variável capturada por fora do componente) para manter o harness puro.
+function mountHookRaw(hookArgs) {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  // O mount fora de `act` (necessário para o `flushSync` abaixo observar o
+  // pré-efeito) dispara o aviso "not wrapped in act(...)" do React quando o
+  // `useEffect([])` assenta depois — esperado por construção, suprimido
+  // aqui.
+  const consoleErrorSpy = jest
+    .spyOn(console, 'error')
+    .mockImplementation(() => {});
+  function Harness() {
+    const { filtros } = useRelatorioForm(hookArgs);
+    return createElement(
+      'div',
+      { 'data-testid': 'filtros' },
+      JSON.stringify({
+        dataInicial: filtros.dataInicial,
+        dataFinal: filtros.dataFinal,
+      })
+    );
+  }
+  const root = createRoot(container);
+  flushSync(() => {
+    root.render(createElement(Harness));
+  });
+  return {
+    getFiltros() {
+      const text = container.querySelector(
+        '[data-testid="filtros"]'
+      ).textContent;
+      return JSON.parse(text);
+    },
+    async flush() {
+      await act(async () => {
+        await Promise.resolve();
+      });
+    },
+    unmount() {
+      act(() => {
+        root.unmount();
+      });
+      consoleErrorSpy.mockRestore();
+      document.body.removeChild(container);
+    },
+  };
+}
 
 describe('useRelatorioForm', () => {
   const mockSubmit = jest.fn();
@@ -309,5 +365,58 @@ describe('useRelatorioForm', () => {
     expect(typeof result.current.handleChange).toBe('function');
     expect(typeof result.current.handleSubmit).toBe('function');
     expect(typeof result.current.filtros).toBe('object');
+  });
+
+  describe('dataInicial/dataFinal default estável até montar (AC-001-006)', () => {
+    const relatorio = {
+      filters: [
+        { htmlFor: 'dataInicial', label: 'Data Inicial' },
+        { htmlFor: 'dataFinal', label: 'Data Final' },
+      ],
+      endpoint: '/api/relatorios/vendas',
+    };
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('paridade: dataInicial/dataFinal nascem null independente do relógio', () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T23:59:59.000Z'));
+      const hook1 = mountHookRaw({ relatorio, submit: mockSubmit });
+      expect(hook1.getFiltros()).toEqual({
+        dataInicial: null,
+        dataFinal: null,
+      });
+      hook1.unmount();
+
+      jest.setSystemTime(new Date('2026-07-01T00:00:01.000Z'));
+      const hook2 = mountHookRaw({ relatorio, submit: mockSubmit });
+      expect(hook2.getFiltros()).toEqual({
+        dataInicial: null,
+        dataFinal: null,
+      });
+      hook2.unmount();
+    });
+
+    it('preenchimento pós-montagem: datas passam a refletir o relógio real no instante T', async () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T00:00:00.000Z'));
+
+      const hook = mountHookRaw({ relatorio, submit: mockSubmit });
+      expect(hook.getFiltros()).toEqual({
+        dataInicial: null,
+        dataFinal: null,
+      });
+      await hook.flush();
+
+      const expectedFim = new Date('2026-06-30T00:00:00.000Z');
+      expectedFim.setMonth(expectedFim.getMonth() + 6);
+      expect(hook.getFiltros()).toEqual({
+        dataInicial: '2026-06-30',
+        dataFinal: expectedFim.toISOString().split('T')[0],
+      });
+      hook.unmount();
+    });
   });
 });

@@ -14,6 +14,19 @@ import useSweetAlert from '@/hooks/useSweetAlert';
 import { classNameDefault } from '@/components/ui/Fields/base';
 import { loadFilters, saveFilters, clearFilters } from '@/utils/filterStorage';
 
+// Calcula os defaults de data client-side. Chamado tanto pelo efeito de
+// montagem (que só grava se o campo ainda for `null`) quanto por
+// `handleClearFilter` (evento do usuário, sempre pós-montagem, sem risco de
+// divergência SSR/CSR).
+const getDatasPadrao = () => {
+  const hoje = new Date();
+  const dataInicioFormatada = hoje.toISOString().split('T')[0];
+  const dataFim = new Date(hoje);
+  dataFim.setMonth(dataFim.getMonth() + 6);
+  const dataTerminoFormatada = dataFim.toISOString().split('T')[0];
+  return { dataInicioFormatada, dataTerminoFormatada };
+};
+
 export function useDashboard() {
   const dispatch = useDispatch();
   const aulasSlicer = useSelector(state => state.aulas);
@@ -22,11 +35,6 @@ export function useDashboard() {
   const { success, error } = useToast();
   const isLoading = status === STATUS.IDLE || status === STATUS.LOADING;
 
-  const hoje = new Date();
-  const dataInicioFormatada = hoje.toISOString().split('T')[0];
-  const dataFim = new Date(hoje);
-  dataFim.setMonth(dataFim.getMonth() + 6);
-  const dataTerminoFormatada = dataFim.toISOString().split('T')[0];
   const homeCardValues = useMemo(() => {
     const { totalAlunos, totalAulas, totalContratos } = data || {};
     return [
@@ -36,8 +44,8 @@ export function useDashboard() {
     ];
   }, [data]);
   const defaultFormData = {
-    dataInicio: dataInicioFormatada,
-    dataTermino: dataTerminoFormatada,
+    dataInicio: null,
+    dataTermino: null,
     status: STATUS_AULA[0],
     tipo: TIPO_AULA[0],
     minhasAulas: true,
@@ -48,6 +56,18 @@ export function useDashboard() {
   const [formData, setFormData] = useState(() =>
     loadFilters(FILTER_STORAGE_KEYS.dashboard, defaultFormData)
   );
+
+  useEffect(() => {
+    const { dataInicioFormatada, dataTerminoFormatada } = getDatasPadrao();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFormData(prev => ({
+      ...prev,
+      dataInicio:
+        prev.dataInicio === null ? dataInicioFormatada : prev.dataInicio,
+      dataTermino:
+        prev.dataTermino === null ? dataTerminoFormatada : prev.dataTermino,
+    }));
+  }, []);
 
   const handleSubmit = useCallback(
     formData => {
@@ -65,8 +85,13 @@ export function useDashboard() {
   };
 
   const handleClearFilter = () => {
+    const { dataInicioFormatada, dataTerminoFormatada } = getDatasPadrao();
     clearFilters(FILTER_STORAGE_KEYS.dashboard);
-    setFormData(defaultFormData);
+    setFormData({
+      ...defaultFormData,
+      dataInicio: dataInicioFormatada,
+      dataTermino: dataTerminoFormatada,
+    });
   };
 
   const handleClick = async id => {

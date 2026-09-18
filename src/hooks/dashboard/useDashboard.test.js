@@ -1,7 +1,10 @@
-import { renderHook } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
+import { createElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import { useDashboard } from './useDashboard';
 import { useDispatch, useSelector } from 'react-redux';
-import { STATUS } from '@/constants';
+import { STATUS, FILTER_STORAGE_KEYS } from '@/constants';
 import React from 'react';
 
 jest.mock('react-redux', () => ({
@@ -106,5 +109,133 @@ describe('useDashboard', () => {
     });
     const { result: result2 } = renderHook(() => useDashboard(mockCurrentUser));
     expect(result2.current.isLoading).toBe(true);
+  });
+
+  describe('dataInicio/dataTermino default estável até montar (AC-001-006)', () => {
+    // Monta o hook via `flushSync` (fora de `act`) para observar
+    // dataInicio/dataTermino ANTES do `useEffect([])` assentar. `renderHook`
+    // do RTL embrulha o mount em `act()`, que assenta efeitos passivos
+    // sincronamente antes de retornar — tornaria o estado pré-efeito
+    // inobservável por esse caminho. O estado é lido do DOM (não de uma
+    // variável capturada por fora do componente) para manter o harness
+    // puro.
+    function mountHookRaw() {
+      const container = document.createElement('div');
+      document.body.appendChild(container);
+      // O mount fora de `act` (necessário para o `flushSync` abaixo observar
+      // o pré-efeito) dispara o aviso "not wrapped in act(...)" do React
+      // quando o `useEffect([])` assenta depois — esperado por construção,
+      // suprimido aqui.
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      function Harness() {
+        const { formData } = useDashboard(mockCurrentUser);
+        return createElement(
+          'div',
+          { 'data-testid': 'datas' },
+          JSON.stringify({
+            dataInicio: formData.dataInicio,
+            dataTermino: formData.dataTermino,
+          })
+        );
+      }
+      const root = createRoot(container);
+      flushSync(() => {
+        root.render(createElement(Harness));
+      });
+      return {
+        getDatas() {
+          const text = container.querySelector(
+            '[data-testid="datas"]'
+          ).textContent;
+          return JSON.parse(text);
+        },
+        async flush() {
+          await act(async () => {
+            await Promise.resolve();
+          });
+        },
+        unmount() {
+          act(() => {
+            root.unmount();
+          });
+          consoleErrorSpy.mockRestore();
+          document.body.removeChild(container);
+        },
+      };
+    }
+
+    beforeEach(() => {
+      localStorage.clear();
+      useSelector.mockImplementation(selector => {
+        const state = {
+          dashboard: { data: {}, status: STATUS.IDLE },
+          aulas: { status: STATUS.IDLE, action: null },
+        };
+        return selector(state);
+      });
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('paridade: dataInicio/dataTermino nascem null independente do relógio', () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T23:59:59.000Z'));
+      const hook1 = mountHookRaw();
+      expect(hook1.getDatas()).toEqual({
+        dataInicio: null,
+        dataTermino: null,
+      });
+      hook1.unmount();
+
+      jest.setSystemTime(new Date('2026-07-01T00:00:01.000Z'));
+      const hook2 = mountHookRaw();
+      expect(hook2.getDatas()).toEqual({
+        dataInicio: null,
+        dataTermino: null,
+      });
+      hook2.unmount();
+    });
+
+    it('preenchimento pós-montagem: datas passam a refletir o relógio real (sem filtro salvo)', async () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T00:00:00.000Z'));
+
+      const hook = mountHookRaw();
+      expect(hook.getDatas()).toEqual({ dataInicio: null, dataTermino: null });
+      await hook.flush();
+
+      const expectedFim = new Date('2026-06-30T00:00:00.000Z');
+      expectedFim.setMonth(expectedFim.getMonth() + 6);
+      expect(hook.getDatas()).toEqual({
+        dataInicio: '2026-06-30',
+        dataTermino: expectedFim.toISOString().split('T')[0],
+      });
+      hook.unmount();
+    });
+
+    it('filtro salvo não é sobrescrito pelo efeito de default', async () => {
+      localStorage.setItem(
+        FILTER_STORAGE_KEYS.dashboard,
+        JSON.stringify({ dataInicio: '2024-05-05', dataTermino: '2024-08-08' })
+      );
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T00:00:00.000Z'));
+
+      const hook = mountHookRaw();
+      expect(hook.getDatas()).toEqual({
+        dataInicio: '2024-05-05',
+        dataTermino: '2024-08-08',
+      });
+      await hook.flush();
+      expect(hook.getDatas()).toEqual({
+        dataInicio: '2024-05-05',
+        dataTermino: '2024-08-08',
+      });
+      hook.unmount();
+    });
   });
 });
