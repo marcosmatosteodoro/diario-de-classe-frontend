@@ -8,6 +8,7 @@ import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useRelatorios } from '@/hooks/relatorios/useRelatorios';
 import { useRelatorioForm } from '@/hooks/relatorios/useRelatorioForm';
 import { RELATORIOS_PANEL_STORAGE_KEY } from '@/constants';
+import { PainelFiltrosColapsavel } from '@/components';
 
 jest.mock('@/providers/UserAuthProvider');
 jest.mock('@/hooks/relatorios/useRelatorios');
@@ -140,6 +141,34 @@ describe('CardRelatorio — collapse por card (TASK-002-007, COMP-002-007)', () 
     expect(conteudo.getAttribute('class')).toContain(
       'group-data-[panel-state=recolhido]:hidden'
     );
+  });
+
+  it('COMP-002-007: CardRelatorio passa tagTitulo="h4" ao painel — o título "Filtros" renderiza h4, sob o h3 do card', () => {
+    const relatorio = makeRelatorio();
+    useRelatorios.mockReturnValue({
+      data: [relatorio],
+      submit: jest.fn(),
+      isSubmitting: false,
+    });
+
+    render(<Relatorios />);
+
+    expect(screen.getByTestId('painel-filtros-titulo').tagName).toBe('H4');
+  });
+
+  it('PainelFiltrosColapsavel: sem tagTitulo (superfície que não passa a prop), o título mantém o default h3', () => {
+    render(
+      <PainelFiltrosColapsavel
+        titulo="Painel"
+        isOpen={true}
+        onToggle={() => {}}
+        storageKey={null}
+      >
+        <div />
+      </PainelFiltrosColapsavel>
+    );
+
+    expect(screen.getByTestId('painel-filtros-titulo').tagName).toBe('H3');
   });
 
   it('AC-001-023/024/025-parte/026/027: dois cards com endpoints distintos, sem preferência salva, abrem os dois; recolher o primeiro via teclado não afeta o segundo, que mantém seu campo preenchido e seu estado', async () => {
@@ -276,7 +305,7 @@ describe('CardRelatorio — collapse por card (TASK-002-007, COMP-002-007)', () 
     expect(paineis[1]).not.toHaveAttribute('data-panel-state');
   });
 
-  it('TRISK-002-003: relatorio com endpoint ausente/inválido não derruba a rota, o card nasce aberto e sem persistência', () => {
+  it('TRISK-002-003: relatorio com endpoint ausente/inválido não derruba a rota; o card nasce aberto e degrada para a chave literal "null" (dívida declarada, ver comentário de CardRelatorio)', () => {
     const relatorioSemEndpoint = makeRelatorio({ endpoint: undefined });
     useRelatorios.mockReturnValue({
       data: [relatorioSemEndpoint],

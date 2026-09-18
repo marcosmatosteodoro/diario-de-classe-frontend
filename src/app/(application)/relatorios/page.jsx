@@ -48,9 +48,14 @@ function CardRelatorio({ relatorio, isSubmitting, submit }) {
   // `PainelFiltrosColapsavel`
   // (`JSON.stringify(undefined).replace(...)` lança `TypeError` durante o
   // render, e a rota não tem `error.jsx`/`ErrorBoundary`). Com
-  // `storageKey = null`, o card nasce aberto e sem persistência — a
-  // degradação que o comentário acima de `CardRelatorio` promete
-  // (TRISK-002-003).
+  // `storageKey = null`, o card nasce aberto (TRISK-002-003), mas NÃO fica
+  // sem persistência: `isConfigDeMapa(null)` é `false`, então
+  // `useCollapsiblePanelState` cai no ramo string e grava sob a chave
+  // literal `"null"` (coerção do `localStorage`), compartilhada entre todos
+  // os cards inválidos e sobrevivendo ao reload. Dívida declarada, fora do
+  // escopo desta TASK — o conserto correto é um sentinela no
+  // hook/componente compartilhado que desligue load/save e o script
+  // anti-flash.
   const itemIdValido =
     typeof relatorio.endpoint === 'string' && relatorio.endpoint.length > 0;
   const storageKey = itemIdValido
