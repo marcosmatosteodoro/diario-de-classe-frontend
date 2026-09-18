@@ -10,7 +10,6 @@ import { clearErrors as clearProfessoresErrors } from '@/store/slices/professore
 import { clearErrors as clearAlunosErrors } from '@/store/slices/alunosSlice';
 import { clearErrors as clearAulasErrors } from '@/store/slices/aulasSlice';
 import { clearErrors as clearContratoErrors } from '@/store/slices/contratosSlice';
-import { isMobileFunction } from '@/utils/isMobileFunction';
 
 export function useApplicationLayout() {
   const router = useRouter();
@@ -20,8 +19,6 @@ export function useApplicationLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState({
-    mainClass: 'ml-18',
-    sidebarClass: 'w-18',
     isExpanded: false,
   });
 
@@ -35,22 +32,7 @@ export function useApplicationLayout() {
   );
 
   const toggleSidebar = () => {
-    const isMobile = isMobileFunction();
-    let mainClass = 'ml-18';
-    let sidebarClass = 'w-18';
-
-    if (!sidebarExpanded.isExpanded) {
-      if (isMobile === true) {
-        sidebarClass = 'absolute w-full';
-      } else {
-        sidebarClass = 'w-[180px]';
-        mainClass = 'ml-[150px]';
-      }
-    }
-
     setSidebarExpanded({
-      mainClass: mainClass,
-      sidebarClass: sidebarClass,
       isExpanded: !sidebarExpanded.isExpanded,
     });
   };
@@ -103,7 +85,6 @@ export function useApplicationLayout() {
     isUnauthorized,
     isLoading,
     sidebarExpanded,
-    isMobile: isMobileFunction(),
     toggleSidebar,
   };
 }

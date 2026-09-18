@@ -1,9 +1,9 @@
 import { useLogout } from '@/hooks/auth/useLogout';
 import { useTheme } from '@/providers/ThemeProvider';
-import { MoonIcon, SunIcon } from 'lucide-react';
+import { Menu, MoonIcon, SunIcon, X } from 'lucide-react';
 import Image from 'next/image';
 
-export const Header = () => {
+export const Header = ({ isExpanded, toggleSidebar }) => {
   const { logoutUser } = useLogout();
   const { toggleTheme, theme } = useTheme();
   return (
@@ -13,6 +13,17 @@ export const Header = () => {
     >
       <div className="flex items-center justify-between h-full px-6">
         <div className="flex items-center gap-3">
+          {toggleSidebar && (
+            <button
+              onClick={toggleSidebar}
+              aria-expanded={isExpanded}
+              aria-controls="main-navigation"
+              aria-label={isExpanded ? 'Fechar navegação' : 'Abrir navegação'}
+              className="tap-target md:hidden flex items-center justify-center text-muted hover:text-main transition-colors cursor-pointer"
+            >
+              {isExpanded ? <X /> : <Menu />}
+            </button>
+          )}
           <div>
             <Image
               className="h-full "
