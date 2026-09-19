@@ -9,6 +9,8 @@ import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useAlunos } from '@/hooks/alunos/useAlunos';
 import { useDashboard } from '@/hooks/dashboard/useDashboard';
 import { useProfessores } from '@/hooks/professores/useProfessores';
+import { makeFullNameLabel } from '@/utils/makeFullNameLabel';
+import { makeEmailLabel } from '@/utils/makeEmailLabel';
 import { FILTER_PANEL_STORAGE_KEYS, FILTER_STORAGE_KEYS } from '@/constants';
 
 // Mock providers and hooks
@@ -116,6 +118,53 @@ describe('Home Page - Dashboard', () => {
     await waitFor(() => {
       expect(useDashboard).toHaveBeenCalled();
     });
+  });
+
+  it('não deixa o texto da aula forçar a largura do row em telas estreitas', () => {
+    makeFullNameLabel.mockReturnValue(
+      'joaozinhodasilvaoliveiraferreiraresponsividade'
+    );
+    makeEmailLabel.mockReturnValue(
+      'joaozinhodasilvaoliveiraferreiraresponsividade@example.com'
+    );
+    useDashboard.mockReturnValue({
+      ...defaultDashboardData,
+      aulas: [
+        {
+          id: 1,
+          aluno: {
+            nome: 'joaozinhodasilvaoliveiraferreiraresponsividade',
+            sobrenome: '',
+          },
+          professor: {
+            email: 'joaozinhodasilvaoliveiraferreiraresponsividade@example.com',
+          },
+          tipo: 'PADRAO',
+          status: 'AGENDADA',
+          dataAula: '2026-01-01',
+          horaInicial: '2026-01-01T10:00:00',
+          horaFinal: '2026-01-01T11:00:00',
+        },
+      ],
+    });
+
+    const { container } = render(<Home />);
+
+    const textoDaLinha = container.querySelector(
+      '.flex.items-center.gap-5 > div:last-child'
+    );
+
+    expect(textoDaLinha).toHaveClass('min-w-0');
+    expect(textoDaLinha).toHaveClass('flex-1');
+  });
+
+  it('mantém os 3 cartões de resumo empilhados em coluna única por padrão', () => {
+    const { container } = render(<Home />);
+
+    expect(container.querySelector('.grid.grid-cols-1')).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Alunos|Aulas|Contratos/).length
+    ).toBeGreaterThanOrEqual(3);
   });
 });
 

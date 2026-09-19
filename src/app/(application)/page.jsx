@@ -137,7 +137,7 @@ const HomeInfoCard = ({
       className={`flex items-center gap-5 p-4 bg-secondary rounded-lg transition-transform duration-200 ${canEdit ? 'cursor-pointer bg-sidebar hover:scale-105' : ''}  `}
     >
       <Avatar text={name} className="w-10 h-10" />
-      <div>
+      <div className="min-w-0 flex-1">
         <p className="font-medium text-main">
           <b>{name}</b> {action}
         </p>
