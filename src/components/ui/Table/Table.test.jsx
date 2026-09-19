@@ -157,7 +157,7 @@ describe('Table component - customStyles do tema dark (BI-41)', () => {
     });
   });
 
-  it('não define customStyles (mantém padrão da lib) no tema claro', () => {
+  it('não customiza progress/noData no tema claro', () => {
     const { getByTestId } = renderWithTheme('light');
 
     const customStyles = JSON.parse(getByTestId('custom-styles').textContent);

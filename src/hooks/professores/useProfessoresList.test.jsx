@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { useProfessoresList } from './useProfessoresList';
 
@@ -173,7 +172,7 @@ describe('useProfessoresList', () => {
     });
   });
 
-  it('exibe o email completo no DOM sem truncamento, mesmo quando mais longo que a coluna', () => {
+  it('data carrega o e-mail completo, sem corte no mapeamento', () => {
     const longEmail =
       'pesquisadora.assistente.convidada@dominio-extenso-de-teste.com.br';
     const professores = [

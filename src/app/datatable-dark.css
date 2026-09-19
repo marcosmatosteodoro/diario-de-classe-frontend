@@ -1,3 +1,5 @@
+/* Importado sem escopo de tema em globals.css: regras aqui valem só para
+   .dark (hover fix), exceto a de paginação abaixo, que é neutra de tema. */
 /* DataTable dark mode hover fix */
 .dark .rdt_TableRow:hover {
   background-color: #334155 !important; /* bg-slate-700 */
