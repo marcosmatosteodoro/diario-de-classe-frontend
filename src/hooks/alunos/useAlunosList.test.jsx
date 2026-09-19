@@ -91,4 +91,44 @@ describe('useAlunosList hook', () => {
     expect(row).toHaveTextContent('joao@example.com');
     expect(row).toHaveTextContent('date:2023-01-01');
   });
+
+  it('exibe o email completo via title mesmo quando mais longo que a coluna', () => {
+    const longEmail =
+      'pesquisadora.assistente.convidada@dominio-extenso-de-teste.com.br';
+    const alunos = [
+      {
+        nome: 'Pesquisadora',
+        sobrenome: 'Convidada',
+        telefone: '123456',
+        email: longEmail,
+        dataCriacao: '2023-01-01',
+      },
+    ];
+
+    const telefoneFormatter = jest.fn(t => t);
+    const dataFormatter = jest.fn(d => d);
+
+    function EmailCellComponent() {
+      const { columns, data } = useAlunosList({
+        alunos,
+        telefoneFormatter,
+        dataFormatter,
+      });
+      const emailColumn = columns.find(col => col.name === 'Email');
+
+      return (
+        <div>
+          {data.map(row => (
+            <React.Fragment key={row.id}>
+              {emailColumn.cell(row)}
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    }
+
+    render(<EmailCellComponent />);
+
+    expect(screen.getByTitle(longEmail)).toBeInTheDocument();
+  });
 });

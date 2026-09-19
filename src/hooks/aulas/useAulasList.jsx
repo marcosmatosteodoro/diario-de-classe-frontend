@@ -34,6 +34,7 @@ export function useAulasList({
       essential: false,
       selector: row => row.professor,
       sortable: true,
+      wrap: true,
     },
     {
       name: 'Data',

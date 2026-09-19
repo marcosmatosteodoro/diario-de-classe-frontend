@@ -41,6 +41,7 @@ export function useAlunosList({
       essential: false,
       selector: row => row.email,
       sortable: true,
+      cell: row => <span title={row.email}>{row.email}</span>,
     },
     {
       name: 'Data de criação',

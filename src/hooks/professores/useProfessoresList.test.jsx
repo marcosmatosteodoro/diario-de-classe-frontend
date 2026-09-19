@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { useProfessoresList } from './useProfessoresList';
 
 function TestComponent(props) {
@@ -135,5 +135,51 @@ describe('useProfessoresList', () => {
     const acoes = getByTestId('row-0-acoes');
     const button = acoes.querySelector('button');
     expect(button).not.toBeNull();
+  });
+
+  it('exibe o email completo via title mesmo quando mais longo que a coluna', () => {
+    const longEmail =
+      'pesquisadora.assistente.convidada@dominio-extenso-de-teste.com.br';
+    const professores = [
+      {
+        id: 10,
+        nome: 'Pesquisadora',
+        sobrenome: 'Convidada',
+        telefone: '11987654321',
+        email: longEmail,
+        permissao: 'admin',
+        dataCriacao: '2024-05-10T12:00:00Z',
+      },
+    ];
+
+    const currentUser = { id: 999, nome: 'Admin User' };
+    const telefoneFormatter = jest.fn(t => t);
+    const dataFormatter = jest.fn(d => d);
+    const handleDeleteProfessor = jest.fn();
+
+    function EmailCellComponent() {
+      const { columns, data } = useProfessoresList({
+        currentUser,
+        professores,
+        telefoneFormatter,
+        dataFormatter,
+        handleDeleteProfessor,
+      });
+      const emailColumn = columns.find(col => col.name === 'Email');
+
+      return (
+        <div>
+          {data.map(row => (
+            <React.Fragment key={row.id}>
+              {emailColumn.cell(row)}
+            </React.Fragment>
+          ))}
+        </div>
+      );
+    }
+
+    render(<EmailCellComponent />);
+
+    expect(screen.getByTitle(longEmail)).toBeInTheDocument();
   });
 });
