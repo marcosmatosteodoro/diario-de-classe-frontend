@@ -41,7 +41,7 @@ export function useProfessoresList({
       essential: false,
       selector: row => row.email,
       sortable: true,
-      cell: row => <span title={row.email}>{row.email}</span>,
+      wrap: true,
     },
     {
       name: 'Permissão',

@@ -137,7 +137,43 @@ describe('useProfessoresList', () => {
     expect(button).not.toBeNull();
   });
 
-  it('exibe o email completo via title mesmo quando mais longo que a coluna', () => {
+  it('marca a coluna Email com wrap para permitir quebra de linha em vez de truncar', () => {
+    const professores = [];
+    const currentUser = { id: 999, nome: 'Admin User' };
+    const telefoneFormatter = jest.fn();
+    const dataFormatter = jest.fn();
+    const handleDeleteProfessor = jest.fn();
+
+    // A coluna precisa ficar sem `cell` customizado: passar `cell` desliga
+    // o truncamento nativo da lib (nowrap+ellipsis) e o wrap deixa de ter
+    // efeito — `wrap: true` sozinho é o mecanismo que quebra a linha.
+    function ColumnsInspector() {
+      const { columns } = useProfessoresList({
+        currentUser,
+        professores,
+        telefoneFormatter,
+        dataFormatter,
+        handleDeleteProfessor,
+      });
+      const emailColumn = columns.find(col => col.name === 'Email');
+      return (
+        <div data-testid="email-column-config">
+          {JSON.stringify({
+            wrap: emailColumn.wrap,
+            hasCell: typeof emailColumn.cell === 'function',
+          })}
+        </div>
+      );
+    }
+
+    const { getByTestId } = render(<ColumnsInspector />);
+    expect(JSON.parse(getByTestId('email-column-config').textContent)).toEqual({
+      wrap: true,
+      hasCell: false,
+    });
+  });
+
+  it('exibe o email completo no DOM sem truncamento, mesmo quando mais longo que a coluna', () => {
     const longEmail =
       'pesquisadora.assistente.convidada@dominio-extenso-de-teste.com.br';
     const professores = [
@@ -157,29 +193,25 @@ describe('useProfessoresList', () => {
     const dataFormatter = jest.fn(d => d);
     const handleDeleteProfessor = jest.fn();
 
-    function EmailCellComponent() {
-      const { columns, data } = useProfessoresList({
+    function RowsWithEmail() {
+      const { data } = useProfessoresList({
         currentUser,
         professores,
         telefoneFormatter,
         dataFormatter,
         handleDeleteProfessor,
       });
-      const emailColumn = columns.find(col => col.name === 'Email');
-
       return (
         <div>
-          {data.map(row => (
-            <React.Fragment key={row.id}>
-              {emailColumn.cell(row)}
-            </React.Fragment>
+          {data.map((row, i) => (
+            <div key={i}>{row.email}</div>
           ))}
         </div>
       );
     }
 
-    render(<EmailCellComponent />);
+    render(<RowsWithEmail />);
 
-    expect(screen.getByTitle(longEmail)).toBeInTheDocument();
+    expect(screen.getByText(longEmail)).toBeInTheDocument();
   });
 });
