@@ -1,5 +1,33 @@
+import { createElement } from 'react';
 import { renderHook, act } from '@testing-library/react';
+import { mountRaw } from '@/utils/mountRaw';
 import { useAulaForm } from './useAulaForm';
+
+// `mountRaw` (ACH-10) cuida do `flushSync`/supressão de aviso de `act`
+// compartilhados entre os 7 testes que precisam observar estado pré-efeito;
+// só o que varia por hook fica aqui: o `Harness` e como ler `dataAula` do
+// DOM (não de uma variável capturada por fora do componente, para manter o
+// harness puro).
+function mountHookRaw(hookArgs) {
+  function Harness() {
+    const { formData } = useAulaForm(hookArgs);
+    return createElement(
+      'div',
+      { 'data-testid': 'dataAula' },
+      formData.dataAula === null ? '' : formData.dataAula
+    );
+  }
+  const hook = mountRaw(createElement(Harness));
+  return {
+    ...hook,
+    getDataAula() {
+      const text = hook.container.querySelector(
+        '[data-testid="dataAula"]'
+      ).textContent;
+      return text === '' ? null : text;
+    },
+  };
+}
 
 describe('useAulaForm', () => {
   describe('Form State Management', () => {
@@ -55,10 +83,14 @@ describe('useAulaForm', () => {
     });
 
     it('should initialize with today date', () => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-01-15T12:00:00.000-03:00'));
       const submit = jest.fn();
       const { result } = renderHook(() => useAulaForm({ id: null, submit }));
-      const today = new Date().toISOString().split('T')[0];
-      expect(result.current.formData.dataAula).toBe(today);
+      // Literal fixo (fuso local, `todayLocalDate`) — não recalculado pelo
+      // mesmo algoritmo da produção (ACH-08).
+      expect(result.current.formData.dataAula).toBe('2026-01-15');
+      jest.useRealTimers();
     });
   });
 
@@ -372,6 +404,49 @@ describe('useAulaForm', () => {
         });
         expect(result.current.formData.horaFinal).toBe(expected);
       });
+    });
+  });
+
+  describe('dataAula default estável até montar (AC-001-006)', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('paridade: dataAula nasce null independente do relógio do sistema', () => {
+      const submit = jest.fn();
+
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-06-30T23:59:59.000Z'));
+      const hook1 = mountHookRaw({ id: null, submit });
+      expect(hook1.getDataAula()).toBeNull();
+      hook1.unmount();
+
+      jest.setSystemTime(new Date('2026-07-01T00:00:01.000Z'));
+      const hook2 = mountHookRaw({ id: null, submit });
+      expect(hook2.getDataAula()).toBeNull();
+      hook2.unmount();
+    });
+
+    it('preenchimento pós-montagem: dataAula passa a refletir o dia real no instante T', async () => {
+      const submit = jest.fn();
+      jest.useFakeTimers();
+      // Instantes com offset explícito `-03:00`: `todayLocalDate` lê o
+      // relógio no fuso local, não em UTC — usar `Z` aqui deslocaria a
+      // fronteira do dia em 3h e o teste passaria a afirmar o dia errado.
+      jest.setSystemTime(new Date('2026-06-30T23:59:59.000-03:00'));
+
+      const hook1 = mountHookRaw({ id: null, submit });
+      expect(hook1.getDataAula()).toBeNull();
+      await hook1.flush();
+      expect(hook1.getDataAula()).toBe('2026-06-30');
+      hook1.unmount();
+
+      jest.setSystemTime(new Date('2026-07-01T00:00:01.000-03:00'));
+      const hook2 = mountHookRaw({ id: null, submit });
+      expect(hook2.getDataAula()).toBeNull();
+      await hook2.flush();
+      expect(hook2.getDataAula()).toBe('2026-07-01');
+      hook2.unmount();
     });
   });
 });

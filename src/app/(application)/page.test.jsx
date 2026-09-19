@@ -4,13 +4,14 @@ import { act } from 'react';
 import { JSDOM } from 'jsdom';
 import { renderToString } from 'react-dom/server';
 import { hydrateRoot } from 'react-dom/client';
+import { mountRaw } from '@/utils/mountRaw';
 import Home from './page';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useAlunos } from '@/hooks/alunos/useAlunos';
 import { useDashboard } from '@/hooks/dashboard/useDashboard';
 import { useProfessores } from '@/hooks/professores/useProfessores';
-import { makeFullNameLabel } from '@/utils/makeFullNameLabel';
 import { makeEmailLabel } from '@/utils/makeEmailLabel';
+import { makeFullNameLabel } from '@/utils/makeFullNameLabel';
 import { FILTER_PANEL_STORAGE_KEYS, FILTER_STORAGE_KEYS } from '@/constants';
 
 // Mock providers and hooks
@@ -175,6 +176,102 @@ describe('Home Page - Dashboard', () => {
     expect(
       screen.getAllByText(/Alunos|Aulas|Contratos/).length
     ).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('HomeInfoCard — tempo relativo estável até montar (AC-001-004)', () => {
+  const defaultMocks = {
+    currentUser: { id: 1, nome: 'Professor Test', email: 'test@example.com' },
+    isAdmin: () => true,
+  };
+
+  // Aula a poucos minutos de começar em relação ao instante fixado no teste de
+  // preenchimento (2026-06-15T13:00:00.000Z) — produz texto não-vazio via getTimeText.
+  const aulaFixture = {
+    id: 99,
+    tipo: 'PADRAO',
+    status: 'AGENDADA',
+    dataAula: '2026-06-15T12:00:00.000Z',
+    horaInicial: '2026-06-15T13:05:00.000Z',
+    horaFinal: '2026-06-15T14:00:00.000Z',
+    aluno: { nome: 'Aluno Teste' },
+    professor: { email: 'prof@example.com' },
+  };
+
+  const dashboardDataComAula = {
+    alunosCount: 1,
+    aulasCount: 1,
+    contratosCount: 0,
+    aulas: [aulaFixture],
+    isLoading: false,
+    homeCardValues: [],
+    formData: {
+      dataInicio: '',
+      dataTermino: '',
+      tipo: '',
+      alunoId: '',
+      professorId: '',
+    },
+    handleSubmit: jest.fn(),
+    handleChange: jest.fn(),
+    handleClick: jest.fn(),
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    useUserAuth.mockReturnValue(defaultMocks);
+    useAlunos.mockReturnValue({
+      alunos: [],
+      isLoading: false,
+      searchParams: {},
+    });
+    useDashboard.mockReturnValue(dashboardDataComAula);
+    useProfessores.mockReturnValue({
+      professores: [],
+      isLoading: false,
+    });
+    makeFullNameLabel.mockReturnValue('Aluno Teste');
+    makeEmailLabel.mockReturnValue('prof@example.com');
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('paridade SSR: renderToString produz o mesmo placeholder independente do horário do sistema', () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-06-15T09:00:00.000Z'));
+    const htmlAntes = renderToString(<Home />);
+
+    jest.setSystemTime(new Date('2026-12-25T23:59:00.000Z'));
+    const htmlDepois = renderToString(<Home />);
+
+    expect(htmlAntes).toBe(htmlDepois);
+    expect(htmlAntes).not.toMatch(/minuto\(s\)|hora\(s\)|Amanhã|Em andamento/);
+  });
+
+  it('preenchimento pós-montagem: o texto passa a refletir getTimeText calculado no instante T', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-06-15T13:00:00.000Z'));
+
+    // `mountRaw` (ACH-10) — mesmo helper compartilhado das 5 suítes de hook,
+    // aqui montando o componente diretamente (sem `Harness`). Nota: desde que
+    // `Home` também renderiza `PainelFiltrosColapsavel` (lote de filtros),
+    // que tem o próprio `useLayoutEffect` (`setHidratado`), o commit inicial
+    // já força o assentamento do efeito passivo de `HomeInfoCard`
+    // (`setTime`) antes de `mountRaw` retornar — não sobra mais o frame
+    // síncrono "ainda em branco" que existia com a árvore isolada. A
+    // paridade SSR real (o que importa para o AC) continua provada pelo
+    // teste `renderToString` acima: o HTML do servidor nunca carrega o texto
+    // volátil.
+    const home = mountRaw(<Home />);
+
+    await home.flush();
+
+    expect(home.container.textContent).toMatch('Em 5 minuto(s)');
+
+    home.unmount();
   });
 });
 

@@ -210,4 +210,102 @@
       }
     }
   }
+
+  /* Preferência de sistema operacional na primeira visita, sem escolha
+     explícita registrada ainda (AC-001-003, cenário 2; TASK-002-006):
+     mesmas regras do bloco [data-theme='dark'] acima, aplicadas via media
+     query para cobrir a primeira pintura antes de qualquer JS decidir o
+     atributo. Escopado a [data-theme='system'] (DEC-002-004, emenda de
+     mecanismo) — sem escopo, `@media` não soma especificidade e empata com
+     a base clara, vencendo por ordem de origem e sobrepondo para sempre uma
+     escolha explícita de tema claro num SO em modo escuro. */
+  [data-theme='system'] {
+    @media (prefers-color-scheme: dark) {
+      .bg-main {
+        @apply bg-slate-800;
+      }
+      .bg-secondary {
+        @apply bg-slate-900;
+      }
+      .bg-sidebar {
+        @apply hover:bg-slate-700;
+      }
+      .bg-login-gradient {
+        @apply bg-linear-to-br from-slate-800 via-slate-900 to-slate-950;
+      }
+      .text-main {
+        @apply text-slate-100;
+      }
+      .text-muted {
+        @apply text-slate-400;
+      }
+      .primary-color {
+        @apply text-blue-400;
+      }
+      .border-main {
+        @apply border-slate-700;
+      }
+      .sidebar-expanded-colors {
+        @apply bg-slate-700 text-white;
+      }
+      .input-field {
+        @apply focus:ring-blue-400 bg-slate-800 text-slate-100 disabled:bg-slate-700 disabled:text-slate-500 disabled:opacity-60;
+      }
+      .page-title {
+        @apply text-slate-100;
+      }
+
+      .btn-outline {
+        &.btn-outline-primary {
+          @apply border-blue-400 text-blue-400 hover:bg-blue-400/10;
+        }
+        &.btn-outline-secondary {
+          @apply border-slate-400 text-slate-300 hover:bg-slate-400/10;
+        }
+        &.btn-outline-danger {
+          @apply border-red-400 text-red-400 hover:bg-red-400/10;
+        }
+        &.btn-outline-success {
+          @apply border-green-400 text-green-400 hover:bg-green-400/10;
+        }
+      }
+
+      .toast {
+        @apply text-slate-300 bg-slate-800;
+        .toast-info {
+          @apply bg-blue-800 text-blue-200;
+        }
+        .toast-success {
+          @apply bg-green-800 text-green-200;
+        }
+        .toast-error {
+          @apply bg-red-800 text-red-200;
+        }
+        .toast-warning {
+          @apply bg-yellow-800 text-yellow-200;
+        }
+        button {
+          @apply text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700;
+        }
+      }
+
+      .swal2-modal {
+        background-color: var(--color-slate-800) !important;
+        color: var(--color-slate-100) !important;
+      }
+      .swal2-title {
+        color: var(--color-slate-100) !important;
+      }
+
+      #pagination-first-page,
+      #pagination-previous-page,
+      #pagination-next-page,
+      #pagination-last-page {
+        fill: var(--color-slate-100) !important;
+        &[aria-disabled='true'] {
+          fill: var(--color-slate-700) !important;
+        }
+      }
+    }
+  }
 }

@@ -14,6 +14,7 @@ import {
 } from '@/utils/calculateHoraFim';
 import { calculateDuracaoAula } from '@/utils/calculateDuracaoAula';
 import { startOfTodayUTC } from '@/utils/startOfTodayUTC';
+import { todayLocalDate } from '@/utils/todayLocalDate';
 
 export function useContratoForm({
   alunos,
@@ -24,8 +25,6 @@ export function useContratoForm({
   const { currentUser, settings } = useUserAuth();
   const { showForm, showSuccess } = useSweetAlert();
   const tempoAula = settings.duracaoAula || 0;
-  const hoje = new Date();
-  const dataInicioFormatada = hoje.toISOString().split('T')[0];
   const [formData, setFormData] = useState({
     professorId: currentUser?.id || null,
     professor: currentUser || null,
@@ -33,7 +32,7 @@ export function useContratoForm({
     aluno: null,
     contratoId: null,
     contrato: null,
-    dataInicio: dataInicioFormatada,
+    dataInicio: null,
     dataTermino: '',
     idioma: null,
     status: null,
@@ -387,6 +386,15 @@ export function useContratoForm({
   // effects
   useEffect(() => {
     setInitialDiasAulas();
+  }, []);
+
+  useEffect(() => {
+    const dataInicioFormatada = todayLocalDate();
+    setFormData(prev =>
+      prev.dataInicio === null
+        ? { ...prev, dataInicio: dataInicioFormatada }
+        : prev
+    );
   }, []);
 
   useEffect(() => {

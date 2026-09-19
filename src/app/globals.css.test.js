@@ -125,10 +125,14 @@ describe('globals.css — ícone do seletor de data/hora no tema dark (BI-40)', 
     );
 
     // Fora do bloco [data-theme='dark'] (tema light) também não há
-    // color-scheme algum associado a input de data/hora.
+    // color-scheme algum associado a input de data/hora. Lookbehind negativo
+    // exclui `prefers-color-scheme` (nome da media feature usada pelo
+    // mecanismo de 3 estados de tema, DEC-002-004, dentro do bloco
+    // `[data-theme='system']`) — colisão de substring com a declaração
+    // `color-scheme:` real que este teste vigia, não um vazamento do efeito.
     const outsideDarkBlock =
       cssSource.slice(0, darkBlock.start) + cssSource.slice(darkBlock.end);
-    expect(outsideDarkBlock).not.toMatch(/color-scheme/);
+    expect(outsideDarkBlock).not.toMatch(/(?<!prefers-)color-scheme\s*:/);
   });
 
   it('resolve color-scheme: dark, com a regra extraída do fonte real, no input de data/hora quando o tema dark está ativo — e nada no tema light nem em outros tipos de input', () => {
