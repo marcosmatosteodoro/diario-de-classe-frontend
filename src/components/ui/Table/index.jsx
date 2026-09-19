@@ -2,6 +2,9 @@
 import { useTheme } from '@/providers/ThemeProvider';
 import DataTable from 'react-data-table-component';
 
+// Mesma unidade/valor do token `.tap-target` (app/globals.css) — NFR-001-002.
+const TAP_TARGET_SIZE = '2.75rem';
+
 // Adicione a variável isDark para alternar o tema
 export function Table({
   columns,
@@ -31,6 +34,8 @@ export function Table({
           headCells: {
             style: {
               color: 'var(--color-white)',
+              minHeight: TAP_TARGET_SIZE,
+              minWidth: TAP_TARGET_SIZE,
             },
           },
           rows: {
@@ -51,6 +56,8 @@ export function Table({
             style: {
               backgroundColor: 'var(--color-gray-900)', // => 1f2937
               color: 'var(--color-gray-300)',
+              minHeight: TAP_TARGET_SIZE,
+              minWidth: TAP_TARGET_SIZE,
             },
           },
           progress: {
@@ -66,7 +73,20 @@ export function Table({
             },
           },
         }
-      : {};
+      : {
+          pagination: {
+            style: {
+              minHeight: TAP_TARGET_SIZE,
+              minWidth: TAP_TARGET_SIZE,
+            },
+          },
+          headCells: {
+            style: {
+              minHeight: TAP_TARGET_SIZE,
+              minWidth: TAP_TARGET_SIZE,
+            },
+          },
+        };
   return (
     <div
       className={

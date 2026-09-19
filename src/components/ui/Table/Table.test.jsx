@@ -39,6 +39,8 @@ jest.mock('react-data-table-component', () => {
           {JSON.stringify({
             progress: customStyles.progress ?? null,
             noData: customStyles.noData ?? null,
+            pagination: customStyles.pagination ?? null,
+            headCells: customStyles.headCells ?? null,
           })}
         </div>
       </div>
@@ -162,5 +164,50 @@ describe('Table component - customStyles do tema dark (BI-41)', () => {
 
     expect(customStyles.progress).toBeNull();
     expect(customStyles.noData).toBeNull();
+  });
+});
+
+// AC-001-009: paginação e cabeçalho de ordenação precisam de área de toque
+// mínima de 44px (2.75rem, mesmo token `.tap-target`) nos dois ramos de tema.
+describe('Table component - área de toque da paginação e ordenação (AC-001-009)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  const renderWithTheme = theme => {
+    localStorage.setItem('theme', theme);
+    const columns = [{ name: 'Col' }];
+    return render(
+      <ThemeProvider>
+        <Table
+          columns={columns}
+          data={[]}
+          isLoading={false}
+          notFoundMessage="Nada"
+        />
+      </ThemeProvider>
+    );
+  };
+
+  it('aplica área de toque à paginação e ao cabeçalho de ordenação no tema claro', () => {
+    const { getByTestId } = renderWithTheme('light');
+
+    const customStyles = JSON.parse(getByTestId('custom-styles').textContent);
+
+    expect(customStyles.pagination.style.minHeight).toBe('2.75rem');
+    expect(customStyles.pagination.style.minWidth).toBe('2.75rem');
+    expect(customStyles.headCells.style.minHeight).toBe('2.75rem');
+    expect(customStyles.headCells.style.minWidth).toBe('2.75rem');
+  });
+
+  it('aplica área de toque à paginação e ao cabeçalho de ordenação no tema escuro', () => {
+    const { getByTestId } = renderWithTheme('dark');
+
+    const customStyles = JSON.parse(getByTestId('custom-styles').textContent);
+
+    expect(customStyles.pagination.style.minHeight).toBe('2.75rem');
+    expect(customStyles.pagination.style.minWidth).toBe('2.75rem');
+    expect(customStyles.headCells.style.minHeight).toBe('2.75rem');
+    expect(customStyles.headCells.style.minWidth).toBe('2.75rem');
   });
 });
