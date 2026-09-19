@@ -168,7 +168,10 @@ describe('Table component - customStyles do tema dark (BI-41)', () => {
 });
 
 // AC-001-009: paginação e cabeçalho de ordenação precisam de área de toque
-// mínima de 44px (2.75rem, mesmo token `.tap-target`) nos dois ramos de tema.
+// mínima de 44px (2.75rem, via var(--tap-target-size)) nos dois ramos de
+// tema. Os botões reais de paginação (#pagination-first-page, previous,
+// next, last-page) só respeitam `pagination.pageButtonsStyle` — a lib NÃO
+// aplica `pagination.style` a eles, só ao <nav> container.
 describe('Table component - área de toque da paginação e ordenação (AC-001-009)', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -189,25 +192,58 @@ describe('Table component - área de toque da paginação e ordenação (AC-001-
     );
   };
 
-  it('aplica área de toque à paginação e ao cabeçalho de ordenação no tema claro', () => {
+  it('aplica área de toque aos botões de paginação e ao cabeçalho de ordenação no tema claro', () => {
     const { getByTestId } = renderWithTheme('light');
 
     const customStyles = JSON.parse(getByTestId('custom-styles').textContent);
 
-    expect(customStyles.pagination.style.minHeight).toBe('2.75rem');
-    expect(customStyles.pagination.style.minWidth).toBe('2.75rem');
-    expect(customStyles.headCells.style.minHeight).toBe('2.75rem');
-    expect(customStyles.headCells.style.minWidth).toBe('2.75rem');
+    expect(customStyles.pagination.pageButtonsStyle.height).toBe(
+      'var(--tap-target-size)'
+    );
+    expect(customStyles.pagination.pageButtonsStyle.width).toBe(
+      'var(--tap-target-size)'
+    );
+    expect(customStyles.headCells.style.minHeight).toBe(
+      'var(--tap-target-size)'
+    );
+    expect(customStyles.headCells.style.minWidth).toBe(
+      'var(--tap-target-size)'
+    );
   });
 
-  it('aplica área de toque à paginação e ao cabeçalho de ordenação no tema escuro', () => {
+  it('aplica área de toque aos botões de paginação e ao cabeçalho de ordenação no tema escuro', () => {
     const { getByTestId } = renderWithTheme('dark');
 
     const customStyles = JSON.parse(getByTestId('custom-styles').textContent);
 
-    expect(customStyles.pagination.style.minHeight).toBe('2.75rem');
-    expect(customStyles.pagination.style.minWidth).toBe('2.75rem');
-    expect(customStyles.headCells.style.minHeight).toBe('2.75rem');
-    expect(customStyles.headCells.style.minWidth).toBe('2.75rem');
+    expect(customStyles.pagination.pageButtonsStyle.height).toBe(
+      'var(--tap-target-size)'
+    );
+    expect(customStyles.pagination.pageButtonsStyle.width).toBe(
+      'var(--tap-target-size)'
+    );
+    expect(customStyles.headCells.style.minHeight).toBe(
+      'var(--tap-target-size)'
+    );
+    expect(customStyles.headCells.style.minWidth).toBe(
+      'var(--tap-target-size)'
+    );
+  });
+
+  it('não encolhe o container de paginação abaixo do default da lib (56px) em nenhum tema', () => {
+    const light = renderWithTheme('light');
+    const lightStyles = JSON.parse(
+      light.getByTestId('custom-styles').textContent
+    );
+    expect(lightStyles.pagination.style?.minHeight).toBeUndefined();
+    expect(lightStyles.pagination.style?.minWidth).toBeUndefined();
+    light.unmount();
+
+    const dark = renderWithTheme('dark');
+    const darkStyles = JSON.parse(
+      dark.getByTestId('custom-styles').textContent
+    );
+    expect(darkStyles.pagination.style?.minHeight).toBeUndefined();
+    expect(darkStyles.pagination.style?.minWidth).toBeUndefined();
   });
 });

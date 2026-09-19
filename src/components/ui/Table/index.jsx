@@ -2,9 +2,6 @@
 import { useTheme } from '@/providers/ThemeProvider';
 import DataTable from 'react-data-table-component';
 
-// Mesma unidade/valor do token `.tap-target` (app/globals.css) — NFR-001-002.
-const TAP_TARGET_SIZE = '2.75rem';
-
 // Adicione a variável isDark para alternar o tema
 export function Table({
   columns,
@@ -34,8 +31,8 @@ export function Table({
           headCells: {
             style: {
               color: 'var(--color-white)',
-              minHeight: TAP_TARGET_SIZE,
-              minWidth: TAP_TARGET_SIZE,
+              minHeight: 'var(--tap-target-size)',
+              minWidth: 'var(--tap-target-size)',
             },
           },
           rows: {
@@ -56,8 +53,13 @@ export function Table({
             style: {
               backgroundColor: 'var(--color-gray-900)', // => 1f2937
               color: 'var(--color-gray-300)',
-              minHeight: TAP_TARGET_SIZE,
-              minWidth: TAP_TARGET_SIZE,
+            },
+            // react-data-table-component NÃO aplica pagination.style aos
+            // botões — só ao <nav> container. Os botões (#pagination-*)
+            // consomem pageButtonsStyle.
+            pageButtonsStyle: {
+              height: 'var(--tap-target-size)',
+              width: 'var(--tap-target-size)',
             },
           },
           progress: {
@@ -75,15 +77,18 @@ export function Table({
         }
       : {
           pagination: {
-            style: {
-              minHeight: TAP_TARGET_SIZE,
-              minWidth: TAP_TARGET_SIZE,
+            // react-data-table-component NÃO aplica pagination.style aos
+            // botões — só ao <nav> container. Os botões (#pagination-*)
+            // consomem pageButtonsStyle.
+            pageButtonsStyle: {
+              height: 'var(--tap-target-size)',
+              width: 'var(--tap-target-size)',
             },
           },
           headCells: {
             style: {
-              minHeight: TAP_TARGET_SIZE,
-              minWidth: TAP_TARGET_SIZE,
+              minHeight: 'var(--tap-target-size)',
+              minWidth: 'var(--tap-target-size)',
             },
           },
         };

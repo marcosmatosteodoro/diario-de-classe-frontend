@@ -6,3 +6,9 @@
 .dark .rdt_TableRow {
   transition: background-color 0.2s;
 }
+
+/* O <select> "Linhas por página" da lib vem com height:24px fixo via CSS
+   interno, fora do alcance de customStyles. */
+.rdt_Pagination select {
+  min-height: var(--tap-target-size);
+}
