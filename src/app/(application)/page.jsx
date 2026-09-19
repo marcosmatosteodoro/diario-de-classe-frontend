@@ -138,11 +138,11 @@ const HomeInfoCard = ({
     >
       <Avatar text={name} className="w-10 h-10" />
       <div className="min-w-0 flex-1">
-        <p className="font-medium text-main">
+        <p className="font-medium text-main break-words">
           <b>{name}</b> {action}
         </p>
 
-        <p className="text-sm text-muted">{professorName}</p>
+        <p className="text-sm text-muted break-words">{professorName}</p>
         <p className="text-sm text-muted">{time}</p>
       </div>
     </div>
