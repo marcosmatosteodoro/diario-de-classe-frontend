@@ -14,9 +14,9 @@ export const useSweetAlert = () => {
       background: '#ffffff',
       color: '#1f2937',
       customClass: {
-        popup: 'rounded-lg shadow-xl',
-        confirmButton: 'px-4 py-2 rounded-md font-medium',
-        cancelButton: 'px-4 py-2 rounded-md font-medium',
+        popup: 'rounded-lg shadow-xl w-[min(90vw,32rem)]',
+        confirmButton: 'px-4 py-2 rounded-md font-medium tap-target',
+        cancelButton: 'px-4 py-2 rounded-md font-medium tap-target',
       },
     }),
     []
