@@ -24,9 +24,13 @@ describe('useSweetAlert - camadas flutuantes responsivas (TASK-002-015)', () => 
       result.current.showConfirm();
     });
 
-    const { customClass } = Swal.fire.mock.calls[0][0];
+    const { width, customClass } = Swal.fire.mock.calls[0][0];
 
-    expect(customClass.popup).toEqual(
+    // A folha de estilo do SweetAlert2 não usa @layer, então classe
+    // Tailwind em customClass.popup não vence a cascata — a largura só
+    // funciona pela opção nativa `width` (estilo inline aplicado pela lib).
+    expect(width).toBe('min(90vw, 32rem)');
+    expect(customClass.popup).not.toEqual(
       expect.stringContaining('w-[min(90vw,32rem)]')
     );
     expect(customClass.confirmButton).toEqual(
@@ -44,11 +48,9 @@ describe('useSweetAlert - camadas flutuantes responsivas (TASK-002-015)', () => 
       result.current.showDeleteConfirm('este registro');
     });
 
-    const { customClass } = Swal.fire.mock.calls[0][0];
+    const { width, customClass } = Swal.fire.mock.calls[0][0];
 
-    expect(customClass.popup).toEqual(
-      expect.stringContaining('w-[min(90vw,32rem)]')
-    );
+    expect(width).toBe('min(90vw, 32rem)');
     expect(customClass.confirmButton).toEqual(
       expect.stringContaining('tap-target')
     );

@@ -13,8 +13,12 @@ export const useSweetAlert = () => {
       cancelButtonColor: '#ef4444', // vermelho
       background: '#ffffff',
       color: '#1f2937',
+      // SweetAlert2 injeta sua folha de estilo sem @layer, o que vence
+      // qualquer utilitário Tailwind — largura precisa da opção nativa
+      // `width`, aplicada como estilo inline pela lib.
+      width: 'min(90vw, 32rem)',
       customClass: {
-        popup: 'rounded-lg shadow-xl w-[min(90vw,32rem)]',
+        popup: 'rounded-lg shadow-xl',
         confirmButton: 'px-4 py-2 rounded-md font-medium tap-target',
         cancelButton: 'px-4 py-2 rounded-md font-medium tap-target',
       },
