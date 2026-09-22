@@ -46,6 +46,11 @@ export function Table({
               backgroundColor: 'var(--color-gray-900)', // bg-gray-800
             },
             highlightOnHoverStyle: {
+              backgroundColor: '#334155', // bg-slate-700 — antes só em CSS
+              // morto (.dark .rdt_TableRow:hover, nunca aplicado — o app usa
+              // data-theme, não a classe .dark); sem isso, o merge com o tema
+              // "default" da lib (que este componente sempre usa, sem prop
+              // `theme`) deixava o hover cair no cinza claro do library default.
               color: 'var(--color-white)',
             },
           },

@@ -41,6 +41,7 @@ jest.mock('react-data-table-component', () => {
             noData: customStyles.noData ?? null,
             pagination: customStyles.pagination ?? null,
             headCells: customStyles.headCells ?? null,
+            rows: customStyles.rows ?? null,
           })}
         </div>
       </div>
@@ -164,6 +165,16 @@ describe('Table component - customStyles do tema dark (BI-41)', () => {
 
     expect(customStyles.progress).toBeNull();
     expect(customStyles.noData).toBeNull();
+  });
+
+  it('define backgroundColor de hover da linha no tema escuro (antes só existia num CSS morto, .dark, que o app nunca aplica — usa data-theme)', () => {
+    const { getByTestId } = renderWithTheme('dark');
+
+    const customStyles = JSON.parse(getByTestId('custom-styles').textContent);
+
+    expect(customStyles.rows.highlightOnHoverStyle.backgroundColor).toBe(
+      '#334155'
+    );
   });
 });
 
