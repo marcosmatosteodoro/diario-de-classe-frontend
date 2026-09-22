@@ -6,7 +6,15 @@
   /* White Theme */
   .btn {
     @apply px-4 py-2 text-sm text-white rounded transition-colors cursor-pointer font-semibold;
-    min-height: var(--tap-target-size);
+
+    /* Piso de toque (NFR-001-002) só abaixo do ponto de quebra de navegação
+       (768px, mesmo valor de BREAKPOINT_NAV_PX) — no restante da faixa de
+       suporte (768px-1920px) o botão mantém a altura natural de prod
+       (achado do Diretor: min-height fixo em toda largura deixava os
+       botões de ação de página visivelmente maiores que em produção). */
+    @media (max-width: 767px) {
+      min-height: var(--tap-target-size);
+    }
 
     &.blocked {
       @apply bg-gray-400 cursor-not-allowed;
