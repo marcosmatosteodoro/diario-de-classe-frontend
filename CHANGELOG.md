@@ -1,3 +1,31 @@
+# [1.3.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.2.0...v1.3.0) (2026-09-22)
+
+### Bug Fixes
+
+- **hidratacao:** corrige teste de useAulaForm que usava toISOString para data local ([e27e547](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/e27e5478aba212c3fb2fbc8b47b4f15e2af1fc57))
+- **responsividade:** BI-15 BI-102 TASK-002-015 largura do popup do SweetAlert via opção nativa width ([ad5c475](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/ad5c47533a265f4cb9abb8f11d8a6b7106ddd7e8))
+- **responsividade:** BI-15 BI-90 TASK-002-003 reduz colunas sticky para # e Ações ([46e7a99](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/46e7a99ab9b3a89886c5ec56e4543fbc26ff18e1))
+- **responsividade:** BI-15 BI-91 TASK-002-004 coluna Email usa wrap nativo em vez de cell customizado ([8843f1c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/8843f1c5126aef0328f0801486dfc562762b7cd3))
+- **responsividade:** BI-15 BI-92 TASK-002-005 paginação usa pageButtonsStyle e token único de tap-target ([46e6c43](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/46e6c4343b57e023d18097798ab5391efb0d9343)), closes [#pagination-first-page](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/issues/pagination-first-page)
+- **responsividade:** BI-15 BI-93 TASK-002-006 aumenta área de toque do botão de mostrar/ocultar senha ([ba86b0f](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/ba86b0fa60a29087459636515c199712de25d6a1))
+- **responsividade:** BI-15 BI-97 TASK-002-010 break-words no HomeInfoCard ([5e7f06e](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/5e7f06e43ced1acf08efcbede6d64055fc9cb478))
+- **responsividade:** BI-89 add min-w-0 to main to stop page-level overflow ([b9c033e](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/b9c033e0d258847ea039c28e5791016fc2bd8e48))
+- **responsividade:** BI-89 discriminate translate-x-0 assertion (gate 1-7) ([e211915](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/e2119153aeff80518e0fa2e8713008f766b3767d))
+- **responsividade:** BI-89 TASK-002-002 oculta drawer de teclado/leitor abaixo de md ([ef4a151](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/ef4a1510fea33eb3e732e95b378a650c25954b0b))
+- **responsividade:** célula sticky da tabela herda o background da linha ([03f942c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/03f942c8dbdf9dd0b9047a503ee687a12aa3af7c))
+- **responsividade:** hover de linha da tabela funciona de verdade no tema escuro ([799c2dd](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/799c2dd3ff6ceb1346686c4a69cf6d6c102632f5))
+- **responsividade:** piso de toque do .btn só abaixo de 768px ([d03bf3b](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/d03bf3b71e995f4d6a7ada1ab21a7959c30149b3))
+
+### Features
+
+- **responsividade:** BI-15 BI-102 TASK-002-015 contém camadas flutuantes do SweetAlert em 90vw/32rem ([6f22438](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/6f22438bbf7b67b1b983334c5c182bcff70f3a21))
+- **responsividade:** BI-15 BI-89 TASK-002-002 navegação global responsiva (drawer) CSS-only ([daf49b7](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/daf49b7696e0de8d84244b1a154fae40c53e36f9))
+- **responsividade:** BI-15 BI-90 TASK-002-003 tabela com scroll contido e colunas sticky ([a9172fd](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a9172fd0e63fbd0a8b21a8f3bff2190d6cc7b386))
+- **responsividade:** BI-15 BI-91 TASK-002-004 adiciona title/wrap em colunas de texto longo ([8ddd962](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/8ddd9621cf87e2ba05fc325fedca47aaed265dbb))
+- **responsividade:** BI-15 BI-92 TASK-002-005 adiciona área de toque à paginação e ordenação do DataTable ([7a66514](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/7a6651417c66c8cff083d762d0a9407347c641be))
+- **responsividade:** BI-15 BI-93 TASK-002-006 area de toque em Fields/FormGroup ([2cdabbc](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/2cdabbccfc57889c736ee2ea81cc5cb014a9e98c))
+- **responsividade:** BI-15 BI-97 TASK-002-010 empilha texto da aula no painel inicial ([b5da6da](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/b5da6da23ab81dd80608a19af93ea8c74a0d4f3d))
+
 # [1.2.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.1.0...v1.2.0) (2026-09-18)
 
 ### Bug Fixes
