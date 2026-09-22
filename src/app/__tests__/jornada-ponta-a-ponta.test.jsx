@@ -190,7 +190,7 @@ describe('Jornada ponta a ponta (AC-001-019, COMP-002-019)', () => {
     });
     GetAulaByIdService.handle.mockResolvedValue({ data: AULA_DO_DIA });
     UpdateAulaService.handle.mockResolvedValue({
-      data: { ...AULA_DO_DIA, observacao: 'Observação atualizada em 375px.' },
+      data: { ...AULA_DO_DIA, observacao: 'Observação atualizada.' },
     });
     GetAlunoListService.handle.mockResolvedValue({
       data: { data: [ALUNO], count: 1, message: null },
@@ -284,7 +284,7 @@ describe('Jornada ponta a ponta (AC-001-019, COMP-002-019)', () => {
     );
     const observacao = await screen.findByLabelText(/Conteúdo\/Observação/);
     fireEvent.change(observacao, {
-      target: { value: 'Observação atualizada em 375px.' },
+      target: { value: 'Observação atualizada.' },
     });
     fireEvent.submit(screen.getByTestId('aula-form'));
 
@@ -294,7 +294,7 @@ describe('Jornada ponta a ponta (AC-001-019, COMP-002-019)', () => {
       expect(UpdateAulaService.handle).toHaveBeenCalledWith(
         '42',
         expect.objectContaining({
-          observacao: 'Observação atualizada em 375px.',
+          observacao: 'Observação atualizada.',
         })
       )
     );
