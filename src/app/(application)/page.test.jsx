@@ -120,6 +120,63 @@ describe('Home Page - Dashboard', () => {
       expect(useDashboard).toHaveBeenCalled();
     });
   });
+
+  it('não deixa o texto da aula forçar a largura do row em telas estreitas (guarda de configuração — min-w-0/flex-1 no container; scrollWidth real não é medível em jsdom, ver gate 9/qa)', () => {
+    makeFullNameLabel.mockReturnValue(
+      'joaozinhodasilvaoliveiraferreiraresponsividade'
+    );
+    makeEmailLabel.mockReturnValue(
+      'joaozinhodasilvaoliveiraferreiraresponsividade@example.com'
+    );
+    useDashboard.mockReturnValue({
+      ...defaultDashboardData,
+      aulas: [
+        {
+          id: 1,
+          aluno: {
+            nome: 'joaozinhodasilvaoliveiraferreiraresponsividade',
+            sobrenome: '',
+          },
+          professor: {
+            email: 'joaozinhodasilvaoliveiraferreiraresponsividade@example.com',
+          },
+          tipo: 'PADRAO',
+          status: 'AGENDADA',
+          dataAula: '2026-01-01',
+          horaInicial: '2026-01-01T10:00:00',
+          horaFinal: '2026-01-01T11:00:00',
+        },
+      ],
+    });
+
+    const { container } = render(<Home />);
+
+    const textoDaLinha = container.querySelector(
+      '.flex.items-center.gap-5 > div:last-child'
+    );
+
+    expect(textoDaLinha).toHaveClass('min-w-0');
+    expect(textoDaLinha).toHaveClass('flex-1');
+
+    const textosDeUsuario = textoDaLinha.querySelectorAll('p');
+    // Guarda de configuração (F3): confirma que os `<p>` que renderizam nome
+    // do aluno e nome/email do professor (dado de origem do usuário, sem
+    // espaço) têm `break-words`. `min-w-0`/`flex-1` no ancestral flex é
+    // condição necessária mas não suficiente para conter um token sem
+    // espaço — não mede `scrollWidth` real (limitação de jsdom); a medição
+    // de efeito de layout fica para o gate 9 (qa, Playwright).
+    expect(textosDeUsuario[0]).toHaveClass('break-words');
+    expect(textosDeUsuario[1]).toHaveClass('break-words');
+  });
+
+  it('mantém os 3 cartões de resumo empilhados em coluna única por padrão', () => {
+    const { container } = render(<Home />);
+
+    expect(container.querySelector('.grid.grid-cols-1')).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/Alunos|Aulas|Contratos/).length
+    ).toBeGreaterThanOrEqual(3);
+  });
 });
 
 describe('HomeInfoCard — tempo relativo estável até montar (AC-001-004)', () => {

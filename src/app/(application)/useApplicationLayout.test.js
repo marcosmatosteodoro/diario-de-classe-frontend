@@ -4,7 +4,16 @@ import { useApplicationLayout } from './useApplicationLayout';
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }));
 jest.mock('@/providers/UserAuthProvider', () => ({ useUserAuth: jest.fn() }));
 jest.mock('@/providers/ToastProvider', () => ({ useToast: jest.fn() }));
-jest.mock('@/utils/isMobileFunction', () => ({ isMobileFunction: jest.fn() }));
+// Canário do NFR-001-005/AC-001-020: prova que o hook nunca chama
+// isMobileFunction no fluxo de render/toggle (nenhum outro teste deste
+// arquivo exercita este módulo).
+jest.mock('@/utils/isMobileFunction', () => ({
+  isMobileFunction: jest.fn(() => {
+    throw new Error(
+      'isMobileFunction não pode ser chamada no fluxo de render/toggle'
+    );
+  }),
+}));
 const dispatchMock = jest.fn();
 jest.mock('react-redux', () => ({
   useSelector: jest.fn(),
@@ -18,7 +27,6 @@ describe('useApplicationLayout', () => {
   let routerMock,
     isAuthenticatedMock,
     errorMock,
-    isMobileFunctionMock,
     useSelectorMock,
     removeAuthenticateMock;
   const mockRefreshToken = 'test-refresh-token-123';
@@ -27,7 +35,6 @@ describe('useApplicationLayout', () => {
     routerMock = { push: jest.fn() };
     isAuthenticatedMock = jest.fn();
     errorMock = jest.fn();
-    isMobileFunctionMock = jest.fn();
     removeAuthenticateMock = jest.fn();
     useSelectorMock = require('react-redux').useSelector;
     useSelectorMock.mockImplementation(fn =>
@@ -42,9 +49,6 @@ describe('useApplicationLayout', () => {
     require('@/providers/ToastProvider').useToast.mockReturnValue({
       error: errorMock,
     });
-    require('@/utils/isMobileFunction').isMobileFunction.mockImplementation(
-      isMobileFunctionMock
-    );
   });
 
   afterEach(() => {
@@ -76,25 +80,22 @@ describe('useApplicationLayout', () => {
     });
   });
 
-  it('deve alternar sidebar para mobile', () => {
-    isMobileFunctionMock.mockReturnValue(true);
+  it('deve alternar isExpanded ao chamar toggleSidebar, sem calcular classes', () => {
     const { result } = renderHook(() => useApplicationLayout());
     act(() => {
       result.current.toggleSidebar();
     });
-    expect(result.current.sidebarExpanded.sidebarClass).toBe('absolute w-full');
-    expect(result.current.sidebarExpanded.isExpanded).toBe(true);
+    expect(result.current.sidebarExpanded).toEqual({ isExpanded: true });
   });
 
-  it('deve alternar sidebar para desktop', () => {
-    isMobileFunctionMock.mockReturnValue(false);
+  it('não chama isMobileFunction no fluxo de render/toggle', () => {
     const { result } = renderHook(() => useApplicationLayout());
-    act(() => {
-      result.current.toggleSidebar();
-    });
-    expect(result.current.sidebarExpanded.sidebarClass).toBe('w-[180px]');
-    expect(result.current.sidebarExpanded.mainClass).toBe('ml-[150px]');
-    expect(result.current.sidebarExpanded.isExpanded).toBe(true);
+    expect(() => {
+      act(() => {
+        result.current.toggleSidebar();
+      });
+    }).not.toThrow();
+    expect(result.current.sidebarExpanded).toEqual({ isExpanded: true });
   });
 
   it('deve chamar dispatch(logout), removeAuthenticate, error e router.push se statusError de professores for 401', () => {
@@ -236,14 +237,5 @@ describe('useApplicationLayout', () => {
     );
     expect(routerMock.push).toHaveBeenCalledTimes(1);
     expect(routerMock.push).toHaveBeenCalledWith('/login');
-  });
-
-  it('deve retornar o valor correto de isMobile', () => {
-    isMobileFunctionMock.mockReturnValue(true);
-    const { result } = renderHook(() => useApplicationLayout());
-    expect(result.current.isMobile).toBe(true);
-    isMobileFunctionMock.mockReturnValue(false);
-    const { result: result2 } = renderHook(() => useApplicationLayout());
-    expect(result2.current.isMobile).toBe(false);
   });
 });

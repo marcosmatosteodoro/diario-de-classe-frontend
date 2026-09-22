@@ -9,7 +9,6 @@ const defaultProps = {
   active: false,
   href: '/',
   sidebarExpanded: true,
-  isMobile: false,
 };
 
 describe('SidebarItem', () => {
@@ -46,7 +45,6 @@ describe('SidebarItem', () => {
         active={false}
         href="/"
         sidebarExpanded={true}
-        isMobile={false}
       ></SidebarItem>
     );
     expect(getByText('Item')).toBeInTheDocument();
@@ -55,8 +53,38 @@ describe('SidebarItem', () => {
 
   it('should render with custom label', () => {
     const { getByText } = render(
-      <SidebarItem {...defaultProps} label="Custom" isMobile={false} />
+      <SidebarItem {...defaultProps} label="Custom" />
     );
     expect(getByText('Custom')).toBeInTheDocument();
+  });
+
+  it('mostra a tooltip de recolhido (group-hover) quando sidebarExpanded=false, sem depender de isMobile', () => {
+    const { container } = render(
+      <SidebarItem {...defaultProps} sidebarExpanded={false} />
+    );
+    expect(
+      container.querySelector('span.group-hover\\:inline-block')
+    ).toBeInTheDocument();
+  });
+
+  it('em largura abaixo do breakpoint, fecha o drawer (onNavigate) ao clicar no link', () => {
+    window.matchMedia = jest.fn().mockReturnValue({ matches: true });
+    const onNavigate = jest.fn();
+    const { getByRole } = render(
+      <SidebarItem {...defaultProps} onNavigate={onNavigate} />
+    );
+    fireEvent.click(getByRole('link'));
+    expect(window.matchMedia).toHaveBeenCalledWith('(max-width: 767px)');
+    expect(onNavigate).toHaveBeenCalled();
+  });
+
+  it('em largura a partir do breakpoint, não fecha o drawer ao clicar no link', () => {
+    window.matchMedia = jest.fn().mockReturnValue({ matches: false });
+    const onNavigate = jest.fn();
+    const { getByRole } = render(
+      <SidebarItem {...defaultProps} onNavigate={onNavigate} />
+    );
+    fireEvent.click(getByRole('link'));
+    expect(onNavigate).not.toHaveBeenCalled();
   });
 });

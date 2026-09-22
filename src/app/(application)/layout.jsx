@@ -4,26 +4,24 @@ import { useApplicationLayout } from './useApplicationLayout';
 import { Header, Sidebar, Footer, Loading } from '@/components';
 
 export default function ApplicationLayout({ children }) {
-  const {
-    isMobile,
-    isUnauthorized,
-    isLoading,
-    sidebarExpanded,
-    toggleSidebar,
-  } = useApplicationLayout();
+  const { isUnauthorized, isLoading, sidebarExpanded, toggleSidebar } =
+    useApplicationLayout();
 
   return (
     <div className="min-h-screen bg-secondary">
-      <Header />
+      <Header
+        isExpanded={sidebarExpanded.isExpanded}
+        toggleSidebar={toggleSidebar}
+      />
       <div className="flex pt-16 min-h-screen">
         <Sidebar
-          sidebarExpanded={sidebarExpanded.isExpanded}
-          sidebarClass={sidebarExpanded.sidebarClass}
+          isExpanded={sidebarExpanded.isExpanded}
           toggleSidebar={toggleSidebar}
-          isMobile={isMobile}
         />
         <main
-          className={`flex-1 p-8 transition-all duration-300 ease-in-out ${sidebarExpanded.mainClass}`}
+          className={`min-w-0 flex-1 p-8 transition-all duration-300 ease-in-out ${
+            sidebarExpanded.isExpanded ? 'md:ml-[150px]' : 'md:ml-18'
+          }`}
         >
           {isLoading || isUnauthorized ? (
             <Loading />

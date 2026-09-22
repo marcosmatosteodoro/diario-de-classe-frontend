@@ -149,12 +149,12 @@ const HomeInfoCard = ({
       className={`flex items-center gap-5 p-4 bg-secondary rounded-lg transition-transform duration-200 ${canEdit ? 'cursor-pointer bg-sidebar hover:scale-105' : ''}  `}
     >
       <Avatar text={name} className="w-10 h-10" />
-      <div>
-        <p className="font-medium text-main">
+      <div className="min-w-0 flex-1">
+        <p className="font-medium text-main break-words">
           <b>{name}</b> {action}
         </p>
 
-        <p className="text-sm text-muted">{professorName}</p>
+        <p className="text-sm text-muted break-words">{professorName}</p>
         <p className="text-sm text-muted">{time}</p>
       </div>
     </div>

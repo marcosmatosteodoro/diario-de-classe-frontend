@@ -8,20 +8,23 @@ jest.mock('./useApplicationLayout', () => ({
     isLoading: false,
     sidebarExpanded: {
       isExpanded: true,
-      sidebarClass: 'sidebar-expanded',
-      mainClass: 'main-expanded',
     },
     toggleSidebar: jest.fn(),
   }),
 }));
 
 jest.mock('@/components', () => ({
-  Header: () => <header data-testid="header" />,
-  Sidebar: ({ sidebarExpanded, sidebarClass, toggleSidebar }) => (
+  Header: ({ isExpanded, toggleSidebar }) => (
+    <header
+      data-testid="header"
+      data-expanded={isExpanded}
+      onClick={toggleSidebar}
+    />
+  ),
+  Sidebar: ({ isExpanded, toggleSidebar }) => (
     <aside
       data-testid="sidebar"
-      data-expanded={sidebarExpanded}
-      data-class={sidebarClass}
+      data-expanded={isExpanded}
       onClick={toggleSidebar}
     />
   ),
@@ -50,8 +53,6 @@ describe('ApplicationLayout', () => {
         isLoading: true,
         sidebarExpanded: {
           isExpanded: true,
-          sidebarClass: 'sidebar-expanded',
-          mainClass: 'main-expanded',
         },
         toggleSidebar: jest.fn(),
       }),
@@ -66,7 +67,7 @@ describe('ApplicationLayout', () => {
     expect(screen.getByTestId('loading')).toBeInTheDocument();
   });
 
-  it('passa props corretos para Sidebar e permite toggle', async () => {
+  it('passa isExpanded/toggleSidebar corretos para Sidebar e Header, e permite toggle', async () => {
     const toggleSidebar = jest.fn();
     jest.resetModules();
     jest.doMock('./useApplicationLayout', () => ({
@@ -74,8 +75,6 @@ describe('ApplicationLayout', () => {
         isLoading: false,
         sidebarExpanded: {
           isExpanded: false,
-          sidebarClass: 'sidebar-collapsed',
-          mainClass: 'main-collapsed',
         },
         toggleSidebar,
       }),
@@ -88,9 +87,22 @@ describe('ApplicationLayout', () => {
       </ApplicationLayoutReloaded>
     );
     const sidebar = screen.getByTestId('sidebar');
+    const header = screen.getByTestId('header');
     expect(sidebar).toHaveAttribute('data-expanded', 'false');
-    expect(sidebar).toHaveAttribute('data-class', 'sidebar-collapsed');
+    expect(header).toHaveAttribute('data-expanded', 'false');
     fireEvent.click(sidebar);
     await waitFor(() => expect(toggleSidebar).toHaveBeenCalled());
+  });
+
+  it('main tem min-w-0, para não crescer pelo conteúdo mínimo de um filho flex quando o conteúdo é mais largo que a viewport', () => {
+    render(
+      <ApplicationLayout>
+        {' '}
+        <div data-testid="conteudo" />{' '}
+      </ApplicationLayout>
+    );
+    const classes = screen.getByRole('main').className.split(' ');
+    expect(classes).toContain('min-w-0');
+    expect(classes).toContain('flex-1');
   });
 });

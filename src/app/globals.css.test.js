@@ -187,3 +187,20 @@ describe('globals.css — ícone do seletor de data/hora no tema dark (BI-40)', 
     document.documentElement.removeAttribute('data-theme');
   });
 });
+
+// AC-001-009/DEC-002-004: a área de toque mínima (44px) de todos os
+// consumidores (`Table/index.jsx`, `.tap-target` aqui mesmo,
+// `datatable-dark.css`) depende de UM único ponto de verdade —
+// `--tap-target-size`, declarada no bloco `:root`. Os consumidores só
+// asserem a indireção (`var(--tap-target-size)`); sem este teste, um typo
+// no nome da variável ou a remoção/alteração do valor no `:root` derrubaria
+// a área de toque nos 12 consumidores com a suíte inteira verde.
+describe('globals.css — --tap-target-size (DEC-002-004)', () => {
+  it('declara --tap-target-size: 2.75rem no bloco :root', () => {
+    const rootBlock = extractBlockBody(cssSource, ':root {');
+    expect(rootBlock).not.toBeNull();
+    expect(rootBlock.body.replace(/\s+/g, ' ')).toContain(
+      '--tap-target-size: 2.75rem;'
+    );
+  });
+});
