@@ -1,6 +1,7 @@
 import { createElement } from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { mountRaw } from '@/utils/mountRaw';
+import { todayLocalDate } from '@/utils/todayLocalDate';
 import { useAulaForm } from './useAulaForm';
 
 // `mountRaw` (ACH-10) cuida do `flushSync`/supressão de aviso de `act`
@@ -197,8 +198,11 @@ describe('useAulaForm', () => {
       const submit = jest.fn();
       const { result } = renderHook(() => useAulaForm({ id: 1, submit }));
       const fakeEvent = { preventDefault: jest.fn() };
-      const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
+      // `todayLocalDate()`, não `new Date().toISOString()`: o campo é
+      // `<input type="date">`, que trabalha em data local — em UTC-3, das
+      // 21h em diante `.toISOString()` já virou o dia seguinte em UTC
+      // (mesmo bug que `todayLocalDate.js` documenta e corrige).
+      const todayStr = todayLocalDate();
       act(() => {
         result.current.handleChange({
           target: { name: 'dataAula', value: todayStr },
