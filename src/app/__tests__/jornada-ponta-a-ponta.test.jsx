@@ -63,7 +63,7 @@ jest.mock('@/services/contrato/getContratoListService', () => ({
 
 // `useSweetAlert` (COMP-002-018) não é o mecanismo real de confirmação desta
 // jornada: `useEditarAula` confirma via `useToast().success` (SuccessToast),
-// não via SweetAlert2 — ver desvio declarado no report da TASK-002-016.
+// não via SweetAlert2.
 // Mock aqui troca a MESMA técnica (mock + asserção de chamada, não de
 // renderização) para o mecanismo que o código realmente usa.
 const successToast = jest.fn();
@@ -163,25 +163,13 @@ function Providers({ store, children }) {
   );
 }
 
-describe('Jornada ponta a ponta em tela estreita (AC-001-019, COMP-002-019)', () => {
+describe('Jornada ponta a ponta (AC-001-019, COMP-002-019)', () => {
   let store;
 
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
     store = createRealStore();
-
-    // 375px: SidebarItem fecha o drawer ao navegar só abaixo do breakpoint
-    // (FR-001-004) — sem isso, a jornada não exerce o cenário do AC.
-    window.matchMedia = jest.fn().mockImplementation(query => ({
-      matches: query === '(max-width: 767px)',
-      media: query,
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    }));
 
     LoiginService.handle.mockResolvedValue({
       data: {
