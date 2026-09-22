@@ -20,6 +20,19 @@ describe('withStickyColumns', () => {
     expect(result[4].style.right).toBe('0px');
   });
 
+  it('usa background-color: inherit nas células sticky, não um token fixo — a célula herda o background COMPUTADO da linha (base/zebra/hover) em vez de travar numa cor estática que nunca muda de estado', () => {
+    const columns = [
+      { name: '#', essential: true, width: '75px' },
+      { name: 'Nome', essential: false },
+      { name: 'Ações', isAction: true, width: 'auto' },
+    ];
+
+    const result = withStickyColumns(columns);
+
+    expect(result[0].style.backgroundColor).toBe('inherit');
+    expect(result[2].style.backgroundColor).toBe('inherit');
+  });
+
   it('não lança e não atribui right quando não há coluna isAction (readOnly), mas mantém # sticky', () => {
     const columns = [
       { name: '#', essential: true, width: '75px' },

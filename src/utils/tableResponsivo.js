@@ -30,7 +30,14 @@
  */
 const ESSENTIAL_DEFAULT_WIDTH_PX = 140;
 const STICKY_Z_INDEX = 1;
-const STICKY_BACKGROUND_COLOR = 'var(--color-table-sticky-bg)';
+// `inherit`, não um token fixo: a célula sticky é filha direta da linha
+// (`.rdt_TableRow`), que já pinta o próprio background (base, striped ou
+// hover) via customStyles/tema — herdar o valor COMPUTADO do pai mantém a
+// célula sticky opaca (nada de conteúdo rolado por baixo aparecendo) e, ao
+// mesmo tempo, sincronizada com hover/zebra em tempo real. Um valor fixo
+// (ex. token de tema) nunca muda com o estado da linha — célula sticky fica
+// sem hover e sem zebra, parecendo "fora" da linha.
+const STICKY_BACKGROUND_COLOR = 'inherit';
 
 export function withStickyColumns(columns) {
   let stickyEssentialAssigned = false;
