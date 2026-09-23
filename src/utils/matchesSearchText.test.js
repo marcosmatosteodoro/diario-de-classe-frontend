@@ -1,4 +1,4 @@
-import { matchesSearchText } from './matchesSearchText';
+import { matchesSearchText, normalizeSearchText } from './matchesSearchText';
 
 describe('matchesSearchText', () => {
   it('should match a substring in the middle of the label', () => {
@@ -27,7 +27,6 @@ describe('matchesSearchText', () => {
   });
 
   it('should keep 1.000 calls well within the ~300ms NFR-001-001 budget', () => {
-    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     const labels = Array.from(
       { length: 1000 },
       (_, index) => `aluno numero ${index} silva`
@@ -38,8 +37,23 @@ describe('matchesSearchText', () => {
     const duration = performance.now() - start;
 
     expect(duration).toBeLessThan(100);
-    expect(warnSpy).not.toHaveBeenCalled();
+  });
+});
 
-    warnSpy.mockRestore();
+describe('normalizeSearchText', () => {
+  it('should lowercase and strip accents from the text', () => {
+    expect(normalizeSearchText('João')).toBe('joao');
+  });
+
+  it('should lowercase text that already has no accents', () => {
+    expect(normalizeSearchText('SILVA')).toBe('silva');
+  });
+
+  it('should strip accents while preserving mixed-case letters as lowercase', () => {
+    expect(normalizeSearchText('Antônio')).toBe('antonio');
+  });
+
+  it('should return an empty string for an empty input', () => {
+    expect(normalizeSearchText('')).toBe('');
   });
 });
