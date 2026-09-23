@@ -95,6 +95,24 @@ describe('SearchableSelectField', () => {
     expect(screen.getAllByRole('option')).toHaveLength(OPTIONS.length);
   });
 
+  it('FR-001-003: digitar diretamente, sem clique prévio, também abre e filtra o seletor', () => {
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+        options={OPTIONS}
+      />
+    );
+    const input = screen.getByLabelText('Aluno');
+    fireEvent.change(input, { target: { value: 'maria' } });
+    expect(input).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getAllByRole('option').map(o => o.textContent)).toEqual([
+      'Maria Souza',
+    ]);
+  });
+
   it('AC-001-003 (i): a cada tecla, estreita a lista às opções que correspondem, sem mínimo de caracteres', async () => {
     const user = userEvent.setup();
     render(
