@@ -113,6 +113,13 @@
   .input-field {
     @apply focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500 disabled:opacity-60;
   }
+  /* Destaque de item por teclado/mouse em listbox (SearchableSelectField):
+     mesma cor de anel que .input-field usa no foco — nunca bg-secondary
+     (fundo de página, contraste ~1:1 contra bg-main aqui) — para garantir
+     contraste real (>=3:1) nos dois temas. */
+  .option-highlighted {
+    @apply ring-2 ring-inset ring-blue-500;
+  }
   .page-title {
     @apply text-xl font-bold mb-4 text-gray-800;
   }
@@ -151,6 +158,9 @@
     }
     .input-field {
       @apply focus:ring-blue-400 bg-slate-800 text-slate-100 disabled:bg-slate-700 disabled:text-slate-500 disabled:opacity-60;
+    }
+    .option-highlighted {
+      @apply ring-2 ring-inset ring-blue-400;
     }
     /* Ícone nativo do date/time picker é pseudo-elemento do UA, não
        alcançável por color/background comuns; color-scheme: dark pede os
@@ -256,6 +266,9 @@
       }
       .input-field {
         @apply focus:ring-blue-400 bg-slate-800 text-slate-100 disabled:bg-slate-700 disabled:text-slate-500 disabled:opacity-60;
+      }
+      .option-highlighted {
+        @apply ring-2 ring-inset ring-blue-400;
       }
       .page-title {
         @apply text-slate-100;

@@ -10,6 +10,15 @@ const OPTIONS = [
   { value: '3', label: 'José Santos' },
 ];
 
+// jsdom não implementa scrollIntoView — stub local, não mock de módulo.
+beforeAll(() => {
+  Element.prototype.scrollIntoView = jest.fn();
+});
+
+beforeEach(() => {
+  Element.prototype.scrollIntoView.mockClear();
+});
+
 // Harness controlado: reflete `onChange` de volta em `value`, como um
 // `use<Entidade>Form` real faria — necessário para provar que a seleção
 // atualiza o texto exibido (AC-001-005), não só que `onChange` foi chamado.
@@ -35,7 +44,8 @@ const ControlledSearchableSelectField = ({
 };
 
 describe('SearchableSelectField', () => {
-  it('AC-001-001: aparece como o novo seletor pesquisável, sem mecanismo de múltipla seleção', () => {
+  it('AC-001-001: aparece como o novo seletor pesquisável, sem mecanismo de múltipla seleção, seleção provada por contagem', async () => {
+    const user = userEvent.setup();
     render(
       <SearchableSelectField
         htmlFor="idAluno"
@@ -49,6 +59,14 @@ describe('SearchableSelectField', () => {
     expect(input).toHaveAttribute('role', 'combobox');
     expect(input).toHaveValue('João Silva');
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+
+    // Prova por contagem: marcar aria-selected em todas as opções, ou
+    // aria-multiselectable no listbox, teria que derrubar esta asserção.
+    await user.click(input);
+    await user.keyboard('{ArrowDown}');
+    const listbox = screen.getByRole('listbox');
+    expect(listbox).not.toHaveAttribute('aria-multiselectable');
+    expect(screen.getAllByRole('option', { selected: true })).toHaveLength(1);
   });
 
   it('AC-001-009: nunca renderiza mais opções do que `options` recebida', async () => {
@@ -134,6 +152,27 @@ describe('SearchableSelectField', () => {
     ]);
   });
 
+  it('AC-001-003 (i), caso de 1 único caractere: um mutante que exige 2+ caracteres não passa despercebido', async () => {
+    const user = userEvent.setup();
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+        options={OPTIONS}
+      />
+    );
+    const input = screen.getByLabelText('Aluno');
+    await user.click(input);
+    await user.type(input, 'j');
+    const options = screen.getAllByRole('option');
+    expect(options.map(option => option.textContent)).toEqual([
+      'João Silva',
+      'José Santos',
+    ]);
+  });
+
   it('AC-001-003 (ii): com errorMessage, mantém a última lista válida, mostra o erro e o input continua editável', async () => {
     const user = userEvent.setup();
     render(
@@ -177,6 +216,47 @@ describe('SearchableSelectField', () => {
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
   });
 
+  it('AC-001-004: erro presente com options=[] mostra só o erro, sem o vazio (não carregou nada ainda)', async () => {
+    const user = userEvent.setup();
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+        options={[]}
+        errorMessage="Erro ao buscar alunos"
+      />
+    );
+    const input = screen.getByLabelText('Aluno');
+    await user.click(input);
+    expect(screen.getByText('Erro ao buscar alunos')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Nenhum resultado encontrado.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('AC-001-004: erro presente com options preenchida e busca sem match mostra os dois (erro e vazio)', async () => {
+    const user = userEvent.setup();
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+        options={OPTIONS}
+        errorMessage="Erro ao buscar alunos"
+      />
+    );
+    const input = screen.getByLabelText('Aluno');
+    await user.click(input);
+    await user.type(input, 'zzz');
+    expect(screen.getByText('Erro ao buscar alunos')).toBeInTheDocument();
+    expect(
+      screen.getByText('Nenhum resultado encontrado.')
+    ).toBeInTheDocument();
+  });
+
   it('AC-001-005: clique numa opção fecha o seletor, atualiza o texto exibido e chama onChange com o value exato', async () => {
     const user = userEvent.setup();
     const onChangeSpy = jest.fn();
@@ -198,7 +278,9 @@ describe('SearchableSelectField', () => {
     render(<ControlledSearchableSelectField onChangeSpy={onChangeSpy} />);
     const input = screen.getByLabelText('Aluno');
     await user.click(input);
-    await user.keyboard('{ArrowDown}{ArrowDown}'); // João(0) -> Maria(1) -> José(2)
+    // Sem destaque por padrão ao abrir: a primeira seta estabelece o
+    // destaque em João(0); as duas seguintes avançam para Maria(1) e José(2).
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}');
     await user.keyboard('{Enter}');
 
     expect(onChangeSpy).toHaveBeenCalledWith({
@@ -233,6 +315,27 @@ describe('SearchableSelectField', () => {
     expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
+  it('espaço abre o seletor por um caminho que só o espaço produz (não vira texto digitado)', async () => {
+    const user = userEvent.setup();
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+        options={OPTIONS}
+      />
+    );
+    const input = screen.getByLabelText('Aluno');
+    input.focus();
+
+    await user.keyboard(' ');
+    expect(input).toHaveAttribute('aria-expanded', 'true');
+    // Distinto de digitar literalmente um espaço como busca: o espaço de
+    // abertura não vira texto.
+    expect(input).toHaveValue('');
+  });
+
   it('AC-001-006: ArrowDown repetido no último item permanece nele, não dá a volta', async () => {
     const user = userEvent.setup();
     const onChangeSpy = jest.fn();
@@ -253,6 +356,9 @@ describe('SearchableSelectField', () => {
     render(<ControlledSearchableSelectField onChangeSpy={onChangeSpy} />);
     const input = screen.getByLabelText('Aluno');
     await user.click(input);
+    // Estabelece o destaque no primeiro item (João, index 0) antes de testar
+    // o clamp — não há destaque por padrão ao abrir.
+    await user.keyboard('{ArrowDown}');
     await user.keyboard('{ArrowUp}{ArrowUp}');
     await user.keyboard('{Enter}');
 
@@ -295,8 +401,109 @@ describe('SearchableSelectField', () => {
     );
     const secondInput = screen.getByLabelText('Aluno');
     await user.click(secondInput);
-    await user.keyboard('{Enter}');
+    await user.keyboard('{ArrowDown}{Enter}');
     expect(onChangeSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('sem item destacado por padrão ao abrir ou ao filtrar (nenhuma opção com destaque até a primeira seta)', async () => {
+    const user = userEvent.setup();
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+        options={OPTIONS}
+      />
+    );
+    const input = screen.getByLabelText('Aluno');
+    await user.click(input);
+    expect(
+      screen.queryByRole('option', { selected: true })
+    ).not.toBeInTheDocument();
+
+    await user.type(input, 'a');
+    expect(
+      screen.queryByRole('option', { selected: true })
+    ).not.toBeInTheDocument();
+
+    await user.keyboard('{ArrowDown}');
+    expect(screen.getAllByRole('option', { selected: true })).toHaveLength(1);
+    expect(screen.getByRole('option', { name: 'João Silva' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
+  it('ArrowDown a partir de "nenhum destaque" vai para o primeiro item filtrado', async () => {
+    const user = userEvent.setup();
+    const onChangeSpy = jest.fn();
+    render(<ControlledSearchableSelectField onChangeSpy={onChangeSpy} />);
+    const input = screen.getByLabelText('Aluno');
+    await user.click(input);
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    expect(onChangeSpy).toHaveBeenCalledWith({
+      target: { name: 'idAluno', value: '1' },
+    });
+  });
+
+  it('ArrowUp a partir de "nenhum destaque" vai para o último item filtrado', async () => {
+    const user = userEvent.setup();
+    const onChangeSpy = jest.fn();
+    render(<ControlledSearchableSelectField onChangeSpy={onChangeSpy} />);
+    const input = screen.getByLabelText('Aluno');
+    await user.click(input);
+    await user.keyboard('{ArrowUp}{Enter}');
+
+    expect(onChangeSpy).toHaveBeenCalledWith({
+      target: { name: 'idAluno', value: '3' },
+    });
+  });
+
+  it('hover do mouse escreve no mesmo estado de destaque do teclado (única fonte de "ativo" por vez)', async () => {
+    const user = userEvent.setup();
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+        options={OPTIONS}
+      />
+    );
+    const input = screen.getByLabelText('Aluno');
+    await user.click(input);
+    await user.keyboard('{ArrowDown}'); // destaque do teclado em João (index 0)
+    const options = screen.getAllByRole('option');
+    expect(options[0]).toHaveAttribute('aria-selected', 'true');
+
+    await user.hover(options[1]); // mouse parado sobre Maria (index 1)
+    expect(options[1]).toHaveAttribute('aria-selected', 'true');
+    expect(options[0]).toHaveAttribute('aria-selected', 'false');
+    // Só uma fonte de "ativo" por vez — nunca dois destacados ao mesmo tempo.
+    expect(screen.getAllByRole('option', { selected: true })).toHaveLength(1);
+  });
+
+  it('mudar o índice destacado (seta) aciona scrollIntoView sobre o item correspondente', async () => {
+    const user = userEvent.setup();
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+        options={OPTIONS}
+      />
+    );
+    const input = screen.getByLabelText('Aluno');
+    await user.click(input);
+    expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
+
+    await user.keyboard('{ArrowDown}');
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+      block: 'nearest',
+    });
   });
 
   it('NFR-001-001: com fixture de 1.000 opções, a lista reflete cada tecla em até ~300ms', () => {
@@ -323,6 +530,80 @@ describe('SearchableSelectField', () => {
       const elapsed = performance.now() - start;
       expect(elapsed).toBeLessThan(300);
     });
+  });
+
+  it('AC required: passado como true, o BaseField sufixa o rótulo com *', () => {
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        required
+        value=""
+        onChange={jest.fn()}
+        options={OPTIONS}
+      />
+    );
+    expect(screen.getByText('Aluno *')).toBeInTheDocument();
+  });
+
+  it('AC required: omitido ou false, sem sufixo no rótulo', () => {
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+        options={OPTIONS}
+      />
+    );
+    expect(screen.getByText('Aluno')).toBeInTheDocument();
+    expect(screen.queryByText('Aluno *')).not.toBeInTheDocument();
+  });
+
+  it('default de `options` é [] — renderiza sem lançar erro e abre em estado vazio', async () => {
+    const user = userEvent.setup();
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+      />
+    );
+    const input = screen.getByLabelText('Aluno');
+    await user.click(input);
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Nenhum resultado encontrado.')
+    ).toBeInTheDocument();
+  });
+
+  it('`placeholder` aparece como atributo quando passado; omitido, não aparece com valor fixo', () => {
+    const { rerender } = render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+        options={OPTIONS}
+        placeholder="Buscar aluno"
+      />
+    );
+    expect(screen.getByLabelText('Aluno')).toHaveAttribute(
+      'placeholder',
+      'Buscar aluno'
+    );
+
+    rerender(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+        options={OPTIONS}
+      />
+    );
+    expect(screen.getByLabelText('Aluno')).not.toHaveAttribute('placeholder');
   });
 
   it('index.js reexporta SearchableSelectField e o barrel `@/components` resolve', () => {
