@@ -6,6 +6,7 @@ import { ReduxProvider } from '@/providers/ReduxyProvider';
 import { UserAuthProvider } from '@/providers/UserAuthProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { getKey, parseThemeCookie } from '@/utils/themeCookie';
+import { ServiceWorkerRegister } from '@/components/app/ServiceWorkerRegister';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -42,6 +43,7 @@ export default async function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <ServiceWorkerRegister />
         <ReduxProvider>
           <ThemeProvider initialTheme={initialTheme}>
             <ToastProvider>

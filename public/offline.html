@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#1e293b" />
+    <title>Sem conexão — Diário de Classe</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #1e293b;
+        color: #f8fafc;
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          sans-serif;
+        text-align: center;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+      main {
+        max-width: 360px;
+      }
+      img {
+        width: 72px;
+        height: 72px;
+        margin-bottom: 16px;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 0 0 12px;
+      }
+      p {
+        font-size: 0.95rem;
+        line-height: 1.5;
+        color: #cbd5e1;
+        margin: 0 0 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icon-192.png" alt="" />
+      <h1>Sem conexão com a internet</h1>
+      <p>Não é um defeito do Diário de Classe — sua conexão de rede caiu.</p>
+      <p>
+        Tente novamente quando a rede voltar. Esta página é atualizada sozinha
+        assim que a conexão for restabelecida.
+      </p>
+    </main>
+    <script>
+      // AC-001-014: reaparecimento automático da aplicação real ao
+      // reconectar, sem depender de clique manual do usuário.
+      window.addEventListener('online', () => location.reload());
+    </script>
+  </body>
+</html>

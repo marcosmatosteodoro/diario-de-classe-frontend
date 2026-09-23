@@ -1,6 +1,7 @@
 import RootLayout from './layout';
 import { cookies } from 'next/headers';
 import { ThemeProvider } from '@/providers/ThemeProvider';
+import { ServiceWorkerRegister } from '@/components/app/ServiceWorkerRegister';
 
 jest.mock('next/headers', () => ({ cookies: jest.fn() }));
 
@@ -79,5 +80,15 @@ describe('RootLayout', () => {
     expect(themeColorMeta.props.content).toBe('#1e293b');
     expect(iconLink.props.href).toMatch(/^\/icon-(192|512)\.png$/);
     expect(appleTouchIconLink.props.href).toMatch(/^\/icon-(192|512)\.png$/);
+  });
+
+  it('monta o ServiceWorkerRegister como filho do body (COMP-002-002)', async () => {
+    cookies.mockResolvedValue({ get: () => undefined });
+
+    const tree = await RootLayout({ children: 'conteudo' });
+
+    expect(
+      findElement(tree, el => el.type === ServiceWorkerRegister)
+    ).not.toBeNull();
   });
 });
