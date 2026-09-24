@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { computeAccessibleName } from 'dom-accessibility-api';
 import { SearchableSelectField } from './SearchableSelectField';
 import { SearchableSelectField as SearchableSelectFieldFromBarrel } from '@/components';
 
@@ -656,5 +657,478 @@ describe('SearchableSelectField', () => {
       />
     );
     expect(screen.getByLabelText('Aluno')).toBeInTheDocument();
+  });
+
+  describe('AC-001-012: ação de limpar', () => {
+    it('clique no botão de limpar chama onChange com valor vazio e não abre o seletor', async () => {
+      const user = userEvent.setup();
+      const onChangeSpy = jest.fn();
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value="1"
+          onChange={onChangeSpy}
+          options={OPTIONS}
+        />
+      );
+      const clearButton = screen.getByRole('button', {
+        name: 'Limpar seleção',
+      });
+      await user.click(clearButton);
+
+      expect(onChangeSpy).toHaveBeenCalledWith({
+        target: { name: 'idAluno', value: '' },
+      });
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
+
+    it('sem value selecionado, o botão de limpar não é renderizado', () => {
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      expect(
+        screen.queryByRole('button', { name: 'Limpar seleção' })
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('AC-001-013: blur sem seleção descarta o texto digitado', () => {
+    it('Tab com texto digitado e nenhuma opção selecionada descarta o texto, não chama onChange e mantém a seleção anterior', async () => {
+      const user = userEvent.setup();
+      const onChangeSpy = jest.fn();
+      render(
+        <ControlledSearchableSelectField
+          initialValue="1"
+          onChangeSpy={onChangeSpy}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+      await user.type(input, 'zzz');
+      await user.tab();
+
+      expect(onChangeSpy).not.toHaveBeenCalled();
+      expect(input).toHaveValue('João Silva');
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
+
+    it('clique fora com texto digitado e nenhuma opção selecionada descarta o texto, não chama onChange e mantém a seleção anterior', async () => {
+      const user = userEvent.setup();
+      const onChangeSpy = jest.fn();
+      render(
+        <ControlledSearchableSelectField
+          initialValue="1"
+          onChangeSpy={onChangeSpy}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+      await user.type(input, 'zzz');
+      await user.click(document.body);
+
+      expect(onChangeSpy).not.toHaveBeenCalled();
+      expect(input).toHaveValue('João Silva');
+    });
+
+    it('Enter sem nenhum item destacado não seleciona nada — controle positivo: Enter sobre o destaque seleciona (mesmo mock dispararia se regredisse)', async () => {
+      const user = userEvent.setup();
+      const onChangeSpy = jest.fn();
+      const { unmount } = render(
+        <ControlledSearchableSelectField onChangeSpy={onChangeSpy} />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+      await user.keyboard('{Enter}');
+      expect(onChangeSpy).not.toHaveBeenCalled();
+      unmount();
+
+      render(<ControlledSearchableSelectField onChangeSpy={onChangeSpy} />);
+      const secondInput = screen.getByLabelText('Aluno');
+      await user.click(secondInput);
+      await user.keyboard('{ArrowDown}{Enter}');
+      expect(onChangeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('sem seleção implícita por texto parecido: estreitar a lista a exatamente 1 opção e sair sem clicar/Enter não seleciona (achado do QA pré-código)', async () => {
+      const user = userEvent.setup();
+      const onChangeSpy = jest.fn();
+      render(
+        <ControlledSearchableSelectField
+          initialValue=""
+          onChangeSpy={onChangeSpy}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+      await user.type(input, 'Maria Souza');
+      expect(screen.getAllByRole('option')).toHaveLength(1);
+      await user.tab();
+
+      expect(onChangeSpy).not.toHaveBeenCalled();
+      expect(input).toHaveValue('');
+    });
+  });
+
+  describe('AC-001-008: rótulo fora da lista carregada (selectedLabel)', () => {
+    it('value fora de options e selectedLabel definido usa selectedLabel', () => {
+      render(
+        <SearchableSelectField
+          htmlFor="idContrato"
+          label="Contrato"
+          value="99"
+          selectedLabel="Contrato #99 (não elegível)"
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      expect(screen.getByLabelText('Contrato')).toHaveValue(
+        'Contrato #99 (não elegível)'
+      );
+    });
+
+    it('value fora de options sem selectedLabel cai no value bruto, nunca string vazia', () => {
+      render(
+        <SearchableSelectField
+          htmlFor="idContrato"
+          label="Contrato"
+          value="99"
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      expect(screen.getByLabelText('Contrato')).toHaveValue('99');
+    });
+
+    it('value dentro de options ignora selectedLabel, usa o rótulo real da opção', () => {
+      render(
+        <SearchableSelectField
+          htmlFor="idContrato"
+          label="Contrato"
+          value="2"
+          selectedLabel="Rótulo que não deveria aparecer"
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      expect(screen.getByLabelText('Contrato')).toHaveValue('Maria Souza');
+    });
+  });
+
+  describe('marca do valor atual na lista aberta (achado do product-designer, roteado da TASK-002-002)', () => {
+    it('abrir com value correspondendo a uma opção marca só essa opção (ícone + peso de fonte), sem tocar aria-selected/option-highlighted', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value="2"
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+
+      const options = screen.getAllByRole('option');
+      expect(options[1]).toHaveAttribute('data-current', 'true');
+      expect(options[0]).not.toHaveAttribute('data-current');
+      expect(options[2]).not.toHaveAttribute('data-current');
+      // A marca não usa aria-selected nem option-highlighted — exclusivos do
+      // destaque de navegação, que continua -1 até a 1ª seta/hover.
+      expect(options[1]).toHaveAttribute('aria-selected', 'false');
+      expect(options[1]).not.toHaveClass('option-highlighted');
+      expect(
+        screen.getByTestId('searchable-select-field-current-mark')
+      ).toBeInTheDocument();
+    });
+
+    it('ao abrir com value presente em options, rola até a opção atual via scrollIntoView, sem escrever em highlightedIndex', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value="3"
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+        block: 'nearest',
+      });
+      expect(
+        screen.queryByRole('option', { selected: true })
+      ).not.toBeInTheDocument();
+    });
+
+    it('ao filtrar de forma que a opção marcada saia da lista, a marca some (nenhuma opção marcada)', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value="2"
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+      await user.type(input, 'joão');
+
+      expect(
+        screen.queryByTestId('searchable-select-field-current-mark')
+      ).not.toBeInTheDocument();
+    });
+
+    it('com value fora de options (caso do selectedLabel), nenhuma opção é marcada', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value="99"
+          selectedLabel="Fora da lista"
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+
+      expect(
+        screen.queryByTestId('searchable-select-field-current-mark')
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('disabledReason (FR-001-008/AC-001-007, contrato de prop)', () => {
+    it('presente: exibe a mensagem no lugar da lista ao abrir, distinta do estado vazio (testid e texto próprios)', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idContrato"
+          label="Contrato"
+          value=""
+          onChange={jest.fn()}
+          options={[]}
+          disabledReason="Selecione um Aluno antes"
+        />
+      );
+      const input = screen.getByLabelText('Contrato');
+      await user.click(input);
+
+      expect(screen.getByText('Selecione um Aluno antes')).toBeInTheDocument();
+      expect(
+        screen.getByTestId('searchable-select-field-disabled-reason')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('searchable-select-field-empty')
+      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('option')).not.toBeInTheDocument();
+    });
+
+    it('ausente: comportamento padrão de abertura inalterado', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idContrato"
+          label="Contrato"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Contrato');
+      await user.click(input);
+
+      expect(
+        screen.queryByTestId('searchable-select-field-disabled-reason')
+      ).not.toBeInTheDocument();
+      expect(screen.getAllByRole('option')).toHaveLength(OPTIONS.length);
+    });
+  });
+
+  describe('requiredError (AC-001-014, contrato de prop — a lógica de quando popular é das TASK-002-006/007)', () => {
+    it('definido: renderiza o texto com role="alert", aria-describedby aponta para ele, aria-invalid="true" no input', () => {
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+          requiredError="Campo obrigatório"
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent('Campo obrigatório');
+      expect(input).toHaveAttribute('aria-invalid', 'true');
+      expect(input).toHaveAttribute('aria-describedby', alert.id);
+    });
+
+    it('ausente: nenhum dos três (role="alert", aria-describedby, aria-invalid) aparece', () => {
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(input).not.toHaveAttribute('aria-invalid');
+      expect(input).not.toHaveAttribute('aria-describedby');
+    });
+  });
+
+  describe('AC-001-015: leitor de tela', () => {
+    it('nome acessível inclui o label — medido com computeAccessibleName (dom-accessibility-api), nunca deduzido da especificação', () => {
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      expect(computeAccessibleName(input)).toBe('Aluno');
+    });
+
+    it('aria-expanded reflete aberto/fechado', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      expect(input).toHaveAttribute('aria-expanded', 'false');
+      await user.click(input);
+      expect(input).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    it('a opção destacada por teclado tem aria-selected="true" só nela', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+      await user.keyboard('{ArrowDown}');
+      const options = screen.getAllByRole('option');
+      expect(options[0]).toHaveAttribute('aria-selected', 'true');
+      expect(options[1]).toHaveAttribute('aria-selected', 'false');
+      expect(options[2]).toHaveAttribute('aria-selected', 'false');
+    });
+
+    it('aria-busy reflete isLoading', () => {
+      const { rerender } = render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={[]}
+          isLoading
+        />
+      );
+      expect(screen.getByLabelText('Aluno')).toHaveAttribute(
+        'aria-busy',
+        'true'
+      );
+
+      rerender(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+          isLoading={false}
+        />
+      );
+      expect(screen.getByLabelText('Aluno')).not.toHaveAttribute('aria-busy');
+    });
+
+    it('o estado vazio é anunciado — região com role="status" (alcançável por aria-live implícito)', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+      await user.type(input, 'zzz');
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Nenhum resultado encontrado.'
+      );
+    });
+  });
+
+  describe('guarda de não-regressão: alvos de toque e temas (parte de AC-001-010 — medição real de layout é gate 9)', () => {
+    it('input de busca, botão de limpar, container da listbox e cada opção carregam tap-target/.input-field; rótulo de opção tem break-words', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value="1"
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      expect(input.classList.contains('tap-target')).toBe(true);
+      expect(input.classList.contains('input-field')).toBe(true);
+
+      const clearButton = screen.getByRole('button', {
+        name: 'Limpar seleção',
+      });
+      expect(clearButton.classList.contains('tap-target')).toBe(true);
+
+      await user.click(input);
+
+      const dropdown = screen.getByTestId('searchable-select-field-dropdown');
+      expect(dropdown.classList.contains('input-field')).toBe(true);
+
+      const options = screen.getAllByRole('option');
+      options.forEach(option => {
+        expect(option.classList.contains('tap-target')).toBe(true);
+      });
+
+      const labelSpan = options[0].querySelector('span');
+      expect(labelSpan.classList.contains('break-words')).toBe(true);
+    });
   });
 });
