@@ -68,9 +68,9 @@ export const SearchableSelectField = ({
       : '';
   const displayValue = isOpen ? query : resolvedLabel;
 
-  // Achado do product-designer (roteado da TASK-002-002): posição de `value`
-  // dentro da lista completa (não filtrada) — usada só para rolar até a
-  // opção atual ao abrir; a marca visual em si deriva por opção, no render.
+  // Posição de `value` dentro da lista completa (não filtrada) — usada só
+  // para rolar até a opção atual ao abrir; a marca visual em si deriva por
+  // opção, no render.
   const currentValueIndex = useMemo(
     () => normalizedOptions.findIndex(option => option.value === value),
     [normalizedOptions, value]
