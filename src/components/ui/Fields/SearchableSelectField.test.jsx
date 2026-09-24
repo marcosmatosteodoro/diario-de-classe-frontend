@@ -435,6 +435,25 @@ describe('SearchableSelectField', () => {
     );
   });
 
+  it('sem item destacado por padrão ao abrir mesmo quando value já tem uma opção selecionada (achado do code-reviewer, 2ª rodada)', async () => {
+    const user = userEvent.setup();
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value="2"
+        onChange={jest.fn()}
+        options={OPTIONS}
+      />
+    );
+    const input = screen.getByLabelText('Aluno');
+    await user.click(input);
+    // Antes de qualquer seta: nenhuma opção destacada, nem a de `value`.
+    expect(
+      screen.queryByRole('option', { selected: true })
+    ).not.toBeInTheDocument();
+  });
+
   it('ArrowDown a partir de "nenhum destaque" vai para o primeiro item filtrado', async () => {
     const user = userEvent.setup();
     const onChangeSpy = jest.fn();
@@ -504,6 +523,26 @@ describe('SearchableSelectField', () => {
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
       block: 'nearest',
     });
+  });
+
+  it('scrollIntoView é chamado sobre o item correto, não só "foi chamado" (achado do code-reviewer, 2ª rodada: off-by-one na indexação do ref)', async () => {
+    const user = userEvent.setup();
+    render(
+      <SearchableSelectField
+        htmlFor="idAluno"
+        label="Aluno"
+        value=""
+        onChange={jest.fn()}
+        options={OPTIONS}
+      />
+    );
+    const input = screen.getByLabelText('Aluno');
+    await user.click(input);
+    // Duas setas seguidas: destaque avança de João(0) para Maria(1).
+    await user.keyboard('{ArrowDown}{ArrowDown}');
+    expect(Element.prototype.scrollIntoView.mock.contexts.at(-1)).toBe(
+      screen.getByRole('option', { name: 'Maria Souza' })
+    );
   });
 
   it('NFR-001-001: com fixture de 1.000 opções, a lista reflete cada tecla em até ~300ms', () => {

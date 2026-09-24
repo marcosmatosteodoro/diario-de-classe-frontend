@@ -102,11 +102,13 @@ export const SearchableSelectField = ({
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
+      if (filteredOptions.length === 0) return;
       setHighlightedIndex(index =>
         index === -1 ? 0 : Math.min(index + 1, filteredOptions.length - 1)
       );
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
+      if (filteredOptions.length === 0) return;
       setHighlightedIndex(index =>
         index === -1 ? filteredOptions.length - 1 : Math.max(index - 1, 0)
       );
@@ -193,7 +195,9 @@ export const SearchableSelectField = ({
                     {filteredOptions.map((option, index) => (
                       <li
                         key={option.value}
-                        ref={el => (optionRefs.current[index] = el)}
+                        ref={el => {
+                          optionRefs.current[index] = el;
+                        }}
                         role="option"
                         aria-selected={index === highlightedIndex}
                         data-testid="searchable-select-field-option"
