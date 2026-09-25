@@ -170,9 +170,8 @@ describe('PasswordField', () => {
     expect(toggleButton).toHaveClass('tap-target');
   });
 
-  // Convergência de fecho (gap 1): `error`/`hint` repassados ao `BaseField`,
-  // mesmo mecanismo de `CheckboxField`/`InputField` (aria-invalid +
-  // aria-describedby, TASK-002-004).
+  // `error`/`hint` repassados ao `BaseField`, mesmo mecanismo de
+  // `CheckboxField`/`InputField` (aria-invalid + aria-describedby).
   it('marks the input as invalid and exposes the error as an accessible description', () => {
     const handleChange = jest.fn();
     render(

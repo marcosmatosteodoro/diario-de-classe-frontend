@@ -47,8 +47,8 @@ jest.mock('@/components', () => ({
   // igual ao `PasswordField` de produção (`...props` espalhado no `<input>`)
   // — necessário para os testes de foco abaixo observarem `document.activeElement`.
   // `hint`/`error` seguem o mesmo par aria-describedby/aria-invalid + mensagem
-  // associada por id do `PasswordField`/`BaseField` reais (convergência de
-  // fecho, gap 1), replicado aqui porque o stub não importa `describedByIds`.
+  // associada por id do `PasswordField`/`BaseField` reais, replicado aqui
+  // porque o stub não importa `describedByIds`.
   PasswordField: ({
     htmlFor,
     label,
@@ -399,9 +399,8 @@ describe('ProfessorForm', () => {
     );
   });
 
-  // Convergência de fecho (gap 1, AC-001-010/FR-001-014, AC-001-016): a
-  // mensagem também fica associada ao campo "Repetir Senha", não só no
-  // FormError do topo.
+  // AC-001-010/FR-001-014, AC-001-016: a mensagem também fica associada ao
+  // campo "Repetir Senha", não só no FormError do topo.
   it('marks the Repetir Senha field as invalid and describes the mismatch when isSenhaError is true', () => {
     render(<ProfessorForm {...defaultProps} isSenhaError />);
 
