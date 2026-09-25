@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { useDispatch, useSelector } from 'react-redux';
 import Aulas from './page';
 import { useUserAuth } from '@/providers/UserAuthProvider';
@@ -8,7 +8,11 @@ import { useAulasList } from '@/hooks/aulas/useAulasList';
 import { useAlunos } from '@/hooks/alunos/useAlunos';
 import { useEditarAndamentoAula } from '@/hooks/aulas/useEditarAndamentoAula';
 import { useProfessores } from '@/hooks/professores/useProfessores';
-import { FILTER_STORAGE_KEYS, FILTER_PANEL_STORAGE_KEYS } from '@/constants';
+import {
+  FILTER_STORAGE_KEYS,
+  FILTER_PANEL_STORAGE_KEYS,
+  STATUS,
+} from '@/constants';
 
 // Prova de fiação real (AC-001-012/021): NÃO mocka '@/components' (que
 // automocaria ListPage/PainelFiltrosColapsavel — a suíte `page.test.jsx` já
@@ -96,5 +100,121 @@ describe('Aulas — fiação real do painel colapsável (AC-001-012/021)', () =>
     expect(
       screen.getAllByRole('heading', { name: 'Filtros', level: 3 })
     ).toHaveLength(1);
+  });
+});
+
+describe('Aulas — isLoading/errorMessage de useAlunos()/useProfessores() chegam ao SearchableSelectField real (TASK-002-005)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+
+    useDispatch.mockReturnValue(mockDispatch);
+    useSelector.mockImplementation(cb =>
+      cb({ aulas: { list: [], status: 'idle', action: null } })
+    );
+
+    useUserAuth.mockReturnValue({ currentUser: { id: 1, nome: 'Professor' } });
+    useDeletarAula.mockReturnValue({ handleDeleteAula: jest.fn() });
+    useFormater.mockReturnValue({
+      telefoneFormatter: v => v,
+      dataFormatter: v => v,
+    });
+    useAulasList.mockReturnValue({ columns: [], data: [] });
+    useEditarAndamentoAula.mockReturnValue({
+      submit: jest.fn(),
+      isLoading: false,
+    });
+  });
+
+  it('useAlunos() com isLoading=true: o combobox real de Aluno mostra o indicador de carregamento ao abrir, não "Nenhum resultado encontrado"', () => {
+    useAlunos.mockReturnValue({
+      alunos: [],
+      isLoading: true,
+      status: STATUS.LOADING,
+      action: 'getAlunos',
+    });
+    useProfessores.mockReturnValue({ professores: [] });
+
+    render(<Aulas />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^aluno$/i }));
+
+    expect(screen.getByTestId('loading')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('searchable-select-field-empty')
+    ).not.toBeInTheDocument();
+  });
+
+  it('useAlunos() com status FAILED da ação getAlunos: o combobox real de Aluno mostra a frase fixa em pt-BR, nunca o `message` cru do slice', () => {
+    useAlunos.mockReturnValue({
+      alunos: [],
+      isLoading: false,
+      status: STATUS.FAILED,
+      action: 'getAlunos',
+      message: 'Request failed with status code 500',
+    });
+    useProfessores.mockReturnValue({ professores: [] });
+
+    render(<Aulas />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^aluno$/i }));
+
+    expect(
+      screen.getByTestId('searchable-select-field-error')
+    ).toHaveTextContent(
+      'Não foi possível carregar os alunos. Tente novamente.'
+    );
+    expect(screen.queryByText(/request failed/i)).not.toBeInTheDocument();
+  });
+
+  it('useProfessores() com isLoading=true: o combobox real de Professor mostra o indicador de carregamento ao abrir', () => {
+    useAlunos.mockReturnValue({ alunos: [] });
+    useProfessores.mockReturnValue({
+      professores: [],
+      isLoading: true,
+      status: STATUS.LOADING,
+      action: 'getProfessores',
+    });
+
+    render(<Aulas />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^professor$/i }));
+
+    expect(screen.getByTestId('loading')).toBeInTheDocument();
+  });
+
+  it('useProfessores() com status FAILED da ação getProfessores: o combobox real de Professor mostra a frase fixa em pt-BR, nunca o `message` cru do slice', () => {
+    useAlunos.mockReturnValue({ alunos: [] });
+    useProfessores.mockReturnValue({
+      professores: [],
+      isLoading: false,
+      status: STATUS.FAILED,
+      action: 'getProfessores',
+      message: 'Request failed with status code 500',
+    });
+
+    render(<Aulas />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^professor$/i }));
+
+    expect(
+      screen.getByTestId('searchable-select-field-error')
+    ).toHaveTextContent(
+      'Não foi possível carregar os professores. Tente novamente.'
+    );
+    expect(screen.queryByText(/request failed/i)).not.toBeInTheDocument();
+  });
+
+  it('useProfessores() com status FAILED de outra ação do slice (ex.: updateProfessor): o combobox real NÃO mostra erro — status é compartilhado entre ações do slice', () => {
+    useAlunos.mockReturnValue({ alunos: [] });
+    useProfessores.mockReturnValue({
+      professores: [],
+      isLoading: false,
+      status: STATUS.FAILED,
+      action: 'updateProfessor',
+    });
+
+    render(<Aulas />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^professor$/i }));
+
+    expect(
+      screen.queryByTestId('searchable-select-field-error')
+    ).not.toBeInTheDocument();
   });
 });
