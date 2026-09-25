@@ -1,3 +1,16 @@
+# [1.4.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.3.0...v1.4.0) (2026-09-25)
+
+### Bug Fixes
+
+- **pwa:** BI-16 BI-114 auto-recover from offline screen on reconnect ([ce288bb](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/ce288bb5e94eccc35b2225f853fba1502f4ee4d8))
+- **pwa:** BI-16 clear connectivity message on write actions failing offline ([bd49dc1](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/bd49dc12d9de9451e06804315688d4985df3947b))
+
+### Features
+
+- **pwa:** BI-16 BI-110 BI-112 real install icons and manifest ([6946b29](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/6946b29365ae3c2b8ce2365e3415f5c533548b5b))
+- **pwa:** BI-16 BI-113 BI-114 install prompt and manual service worker ([8a52079](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/8a5207903df55f5903f1f78d8b760c03a4350a25))
+- **pwa:** BI-16 BI-115 purge app cache on logout, 401, and re-auth ([5542743](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/554274349afc964c091a2dc73c215727097d75af))
+
 # [1.3.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.2.0...v1.3.0) (2026-09-22)
 
 ### Bug Fixes
