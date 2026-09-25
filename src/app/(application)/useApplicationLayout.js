@@ -10,6 +10,7 @@ import { clearErrors as clearProfessoresErrors } from '@/store/slices/professore
 import { clearErrors as clearAlunosErrors } from '@/store/slices/alunosSlice';
 import { clearErrors as clearAulasErrors } from '@/store/slices/aulasSlice';
 import { clearErrors as clearContratoErrors } from '@/store/slices/contratosSlice';
+import { clearErrors as clearConfiguracaoErrors } from '@/store/slices/configuracaoSlice';
 
 export function useApplicationLayout() {
   const router = useRouter();
@@ -27,13 +28,18 @@ export function useApplicationLayout() {
   const aulasState = useSelector(state => state.aulas);
   const contratosState = useSelector(state => state.contratos);
   const configuracaoState = useSelector(state => state.configuracao);
-  const states = useMemo(
+
+  // Fonte única dos slices observados pelo 401: cada par {state, clearErrors}
+  // alimenta tanto a lista de estados vigiada pelo efeito de logout forçado
+  // quanto a limpeza de statusError residual no mount — evita que um slice
+  // novo entre em uma lista e fique de fora da outra.
+  const sessionSlices = useMemo(
     () => [
-      professoresState,
-      alunosState,
-      aulasState,
-      contratosState,
-      configuracaoState,
+      { state: professoresState, clearErrors: clearProfessoresErrors },
+      { state: alunosState, clearErrors: clearAlunosErrors },
+      { state: aulasState, clearErrors: clearAulasErrors },
+      { state: contratosState, clearErrors: clearContratoErrors },
+      { state: configuracaoState, clearErrors: clearConfiguracaoErrors },
     ],
     [
       professoresState,
@@ -43,6 +49,10 @@ export function useApplicationLayout() {
       configuracaoState,
     ]
   );
+  const states = useMemo(
+    () => sessionSlices.map(({ state }) => state),
+    [sessionSlices]
+  );
 
   const toggleSidebar = () => {
     setSidebarExpanded({
@@ -51,10 +61,8 @@ export function useApplicationLayout() {
   };
 
   useEffect(() => {
-    dispatch(clearProfessoresErrors());
-    dispatch(clearAlunosErrors());
-    dispatch(clearAulasErrors());
-    dispatch(clearContratoErrors());
+    sessionSlices.forEach(({ clearErrors }) => dispatch(clearErrors()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -88,7 +96,7 @@ export function useApplicationLayout() {
       setIsUnauthorized(true);
       dispatch(logout(refreshToken));
       removeAuthenticate();
-      error('Sua sessão expirou.');
+      error('Sua sessão expirou. Entre novamente para continuar.');
       router.push('/login');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

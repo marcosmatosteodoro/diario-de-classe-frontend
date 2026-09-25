@@ -1,5 +1,13 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { configureStore } from '@reduxjs/toolkit';
 import { useApplicationLayout } from './useApplicationLayout';
+import professoresReducer from '@/store/slices/professoresSlice';
+import alunosReducer from '@/store/slices/alunosSlice';
+import aulasReducer from '@/store/slices/aulasSlice';
+import contratosReducer from '@/store/slices/contratosSlice';
+import configuracaoReducer, {
+  updateConfiguracao,
+} from '@/store/slices/configuracaoSlice';
 
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }));
 jest.mock('@/providers/UserAuthProvider', () => ({ useUserAuth: jest.fn() }));
@@ -118,7 +126,9 @@ describe('useApplicationLayout', () => {
     renderHook(() => useApplicationLayout());
     expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
     expect(removeAuthenticateMock).toHaveBeenCalled();
-    expect(errorMock).toHaveBeenCalledWith('Sua sessão expirou.');
+    expect(errorMock).toHaveBeenCalledWith(
+      'Sua sessão expirou. Entre novamente para continuar.'
+    );
     expect(routerMock.push).toHaveBeenCalledWith('/login');
   });
 
@@ -136,7 +146,9 @@ describe('useApplicationLayout', () => {
     renderHook(() => useApplicationLayout());
     expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
     expect(removeAuthenticateMock).toHaveBeenCalled();
-    expect(errorMock).toHaveBeenCalledWith('Sua sessão expirou.');
+    expect(errorMock).toHaveBeenCalledWith(
+      'Sua sessão expirou. Entre novamente para continuar.'
+    );
     expect(routerMock.push).toHaveBeenCalledWith('/login');
   });
 
@@ -154,7 +166,9 @@ describe('useApplicationLayout', () => {
     renderHook(() => useApplicationLayout());
     expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
     expect(removeAuthenticateMock).toHaveBeenCalled();
-    expect(errorMock).toHaveBeenCalledWith('Sua sessão expirou.');
+    expect(errorMock).toHaveBeenCalledWith(
+      'Sua sessão expirou. Entre novamente para continuar.'
+    );
     expect(routerMock.push).toHaveBeenCalledWith('/login');
   });
 
@@ -193,7 +207,6 @@ describe('useApplicationLayout', () => {
       })
     );
     renderHook(() => useApplicationLayout());
-    // Conta apenas as chamadas de logout
     const logoutCalls = dispatchMock.mock.calls.filter(
       ([action]) => action && action.type === 'auth/logout'
     );
@@ -202,6 +215,51 @@ describe('useApplicationLayout', () => {
     expect(removeAuthenticateMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(routerMock.push).toHaveBeenCalledTimes(1);
+  });
+
+  it('limpa o statusError residual de configuracao no mount, evitando logout forçado em toda remontagem (retry A2)', () => {
+    isAuthenticatedMock.mockResolvedValue(true);
+
+    const store = configureStore({
+      reducer: {
+        professores: professoresReducer,
+        alunos: alunosReducer,
+        aulas: aulasReducer,
+        contratos: contratosReducer,
+        configuracao: configuracaoReducer,
+      },
+    });
+    // 401 residual em configuracao, como se a última operação antes do
+    // logout/login seguinte tivesse falhado com sessão expirada.
+    store.dispatch({
+      type: updateConfiguracao.rejected.type,
+      payload: { statusError: '401' },
+    });
+
+    useSelectorMock.mockImplementation(fn => fn(store.getState()));
+    dispatchMock.mockImplementation(action => store.dispatch(action));
+
+    const countLogoutCalls = () =>
+      dispatchMock.mock.calls.filter(
+        ([action]) => action && action.type === 'auth/logout'
+      ).length;
+
+    const mountCounts = [];
+    for (let mount = 0; mount < 3; mount += 1) {
+      const { unmount } = renderHook(() => useApplicationLayout());
+      mountCounts.push(countLogoutCalls());
+      dispatchMock.mockClear();
+      unmount();
+    }
+
+    // Mesma contagem por montagem que professores/alunos hoje têm: só a
+    // 1ª montagem força logout (o 401 residual ainda não tinha sido limpo);
+    // da 2ª em diante o clear do mount anterior já zerou o statusError.
+    expect(mountCounts).toEqual([1, 0, 0]);
+
+    // Restaura o dispatchMock para os demais testes: sem isso, o dispatch
+    // continuaria roteando para esta store real depois que o teste termina.
+    dispatchMock.mockImplementation(() => {});
   });
 
   it('não deve chamar logout se statusError não for 401', () => {
