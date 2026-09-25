@@ -1,3 +1,30 @@
+# [1.5.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.4.0...v1.5.0) (2026-09-25)
+
+### Bug Fixes
+
+- **select-pesquisavel:** BI-42 BI-116 TASK-002-001 corrige achados do code review ([438fa6e](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/438fa6e0062871c5e2b96193120d9d3602da1b4e))
+- **select-pesquisavel:** BI-42 BI-117 TASK-002-002 corrige achados da 3ª rodada do gate 7 ([f04c18c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/f04c18c51ed46c5bed173a1ade5baf9430995da5))
+- **select-pesquisavel:** BI-42 BI-117 TASK-002-002 corrige achados do gate 7 ([b2bc865](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/b2bc8656ff7a0244a339f33ec474366453599531))
+- **select-pesquisavel:** BI-42 BI-118 TASK-002-003 corrige achados da 2ª rodada (code-reviewer e product-designer) ([1c069ab](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/1c069abac08c28ac11d42df1b0a476db28f55ee9))
+- **select-pesquisavel:** BI-42 BI-118 TASK-002-003 corrige aria-activedescendant após fechar a lista ([9f83326](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/9f83326207a754d6c62d1b39f9f7b2cb208bc4e5))
+- **select-pesquisavel:** BI-42 BI-118 TASK-002-003 remove narrativa de proveniência de comentário (autocheck Art. 7) ([f24a907](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/f24a907260ac33c6e5281a6845e78566bf5ceb73))
+- **select-pesquisavel:** BI-42 BI-119 TASK-002-004 corrige gates 7 e 11 da integração do SearchableSelectField em Contratos ([a258dc1](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a258dc1173dc0a45d99b60589d7f402fb1d21b61))
+- **select-pesquisavel:** BI-42 BI-120 TASK-002-005 corrige gate 7 da integração do SearchableSelectField em Aulas/home ([489294c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/489294c5293201df6c399590349b0c5d8ec3485b))
+- **select-pesquisavel:** BI-42 BI-121 TASK-002-006 corrige gate 7 (2 mutantes sobreviventes em testes de foco/fieldErrors) ([49246e9](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/49246e9fdacaeb91dacfe6d1e7a4ef9001bead81))
+- **select-pesquisavel:** BI-42 BI-121 TASK-002-006 foco no primeiro campo com erro ao bloquear o submit ([1afa242](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/1afa2427b3c0cadb419f0238e56c984b45e3a38a))
+- **select-pesquisavel:** BI-42 BI-122 TASK-002-007 corrige gates 7 e 11 (achados de code-reviewer/product-designer no AulaForm) ([a3eed6a](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a3eed6adfbe2274b83d78294a3c960c7d448da8a))
+- **select-pesquisavel:** BI-42 BI-122 TASK-002-007 corrige gates 7/11 — action ausente em useContratos ([a2ac9ef](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a2ac9efedad07bc06b0e5a97c4efd6cf61a55c20))
+
+### Features
+
+- **select-pesquisavel:** BI-42 BI-116 TASK-002-001 util matchesSearchText ([1ca7f19](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/1ca7f1981ca2fe9df8a9cfab2b9f04f0ea10c7e2))
+- **select-pesquisavel:** BI-42 BI-117 TASK-002-002 núcleo do SearchableSelectField ([7b95569](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/7b955693d71e6fee82d4019c601ad55497f3d292))
+- **select-pesquisavel:** BI-42 BI-118 TASK-002-003 estados e acessibilidade do SearchableSelectField ([5fb3033](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/5fb303388c600670217443b7bef4a34a2e42ab2c))
+- **select-pesquisavel:** BI-42 BI-119 TASK-002-004 integra SearchableSelectField no filtro de Contratos (Aluno) ([6d00497](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/6d00497193e0249a5f31c07a67cfad2b3379e34e))
+- **select-pesquisavel:** BI-42 BI-120 TASK-002-005 integra SearchableSelectField no filtro de Aulas e na home ([9925fec](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/9925fecdfdaab7178141ba1a3b1c7b59f87cc0bd))
+- **select-pesquisavel:** BI-42 BI-121 TASK-002-006 integra SearchableSelectField no ContratoForm com validação obrigatória ([7fbbf2a](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/7fbbf2aca54a475a27c0b6e9c314365ea9e6ffa9))
+- **select-pesquisavel:** BI-42 BI-122 TASK-002-007 integra SearchableSelectField no AulaForm com dependência Aluno→Contrato e validação obrigatória ([513f86b](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/513f86bffb8aad97eb18be0374613cb77fe41e5a))
+
 # [1.4.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.3.0...v1.4.0) (2026-09-25)
 
 ### Bug Fixes
