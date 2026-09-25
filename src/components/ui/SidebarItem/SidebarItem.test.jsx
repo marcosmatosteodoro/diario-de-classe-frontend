@@ -175,22 +175,31 @@ describe('SidebarItem', () => {
   });
 
   describe('clique com modificador segue o <Link> nativo', () => {
-    it('Ctrl+clique com alteração pendente: não consulta o guard, nem previne o clique (abrir em nova aba não perde dados)', () => {
-      const confirmNavigation = jest.fn(() => new Promise(() => {}));
-      require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
-        { confirmNavigation }
-      );
+    it.each([
+      ['ctrlKey', { ctrlKey: true }],
+      ['metaKey', { metaKey: true }],
+      ['shiftKey', { shiftKey: true }],
+      ['altKey', { altKey: true }],
+      ['button diferente do esquerdo', { button: 1 }],
+    ])(
+      '%s com alteração pendente: não consulta o guard, nem previne o clique (abrir em nova aba não perde dados)',
+      (_descricao, eventoInit) => {
+        const confirmNavigation = jest.fn(() => new Promise(() => {}));
+        require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
+          { confirmNavigation }
+        );
 
-      const { getByRole } = render(
-        <SidebarItem {...defaultProps} href="/alunos" />
-      );
-      const evento = fireEvent.click(getByRole('link'), { ctrlKey: true });
+        const { getByRole } = render(
+          <SidebarItem {...defaultProps} href="/alunos" />
+        );
+        const evento = fireEvent.click(getByRole('link'), eventoInit);
 
-      expect(confirmNavigation).not.toHaveBeenCalled();
-      // `fireEvent` devolve `true` quando nenhum handler chamou
-      // `preventDefault` — o <Link> nativo segue o clique.
-      expect(evento).toBe(true);
-    });
+        expect(confirmNavigation).not.toHaveBeenCalled();
+        // `fireEvent` devolve `true` quando nenhum handler chamou
+        // `preventDefault` — o <Link> nativo segue o clique.
+        expect(evento).toBe(true);
+      }
+    );
 
     it('clique simples (sem modificador) com alteração pendente: consulta o guard normalmente (exibe o diálogo)', () => {
       const confirmNavigation = jest.fn(() => new Promise(() => {}));
@@ -204,6 +213,10 @@ describe('SidebarItem', () => {
       fireEvent.click(getByRole('link'));
 
       expect(confirmNavigation).toHaveBeenCalledTimes(1);
+      // Fail-closed: a chamada não carrega uma forma de liberar a navegação
+      // sem resposta do administrador — `liberarSeFalhar` (ou equivalente)
+      // truthy inverteria o padrão de negar por padrão.
+      expect(confirmNavigation.mock.calls[0][0]?.liberarSeFalhar).toBeFalsy();
     });
   });
 });
