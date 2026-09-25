@@ -80,42 +80,61 @@ describe('useConfiguracaoForm', () => {
 describe('useConfiguracaoForm - isDirty (rastreamento de alteração pendente)', () => {
   const diasCompletos = [
     {
+      id: 'dia-segunda',
       diaSemana: 'SEGUNDA',
       ativo: true,
       horaInicial: '08:00',
       horaFinal: '18:00',
     },
     {
+      id: 'dia-terca',
       diaSemana: 'TERCA',
       ativo: true,
       horaInicial: '08:00',
       horaFinal: '18:00',
     },
     {
+      id: 'dia-quarta',
       diaSemana: 'QUARTA',
       ativo: true,
       horaInicial: '08:00',
       horaFinal: '18:00',
     },
     {
+      id: 'dia-quinta',
       diaSemana: 'QUINTA',
       ativo: true,
       horaInicial: '08:00',
       horaFinal: '18:00',
     },
     {
+      id: 'dia-sexta',
       diaSemana: 'SEXTA',
       ativo: true,
       horaInicial: '08:00',
       horaFinal: '18:00',
     },
-    { diaSemana: 'SABADO', ativo: false, horaInicial: '', horaFinal: '' },
-    { diaSemana: 'DOMINGO', ativo: false, horaInicial: '', horaFinal: '' },
+    {
+      id: 'dia-sabado',
+      diaSemana: 'SABADO',
+      ativo: false,
+      horaInicial: '',
+      horaFinal: '',
+    },
+    {
+      id: 'dia-domingo',
+      diaSemana: 'DOMINGO',
+      ativo: false,
+      horaInicial: '',
+      horaFinal: '',
+    },
   ];
 
+  // Shape do contrato: duracaoAula/tolerancia number (Prisma Int), como a API devolve —
+  // não string, como o input entrega.
   const configInicial = {
-    duracaoAula: '50',
-    tolerancia: '10',
+    duracaoAula: 50,
+    tolerancia: 10,
     diasDeFuncionamento: diasCompletos,
   };
 
@@ -175,6 +194,20 @@ describe('useConfiguracaoForm - isDirty (rastreamento de alteração pendente)',
     expect(result.current.isDirty).toBe(false);
   });
 
+  it('isDirty permanece true quando o valor digitado é numericamente diferente da referência (não normaliza demais)', () => {
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({ submit: jest.fn(), configuracao: configInicial })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'tolerancia', value: '11' },
+      });
+    });
+
+    expect(result.current.isDirty).toBe(true);
+  });
+
   it('isDirty volta a false quando só um diaSemana entre vários é alterado e revertido manualmente (A-001-001)', () => {
     const { result } = renderHook(() =>
       useConfiguracaoForm({ submit: jest.fn(), configuracao: configInicial })
@@ -212,7 +245,7 @@ describe('useConfiguracaoForm - isDirty (rastreamento de alteração pendente)',
       result.current.restaurarUltimaLeitura();
     });
 
-    expect(result.current.formData.duracaoAula).toBe('50');
+    expect(result.current.formData.duracaoAula).toBe(50);
     expect(result.current.isDirty).toBe(false);
   });
 
@@ -250,14 +283,14 @@ describe('useConfiguracaoForm - isDirty (rastreamento de alteração pendente)',
 
     const configuracaoAposPut = {
       ...configInicial,
-      tolerancia: '20', // mesmo valor já digitado — a gravação persistiu essa mudança
+      tolerancia: 20, // number — a API devolve number (Prisma Int), mesmo valor já digitado
       diasDeFuncionamento: [...diasCompletos].reverse(),
     };
 
     rerender({ configuracao: configuracaoAposPut });
 
     expect(result.current.isDirty).toBe(false);
-    expect(result.current.formData.tolerancia).toBe('20');
+    expect(result.current.formData.tolerancia).toBe(20);
 
     // a referência de última leitura passou a ser o novo valor: voltar ao valor antigo
     // agora acusa alteração pendente (prova de que a referência foi mesmo atualizada)

@@ -3,8 +3,19 @@ import { useEffect, useMemo, useState } from 'react';
 const CAMPOS_DIA_COMPARADOS = ['ativo', 'horaInicial', 'horaFinal'];
 
 /**
+ * Normaliza um valor de campo para comparação: o input HTML sempre entrega string
+ * (`handleChange`/`handleDiasDeFuncionamentoChange`), mas a API devolve number para
+ * `duracaoAula`/`tolerancia` (Prisma Int) e boolean para `ativo`. `String()` iguala os
+ * dois lados sem colapsar valores diferentes (ex.: `''` normaliza para `''`, `0` para
+ * `'0'` — não viram iguais). Ponto único de normalização para todo campo comparado.
+ */
+function camposIguais(valorAtual, valorReferencia) {
+  return String(valorAtual) === String(valorReferencia);
+}
+
+/**
  * Compara os dias de funcionamento por `diaSemana` — nunca por índice. O GET ordena
- * `diasDeFuncionamento` por `diaSemana`, mas o PUT não (DEC/PLAN-002, COMP-002-004);
+ * `diasDeFuncionamento` por `diaSemana`, mas o PUT não (COMP-002-004, PLAN-002);
  * comparar por índice casaria dias diferentes entre si quando a ordem muda.
  */
 function diasDeFuncionamentoIguais(diasAtual, diasReferencia) {
@@ -17,8 +28,8 @@ function diasDeFuncionamentoIguais(diasAtual, diasReferencia) {
   return diasAtual.every(diaAtual => {
     const diaReferencia = referenciaPorDia.get(diaAtual.diaSemana);
     if (!diaReferencia) return false;
-    return CAMPOS_DIA_COMPARADOS.every(
-      campo => diaAtual[campo] === diaReferencia[campo]
+    return CAMPOS_DIA_COMPARADOS.every(campo =>
+      camposIguais(diaAtual[campo], diaReferencia[campo])
     );
   });
 }
@@ -26,8 +37,8 @@ function diasDeFuncionamentoIguais(diasAtual, diasReferencia) {
 function formDataIgualUltimaLeitura(formData, ultimaLeitura) {
   if (!ultimaLeitura) return true;
   return (
-    formData.duracaoAula === ultimaLeitura.duracaoAula &&
-    formData.tolerancia === ultimaLeitura.tolerancia &&
+    camposIguais(formData.duracaoAula, ultimaLeitura.duracaoAula) &&
+    camposIguais(formData.tolerancia, ultimaLeitura.tolerancia) &&
     diasDeFuncionamentoIguais(
       formData.diasDeFuncionamento,
       ultimaLeitura.diasDeFuncionamento
