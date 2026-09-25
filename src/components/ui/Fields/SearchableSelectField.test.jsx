@@ -1231,6 +1231,78 @@ describe('SearchableSelectField', () => {
       expect(input).toHaveAttribute('aria-activedescendant', options[1].id);
     });
 
+    it('depois de selecionar uma opção (ArrowDown+Enter), o input não tem mais aria-activedescendant', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+      await user.keyboard('{ArrowDown}');
+      const options = screen.getAllByRole('option');
+      expect(input).toHaveAttribute('aria-activedescendant', options[0].id);
+
+      await user.keyboard('{Enter}');
+      expect(input).not.toHaveAttribute('aria-activedescendant');
+    });
+
+    it('depois de destacar por teclado e fechar com Escape, o input não tem mais aria-activedescendant', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+      await user.keyboard('{ArrowDown}');
+      const options = screen.getAllByRole('option');
+      expect(input).toHaveAttribute('aria-activedescendant', options[0].id);
+
+      await user.keyboard('{Escape}');
+      expect(input).not.toHaveAttribute('aria-activedescendant');
+    });
+
+    it('durante isLoading sem erro, mesmo com destaque prévio, o input não tem aria-activedescendant (lista não renderizada)', async () => {
+      const user = userEvent.setup();
+      const { rerender } = render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+      await user.keyboard('{ArrowDown}');
+      const options = screen.getAllByRole('option');
+      expect(input).toHaveAttribute('aria-activedescendant', options[0].id);
+
+      rerender(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+          isLoading
+        />
+      );
+      expect(input).not.toHaveAttribute('aria-activedescendant');
+    });
+
     it('aria-busy reflete isLoading', () => {
       const { rerender } = render(
         <SearchableSelectField

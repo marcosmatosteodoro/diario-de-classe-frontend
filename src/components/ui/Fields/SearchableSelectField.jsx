@@ -35,8 +35,6 @@ export const SearchableSelectField = ({
 
   const listboxId = `${htmlFor}-listbox`;
   const requiredErrorId = `${htmlFor}-required-error`;
-  const activeDescendantId =
-    highlightedIndex >= 0 ? `${htmlFor}-option-${highlightedIndex}` : undefined;
 
   // DEC-002-005: a lista de rótulos normaliza uma vez por mudança de `options`
   // (memoizada); a query normaliza a cada tecla, sem renormalizar os rótulos.
@@ -198,6 +196,17 @@ export const SearchableSelectField = ({
   const showEmptyText =
     filteredOptions.length === 0 && !(showError && options.length === 0);
   const hasRequiredError = Boolean(requiredError);
+  // Só aponta para um `id` que está de fato renderizado: nem toda alteração
+  // de `highlightedIndex` sobrevive a um fechamento de lista (seleção,
+  // Escape) ou a um estado sem `<ul>` no lugar (bloqueio, loading sem erro).
+  const activeDescendantId =
+    isOpen &&
+    !disabledReason &&
+    !(isLoading && !showError) &&
+    highlightedIndex >= 0 &&
+    highlightedIndex < filteredOptions.length
+      ? `${htmlFor}-option-${highlightedIndex}`
+      : undefined;
 
   return (
     <BaseField
