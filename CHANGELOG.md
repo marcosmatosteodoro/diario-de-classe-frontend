@@ -1,3 +1,27 @@
+# [1.6.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.5.0...v1.6.0) (2026-09-25)
+
+### Bug Fixes
+
+- **configuracao:** BI-129 corrige achados do retry wave 5 da TASK-002-007 ([cdd7a74](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/cdd7a748470fed96b4f11c11f52f161890cdbf8b))
+- **configuracao:** BI-130 corrige achados do retry wave 5 da TASK-002-008 ([699f289](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/699f289de9cee0d1ec708f6e2c10bdd450d98a61))
+- **configuracoes:** BI-124 normaliza tipo na comparação de isDirty ([dfdf87c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/dfdf87cfd8ef4c01c2d53b15c7e74263026aec1d))
+- **configuracoes:** BI-126 aplica correções de retry na tela de configurações ([fc3146d](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/fc3146dab39937c86d399136c33fe7f4cded4efb))
+- **configuracoes:** BI-128 corrige achados do retry wave 4 da TASK-002-006 ([edc5941](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/edc59413f4ed60667752ea4c5dd5eb9f187fe7d6))
+- **fields:** BI-123 apply typographic classes, semantic error token and checkbox message layout ([10669bc](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/10669bc953df6c4ea3b215aec58fb40a77080442))
+- **guard:** BI-127 corrige achados do retry wave 3 do guard de navegação ([a3b03dd](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a3b03dd1438b10685b3e33a8e22b9d705fc20d5b))
+- **layout:** BI-125 clear configuracao errors on mount and widen session-expired copy ([11c70e7](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/11c70e75cd193fc9416a43dc0d76ba4b6d7d98f1))
+
+### Features
+
+- **configuracao:** BI-129 TASK-002-007 add cancel restore and save state messaging ([df2ba34](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/df2ba34186cd10ea4c7466c26901a712c72d8aba))
+- **configuracao:** BI-130 TASK-002-008 add duration change confirmation dialog ([0ad6b88](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/0ad6b88736f76d8625ca0bd68ad1c8ebf084c76d))
+- **configuracoes:** BI-124 TASK-002-002 add isDirty dirty-tracking to useConfiguracaoForm ([2b0fd21](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/2b0fd21e2cce74e69e5a7b039c13776e546726cd))
+- **configuracoes:** BI-125 TASK-002-003 forced logout on configuracao 401 ([76e6f9e](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/76e6f9eb5175575aae2e48e848ba04cfc29d2b71))
+- **configuracoes:** BI-126 group configuracoes fields into named sections with support text ([a9a57eb](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a9a57ebd28f3678e11f22a2ed7b01e8c4dde9962))
+- **configuracoes:** BI-127 TASK-002-005 add unsaved-changes navigation guard ([abf46d8](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/abf46d8dcd2a75e71afec097e3abd725b4f88365))
+- **configuracoes:** BI-128 TASK-002-006 add client-side field validation with per-field error messages ([af20c78](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/af20c78c41c6f0781e8eba05714a0b291bbfc84f))
+- **fields:** BI-123 add hint and error support to BaseField/InputField/CheckboxField ([b80c700](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/b80c7000a2f98e7e525cfa0232b8d2854355460c))
+
 # [1.5.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.4.0...v1.5.0) (2026-09-25)
 
 ### Bug Fixes
