@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import {
+  STATUS,
   STATUS_AULA,
   STATUS_AULA_LABEL,
   TIPO_AULA,
@@ -21,11 +22,20 @@ import {
   FormGroup,
   InputField,
   SelectField,
+  SearchableSelectField,
   CheckboxField,
   Loading,
   ClearFiltersButton,
   PainelFiltrosColapsavel,
 } from '@/components';
+
+// Mensagens fixas em pt-BR (nunca o `message` cru do slice): `status` é
+// compartilhado entre ações do slice, por isso o erro só é afirmado quando a
+// ação em curso é realmente a de listagem consumida aqui.
+const ERRO_CARREGAR_ALUNOS =
+  'Não foi possível carregar os alunos. Tente novamente.';
+const ERRO_CARREGAR_PROFESSORES =
+  'Não foi possível carregar os professores. Tente novamente.';
 
 // TODO passas os componetes para arquivos separados
 const HomeCard = ({ title, value, color, isLoading }) => {
@@ -38,7 +48,10 @@ const HomeCard = ({ title, value, color, isLoading }) => {
   return (
     <div className="bg-main p-6 rounded-lg shadow-md border border-main ">
       <h3 className="text-lg font-semibold text-main mb-2">{title}</h3>
-      <p className={`text-3xl font-bold ${textColorClass}`}>
+      <p
+        key={isLoading ? 'loading' : 'value'}
+        className={`text-3xl font-bold ${textColorClass} ${!isLoading ? 'animate-block-in' : ''}`}
+      >
         {isLoading ? '...' : value || 0}
       </p>
     </div>
@@ -163,8 +176,27 @@ const HomeInfoCard = ({
 
 export default function Home() {
   const { isAdmin, currentUser } = useUserAuth();
-  const { professorOptions } = useProfessores(currentUser);
-  const { alunoOptions } = useAlunos();
+  const {
+    professorOptions,
+    isLoading: isLoadingProfessores,
+    status: statusProfessores,
+    action: actionProfessores,
+  } = useProfessores(currentUser);
+  const erroProfessores =
+    statusProfessores === STATUS.FAILED &&
+    actionProfessores === 'getProfessores'
+      ? ERRO_CARREGAR_PROFESSORES
+      : undefined;
+  const {
+    alunoOptions,
+    isLoading: isLoadingAlunos,
+    status: statusAlunos,
+    action: actionAlunos,
+  } = useAlunos();
+  const erroAlunos =
+    statusAlunos === STATUS.FAILED && actionAlunos === 'getAlunos'
+      ? ERRO_CARREGAR_ALUNOS
+      : undefined;
   const {
     aulas,
     isLoading,
@@ -244,16 +276,18 @@ export default function Home() {
                 onChange={handleChange}
                 value={formData.status}
               />
-              <SelectField
+              <SearchableSelectField
                 htmlFor="alunoId"
                 label="Aluno"
                 placeholder="Selecione o aluno"
                 onChange={handleChange}
                 value={formData.alunoId}
                 options={alunoOptions}
+                isLoading={isLoadingAlunos}
+                errorMessage={erroAlunos}
               />
               {isAdmin() && !formData.minhasAulas && (
-                <SelectField
+                <SearchableSelectField
                   required
                   htmlFor="professorId"
                   label="Professor"
@@ -261,6 +295,8 @@ export default function Home() {
                   onChange={handleChange}
                   value={formData.professorId}
                   options={professorOptions}
+                  isLoading={isLoadingProfessores}
+                  errorMessage={erroProfessores}
                 />
               )}
             </FormGroup>
@@ -286,7 +322,7 @@ export default function Home() {
           {formData.minhasAulas ? 'Minhas Aulas' : 'Todas as Aulas'}
         </h3>
 
-        <div className="space-y-4">
+        <div className={`space-y-4 ${!isLoading ? 'animate-block-in' : ''}`}>
           {isLoading && <Loading />}
           {!isLoading && aulas && aulas.length > 0 ? (
             aulas.map(aula => (

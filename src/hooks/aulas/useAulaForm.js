@@ -16,6 +16,10 @@ export function useAulaForm({ id = null, submit }) {
     status: 'AGENDADA',
     observacao: '',
   });
+  // DEC-002-006: mapa local por campo, distinto do `errors` do servidor
+  // exposto por `useNovaAula`/`useEditarAula` — SearchableSelectField não é
+  // elemento de formulário nativo, então `required` não o valida de graça.
+  const [fieldErrors, setFieldErrors] = useState({});
 
   useEffect(() => {
     const dataInicioFormatada = todayLocalDate();
@@ -44,10 +48,44 @@ export function useAulaForm({ id = null, submit }) {
       ...extraData,
       [name]: value,
     }));
+
+    if (value && fieldErrors[name]) {
+      setFieldErrors(prev => {
+        const rest = { ...prev };
+        delete rest[name];
+        return rest;
+      });
+    }
   };
 
   const handleSubmit = e => {
     e.preventDefault();
+    const newFieldErrors = {};
+    if (!formData.idAluno) {
+      newFieldErrors.idAluno = 'Selecione um aluno.';
+    }
+    if (!formData.idProfessor) {
+      newFieldErrors.idProfessor = 'Selecione um professor.';
+    }
+    if (!formData.idContrato) {
+      newFieldErrors.idContrato = 'Selecione um contrato.';
+    }
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      // SearchableSelectField não é elemento de formulário nativo — sem
+      // `required` HTML nativo, o navegador não move foco/rolagem ao primeiro
+      // campo inválido sozinho; por isso movemos aqui, só no bloqueio do
+      // submit (nunca no ponto que limpa um erro), para não reabrir o foco a
+      // cada correção do usuário.
+      const primeiroCampoComErro = newFieldErrors.idAluno
+        ? 'idAluno'
+        : newFieldErrors.idProfessor
+          ? 'idProfessor'
+          : 'idContrato';
+      document.getElementById(primeiroCampoComErro)?.focus();
+      return;
+    }
+    setFieldErrors({});
     const dataToSend = {
       ...formData,
       duracaoAula: parseInt(formData.duracaoAula),
@@ -60,6 +98,7 @@ export function useAulaForm({ id = null, submit }) {
 
   return {
     formData,
+    fieldErrors,
     handleSubmit,
     handleChange,
     setFormData,

@@ -1,3 +1,81 @@
+# [1.7.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.6.0...v1.7.0) (2026-09-25)
+
+### Bug Fixes
+
+- **navegacao:** BI-4 BI-106 trata rejeição de isAuthenticated() como não-autenticado ([5e9735c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/5e9735c719183c4c6f26a740b8f8cd4eb4485049))
+- **navegacao:** BI-4 BI-108 evita piscar na entrada dos cards da home ([cbc71f8](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/cbc71f82c141f761235313cf36fddd7ad979533d))
+- **navegacao:** BI-4 suaviza duracao/deslocamento da transicao login->home ([b310fe6](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/b310fe6c3e5689f62e437c5b23d7902b9f1d36d6))
+
+### Features
+
+- **navegacao:** BI-4 BI-105 tokens CSS da transicao e gate opt-in de prefers-reduced-motion ([788c8c7](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/788c8c7f74279041c3ec0b46b2874dd520814c67))
+- **navegacao:** BI-4 BI-107 TransitionShell na casca da tela inicial ([41b8c08](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/41b8c086577b4d7536adfb617a4793898a82e90b))
+- **navegacao:** BI-4 BI-108 entrada visual de conclusao nos blocos de dados da Home ([a03be66](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a03be66ef43165b11afb1d52958008f1763e7743))
+
+# [1.6.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.5.0...v1.6.0) (2026-09-25)
+
+### Bug Fixes
+
+- **configuracao:** BI-129 corrige achados do retry wave 5 da TASK-002-007 ([cdd7a74](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/cdd7a748470fed96b4f11c11f52f161890cdbf8b))
+- **configuracao:** BI-130 corrige achados do retry wave 5 da TASK-002-008 ([699f289](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/699f289de9cee0d1ec708f6e2c10bdd450d98a61))
+- **configuracoes:** BI-124 normaliza tipo na comparação de isDirty ([dfdf87c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/dfdf87cfd8ef4c01c2d53b15c7e74263026aec1d))
+- **configuracoes:** BI-126 aplica correções de retry na tela de configurações ([fc3146d](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/fc3146dab39937c86d399136c33fe7f4cded4efb))
+- **configuracoes:** BI-128 corrige achados do retry wave 4 da TASK-002-006 ([edc5941](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/edc59413f4ed60667752ea4c5dd5eb9f187fe7d6))
+- **fields:** BI-123 apply typographic classes, semantic error token and checkbox message layout ([10669bc](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/10669bc953df6c4ea3b215aec58fb40a77080442))
+- **guard:** BI-127 corrige achados do retry wave 3 do guard de navegação ([a3b03dd](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a3b03dd1438b10685b3e33a8e22b9d705fc20d5b))
+- **layout:** BI-125 clear configuracao errors on mount and widen session-expired copy ([11c70e7](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/11c70e75cd193fc9416a43dc0d76ba4b6d7d98f1))
+
+### Features
+
+- **configuracao:** BI-129 TASK-002-007 add cancel restore and save state messaging ([df2ba34](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/df2ba34186cd10ea4c7466c26901a712c72d8aba))
+- **configuracao:** BI-130 TASK-002-008 add duration change confirmation dialog ([0ad6b88](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/0ad6b88736f76d8625ca0bd68ad1c8ebf084c76d))
+- **configuracoes:** BI-124 TASK-002-002 add isDirty dirty-tracking to useConfiguracaoForm ([2b0fd21](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/2b0fd21e2cce74e69e5a7b039c13776e546726cd))
+- **configuracoes:** BI-125 TASK-002-003 forced logout on configuracao 401 ([76e6f9e](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/76e6f9eb5175575aae2e48e848ba04cfc29d2b71))
+- **configuracoes:** BI-126 group configuracoes fields into named sections with support text ([a9a57eb](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a9a57ebd28f3678e11f22a2ed7b01e8c4dde9962))
+- **configuracoes:** BI-127 TASK-002-005 add unsaved-changes navigation guard ([abf46d8](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/abf46d8dcd2a75e71afec097e3abd725b4f88365))
+- **configuracoes:** BI-128 TASK-002-006 add client-side field validation with per-field error messages ([af20c78](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/af20c78c41c6f0781e8eba05714a0b291bbfc84f))
+- **fields:** BI-123 add hint and error support to BaseField/InputField/CheckboxField ([b80c700](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/b80c7000a2f98e7e525cfa0232b8d2854355460c))
+
+# [1.5.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.4.0...v1.5.0) (2026-09-25)
+
+### Bug Fixes
+
+- **select-pesquisavel:** BI-42 BI-116 TASK-002-001 corrige achados do code review ([438fa6e](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/438fa6e0062871c5e2b96193120d9d3602da1b4e))
+- **select-pesquisavel:** BI-42 BI-117 TASK-002-002 corrige achados da 3ª rodada do gate 7 ([f04c18c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/f04c18c51ed46c5bed173a1ade5baf9430995da5))
+- **select-pesquisavel:** BI-42 BI-117 TASK-002-002 corrige achados do gate 7 ([b2bc865](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/b2bc8656ff7a0244a339f33ec474366453599531))
+- **select-pesquisavel:** BI-42 BI-118 TASK-002-003 corrige achados da 2ª rodada (code-reviewer e product-designer) ([1c069ab](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/1c069abac08c28ac11d42df1b0a476db28f55ee9))
+- **select-pesquisavel:** BI-42 BI-118 TASK-002-003 corrige aria-activedescendant após fechar a lista ([9f83326](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/9f83326207a754d6c62d1b39f9f7b2cb208bc4e5))
+- **select-pesquisavel:** BI-42 BI-118 TASK-002-003 remove narrativa de proveniência de comentário (autocheck Art. 7) ([f24a907](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/f24a907260ac33c6e5281a6845e78566bf5ceb73))
+- **select-pesquisavel:** BI-42 BI-119 TASK-002-004 corrige gates 7 e 11 da integração do SearchableSelectField em Contratos ([a258dc1](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a258dc1173dc0a45d99b60589d7f402fb1d21b61))
+- **select-pesquisavel:** BI-42 BI-120 TASK-002-005 corrige gate 7 da integração do SearchableSelectField em Aulas/home ([489294c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/489294c5293201df6c399590349b0c5d8ec3485b))
+- **select-pesquisavel:** BI-42 BI-121 TASK-002-006 corrige gate 7 (2 mutantes sobreviventes em testes de foco/fieldErrors) ([49246e9](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/49246e9fdacaeb91dacfe6d1e7a4ef9001bead81))
+- **select-pesquisavel:** BI-42 BI-121 TASK-002-006 foco no primeiro campo com erro ao bloquear o submit ([1afa242](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/1afa2427b3c0cadb419f0238e56c984b45e3a38a))
+- **select-pesquisavel:** BI-42 BI-122 TASK-002-007 corrige gates 7 e 11 (achados de code-reviewer/product-designer no AulaForm) ([a3eed6a](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a3eed6adfbe2274b83d78294a3c960c7d448da8a))
+- **select-pesquisavel:** BI-42 BI-122 TASK-002-007 corrige gates 7/11 — action ausente em useContratos ([a2ac9ef](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a2ac9efedad07bc06b0e5a97c4efd6cf61a55c20))
+
+### Features
+
+- **select-pesquisavel:** BI-42 BI-116 TASK-002-001 util matchesSearchText ([1ca7f19](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/1ca7f1981ca2fe9df8a9cfab2b9f04f0ea10c7e2))
+- **select-pesquisavel:** BI-42 BI-117 TASK-002-002 núcleo do SearchableSelectField ([7b95569](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/7b955693d71e6fee82d4019c601ad55497f3d292))
+- **select-pesquisavel:** BI-42 BI-118 TASK-002-003 estados e acessibilidade do SearchableSelectField ([5fb3033](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/5fb303388c600670217443b7bef4a34a2e42ab2c))
+- **select-pesquisavel:** BI-42 BI-119 TASK-002-004 integra SearchableSelectField no filtro de Contratos (Aluno) ([6d00497](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/6d00497193e0249a5f31c07a67cfad2b3379e34e))
+- **select-pesquisavel:** BI-42 BI-120 TASK-002-005 integra SearchableSelectField no filtro de Aulas e na home ([9925fec](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/9925fecdfdaab7178141ba1a3b1c7b59f87cc0bd))
+- **select-pesquisavel:** BI-42 BI-121 TASK-002-006 integra SearchableSelectField no ContratoForm com validação obrigatória ([7fbbf2a](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/7fbbf2aca54a475a27c0b6e9c314365ea9e6ffa9))
+- **select-pesquisavel:** BI-42 BI-122 TASK-002-007 integra SearchableSelectField no AulaForm com dependência Aluno→Contrato e validação obrigatória ([513f86b](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/513f86bffb8aad97eb18be0374613cb77fe41e5a))
+
+# [1.4.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.3.0...v1.4.0) (2026-09-25)
+
+### Bug Fixes
+
+- **pwa:** BI-16 BI-114 auto-recover from offline screen on reconnect ([ce288bb](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/ce288bb5e94eccc35b2225f853fba1502f4ee4d8))
+- **pwa:** BI-16 clear connectivity message on write actions failing offline ([bd49dc1](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/bd49dc12d9de9451e06804315688d4985df3947b))
+
+### Features
+
+- **pwa:** BI-16 BI-110 BI-112 real install icons and manifest ([6946b29](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/6946b29365ae3c2b8ce2365e3415f5c533548b5b))
+- **pwa:** BI-16 BI-113 BI-114 install prompt and manual service worker ([8a52079](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/8a5207903df55f5903f1f78d8b760c03a4350a25))
+- **pwa:** BI-16 BI-115 purge app cache on logout, 401, and re-auth ([5542743](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/554274349afc964c091a2dc73c215727097d75af))
+
 # [1.3.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.2.0...v1.3.0) (2026-09-22)
 
 ### Bug Fixes

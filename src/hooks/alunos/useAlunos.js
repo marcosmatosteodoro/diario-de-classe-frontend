@@ -71,6 +71,7 @@ export function useAlunos() {
   return {
     alunos: list,
     status,
+    action,
     isLoading,
     alunoOptions,
     searchParams,
