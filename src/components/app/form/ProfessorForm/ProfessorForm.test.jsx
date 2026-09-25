@@ -5,11 +5,10 @@ import { PERMISSAO, IDIOMA } from '@/constants';
 
 jest.mock('@/providers/UserAuthProvider');
 
-// Mock parcial do barrel `@/components`: `FormSection` (e o `Section` que ela
-// compõe) permanece real (`jest.requireActual('@/components/ui')` — nunca o
-// barrel `@/components` completo, que reexporta este próprio `ProfessorForm`
-// e gera ciclo de módulo, fato medido na TASK-002-002 / `AlunoForm.test.jsx`,
-// commit 11f5fa9), para que `getByRole('group', { name })` resolva sobre a
+// Mock parcial do barrel `@/components`: `FormSection` permanece real
+// (`jest.requireActual('@/components/ui')` — nunca o barrel `@/components`
+// completo, que reexporta este próprio `ProfessorForm` e gera ciclo de
+// módulo), para que `getByRole('group', { name })` resolva sobre a
 // implementação real de fieldset/legend (AC-001-013).
 jest.mock('@/components', () => ({
   ...jest.requireActual('@/components/ui'),
@@ -43,6 +42,9 @@ jest.mock('@/components', () => ({
       />
     </div>
   ),
+  // `ref` chega como prop normal (React 19) e é repassado ao `<input>` real,
+  // igual ao `PasswordField` de produção (`...props` espalhado no `<input>`)
+  // — necessário para os testes de foco abaixo observarem `document.activeElement`.
   PasswordField: ({
     htmlFor,
     label,
@@ -50,6 +52,8 @@ jest.mock('@/components', () => ({
     onChange,
     required,
     placeholder,
+    ref,
+    autoComplete,
   }) => (
     <div data-testid={`password-${htmlFor}`}>
       <label htmlFor={htmlFor}>
@@ -57,6 +61,7 @@ jest.mock('@/components', () => ({
         {required && ' *'}
       </label>
       <input
+        ref={ref}
         type="password"
         id={htmlFor}
         name={htmlFor}
@@ -64,6 +69,7 @@ jest.mock('@/components', () => ({
         onChange={onChange}
         required={required}
         placeholder={placeholder}
+        autoComplete={autoComplete}
       />
     </div>
   ),
@@ -512,5 +518,170 @@ describe('ProfessorForm', () => {
     render(<ProfessorForm {...defaultProps} />);
 
     expect(screen.getByTestId('form-error')).toBeInTheDocument();
+  });
+
+  // Retry pós-gate 11, item (a) [pai AC-001-007/FR-001-011, NFR-001-002]:
+  // foco segue a revelação/ocultação dos campos de senha; a montagem
+  // inicial não move foco. Mutante: remover o efeito de foco → os dois
+  // testes de transição abaixo ficam vermelhos.
+  describe('foco ao alternar "Alterar senha" (retry pós-gate 11)', () => {
+    beforeEach(() => {
+      useUserAuth.mockReturnValue({
+        currentUser: { id: 1, permissao: 'admin' },
+        isAdmin: jest.fn(() => true),
+      });
+    });
+
+    it('a montagem inicial em criação não move o foco', () => {
+      render(<ProfessorForm {...defaultProps} />);
+      expect(document.activeElement).toBe(document.body);
+    });
+
+    it('a montagem inicial em edição não move o foco', () => {
+      render(
+        <ProfessorForm
+          {...defaultProps}
+          isEdit
+          formData={{ ...defaultProps.formData, id: 2 }}
+        />
+      );
+      expect(document.activeElement).toBe(document.body);
+    });
+
+    it('acionar "Alterar senha" move o foco ao campo Senha', () => {
+      const { rerender } = render(
+        <ProfessorForm
+          {...defaultProps}
+          isEdit
+          formData={{ ...defaultProps.formData, id: 2 }}
+        />
+      );
+
+      rerender(
+        <ProfessorForm
+          {...defaultProps}
+          isEdit
+          alterarSenhaAtivo
+          formData={{ ...defaultProps.formData, id: 2 }}
+        />
+      );
+
+      const senhaInput = screen
+        .getByTestId('password-senha')
+        .querySelector('input');
+      expect(document.activeElement).toBe(senhaInput);
+    });
+
+    it('cancelar alteração de senha devolve o foco ao botão "Alterar senha"', () => {
+      const { rerender } = render(
+        <ProfessorForm
+          {...defaultProps}
+          isEdit
+          alterarSenhaAtivo
+          formData={{ ...defaultProps.formData, id: 2 }}
+        />
+      );
+
+      rerender(
+        <ProfessorForm
+          {...defaultProps}
+          isEdit
+          formData={{ ...defaultProps.formData, id: 2 }}
+        />
+      );
+
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: 'Alterar senha' })
+      );
+    });
+  });
+
+  // Retry pós-gate 8, nota 1, item (e) [pai FR-001-010]: `podeAlterarSenha`
+  // nega quando `currentUser?.id` é nulo/indefinido — a comparação simples
+  // (`undefined === undefined`) liberaria o botão indevidamente. Mutante:
+  // voltar à comparação simples → este teste fica vermelho.
+  it('does not show "Alterar senha" when currentUser and formData.id are both undefined and the user is not admin', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: undefined,
+      isAdmin: jest.fn(() => false),
+    });
+    render(
+      <ProfessorForm
+        {...defaultProps}
+        isEdit
+        formData={{ ...defaultProps.formData, id: undefined }}
+      />
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Alterar senha' })
+    ).not.toBeInTheDocument();
+  });
+
+  // Retry pós-gate 8, nota 2, item (f) [pai AC-001-007]: os dois campos de
+  // senha usam `autoComplete="new-password"` também na edição — o navegador
+  // ignora `off` e pode preencher a senha do admin no campo de outro
+  // professor.
+  it('renders both password fields with autoComplete="new-password" in edit mode', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, permissao: 'admin' },
+      isAdmin: jest.fn(() => true),
+    });
+    render(
+      <ProfessorForm
+        {...defaultProps}
+        isEdit
+        alterarSenhaAtivo
+        formData={{ ...defaultProps.formData, id: 2 }}
+      />
+    );
+
+    const senhaInput = screen
+      .getByTestId('password-senha')
+      .querySelector('input');
+    const repetirSenhaInput = screen
+      .getByTestId('password-repetirSenha')
+      .querySelector('input');
+    expect(senhaInput).toHaveAttribute('autocomplete', 'new-password');
+    expect(repetirSenhaInput).toHaveAttribute('autocomplete', 'new-password');
+  });
+
+  // Retry pós-gate 11, item (g) [pai FR-001-009]: em edição sem
+  // `podeAlterarSenha`, a seção "Segurança" não é renderizada (nada de
+  // seção vazia).
+  it('does not render the "Segurança" section in edit mode without podeAlterarSenha', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, permissao: 'member' },
+      isAdmin: jest.fn(() => false),
+    });
+    render(
+      <ProfessorForm
+        {...defaultProps}
+        isEdit
+        formData={{ ...defaultProps.formData, id: 2 }}
+      />
+    );
+
+    expect(
+      screen.queryByRole('group', { name: 'Segurança' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders the "Segurança" section for an admin in edit mode', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, permissao: 'admin' },
+      isAdmin: jest.fn(() => true),
+    });
+    render(
+      <ProfessorForm
+        {...defaultProps}
+        isEdit
+        formData={{ ...defaultProps.formData, id: 2 }}
+      />
+    );
+
+    expect(
+      screen.getByRole('group', { name: 'Segurança' })
+    ).toBeInTheDocument();
   });
 });

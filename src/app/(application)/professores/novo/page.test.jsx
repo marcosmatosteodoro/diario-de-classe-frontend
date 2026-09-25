@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react';
+import { render, act } from '@testing-library/react';
 import NovoProfessor from './page';
 import { useNovoProfessor } from '@/hooks/professores/useNovoProfessor';
 import { useUserAuth } from '@/providers/UserAuthProvider';
@@ -51,8 +51,8 @@ describe('Novo Professor Page', () => {
     expect(useNovoProfessor).toHaveBeenCalled();
   });
 
-  // Cobertura reversa (TASK-002-004): ProfessorForm recebe o retorno novo do
-  // hook useProfessorForm (real, não mockado nesta página).
+  // Cobertura reversa: ProfessorForm recebe o retorno novo do hook
+  // useProfessorForm (real, não mockado nesta página).
   it('passes alterarSenhaAtivo, handleAlterarSenha and handleCancelarAlteracaoSenha to ProfessorForm', () => {
     render(<NovoProfessor />);
 
@@ -60,5 +60,33 @@ describe('Novo Professor Page', () => {
     expect(props.alterarSenhaAtivo).toBe(false);
     expect(typeof props.handleAlterarSenha).toBe('function');
     expect(typeof props.handleCancelarAlteracaoSenha).toBe('function');
+  });
+
+  // Retry pós-gate 7 F2 (pai AC-001-004 e a cobertura das 3 páginas): hook
+  // real — chama o `handleAlterarSenha` recebido dentro de `act` e confere
+  // `alterarSenhaAtivo` `true` na última chamada do `ProfessorForm` (e o de
+  // cancelar volta a `false`). Mutantes: tirar o prop da página, e trocar os
+  // dois handlers entre si → vermelho.
+  it('reflects the real useProfessorForm state through alterarSenhaAtivo when its handlers are exercised', () => {
+    render(<NovoProfessor />);
+
+    const initialProps = ProfessorForm.mock.calls[0][0];
+    expect(initialProps.alterarSenhaAtivo).toBe(false);
+
+    act(() => {
+      initialProps.handleAlterarSenha();
+    });
+
+    let lastProps =
+      ProfessorForm.mock.calls[ProfessorForm.mock.calls.length - 1][0];
+    expect(lastProps.alterarSenhaAtivo).toBe(true);
+
+    act(() => {
+      lastProps.handleCancelarAlteracaoSenha();
+    });
+
+    lastProps =
+      ProfessorForm.mock.calls[ProfessorForm.mock.calls.length - 1][0];
+    expect(lastProps.alterarSenhaAtivo).toBe(false);
   });
 });

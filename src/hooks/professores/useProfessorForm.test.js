@@ -278,7 +278,39 @@ describe('useProfessorForm', () => {
       expect(submit).not.toHaveBeenCalled();
     });
 
-    // AC-001-015 (decisão desta execução): erro do servidor não limpa o estado
+    // Retry pós-gate 7 F3 (AC-001-008/FR-001-012): cancelar zera isSenhaError
+    // junto dos campos de senha, para que nenhuma transição que oculta os
+    // campos deixe o erro de coincidência visível.
+    it('cancelar após bloqueio por divergência zera isSenhaError junto com os campos de senha', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useProfessorForm({ submit, isEdit: true, id: 'p1' })
+      );
+      act(() => {
+        result.current.handleAlterarSenha();
+      });
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'senha', value: 'novaSenha1' },
+        });
+        result.current.handleChange({
+          target: { name: 'repetirSenha', value: 'outraSenha' },
+        });
+      });
+      act(() => {
+        result.current.handleSubmit({ preventDefault: jest.fn() });
+      });
+      expect(result.current.isSenhaError).toBe(true);
+
+      act(() => {
+        result.current.handleCancelarAlteracaoSenha();
+      });
+      expect(result.current.isSenhaError).toBe(false);
+      expect(result.current.formData.senha).toBe('');
+      expect(result.current.formData.repetirSenha).toBe('');
+    });
+
+    // AC-001-015: erro do servidor não limpa o estado
     it('falha do submit não limpa formData.senha/repetirSenha nem alterarSenhaAtivo', () => {
       // `.catch` local evita rejeição não tratada no processo do Jest; o
       // hook não aguarda `submit`, então o teste só observa o estado do
@@ -312,9 +344,8 @@ describe('useProfessorForm', () => {
     });
   });
 
-  // NFR-001-001 (metade frontend, COMP-002-007) — lição
-  // prova-de-ausencia-em-log-serializa-como-o-console-e-cobre-o-erro-do-orm
-  // (critério herdado do gate 7 da Wave 1, TASK-002-001) e
+  // NFR-001-001 (metade frontend, COMP-002-007) — lições
+  // prova-de-ausencia-em-log-serializa-como-o-console-e-cobre-o-erro-do-orm e
   // controle-positivo-e-por-assercao-nao-por-mecanismo.
   describe('Ausência de senha em log (NFR-001-001, metade frontend)', () => {
     // Valor sentinela: nunca deve aparecer, sob nenhuma forma, nos argumentos
@@ -372,9 +403,11 @@ describe('useProfessorForm', () => {
     });
 
     // Controle de detecção: a ausência não é vácua — se algo logasse a senha,
-    // a captura a detectaria.
+    // a captura a detectaria. Loga um `Error` (não uma string simples) para
+    // que o mutante que troca a serialização por `JSON.stringify` (Error
+    // vira '{}') derrube este teste sem tocar nele.
     test('controle de detecção: argumento logado contendo a senha faz o texto capturado conter a senha', () => {
-      console.log(`valor logado de exemplo: ${SENHA}`);
+      console.log(new Error(`valor logado de exemplo: ${SENHA}`));
       expect(capturedLogText()).toContain(SENHA);
     });
 
@@ -422,10 +455,5 @@ describe('useProfessorForm', () => {
       expect(submit).toHaveBeenCalled();
       expectNoSenhaLogged();
     });
-
-    // useNovoProfessor.js e useEditarProfessor.js (hooks/professores/) não têm
-    // nenhuma chamada a console.log/warn/error com `formData`/`dataToSend`
-    // inteiro — só despacham a ação Redux (`dispatch(createProfessor(...))`,
-    // `dispatch(updateProfessor(...))`).
   });
 });

@@ -76,4 +76,33 @@ describe('Editar Perfil Page', () => {
     expect(typeof props.handleAlterarSenha).toBe('function');
     expect(typeof props.handleCancelarAlteracaoSenha).toBe('function');
   });
+
+  // Retry pós-gate 7 F2 (pai AC-001-004 e a cobertura das 3 páginas): hook
+  // mockado — fixture `alterarSenhaAtivo: true` com asserção estrita (sem
+  // `Boolean()`) e handlers por identidade (`toBe`). Mutantes: tirar o prop
+  // da página, e trocar os dois handlers entre si → vermelho.
+  it('passes alterarSenhaAtivo=true and the exact hook handlers to ProfessorForm', () => {
+    const mockHandleAlterarSenha = jest.fn();
+    const mockHandleCancelarAlteracaoSenha = jest.fn();
+    useProfessorForm.mockReturnValue({
+      formData: { nome: 'Professor' },
+      isSenhaError: false,
+      handleChange: jest.fn(),
+      handleSubmit: jest.fn(),
+      setFormData: jest.fn(),
+      alterarSenhaAtivo: true,
+      handleAlterarSenha: mockHandleAlterarSenha,
+      handleCancelarAlteracaoSenha: mockHandleCancelarAlteracaoSenha,
+    });
+
+    render(<EditarPerfil />);
+
+    const props =
+      ProfessorForm.mock.calls[ProfessorForm.mock.calls.length - 1][0];
+    expect(props.alterarSenhaAtivo).toBe(true);
+    expect(props.handleAlterarSenha).toBe(mockHandleAlterarSenha);
+    expect(props.handleCancelarAlteracaoSenha).toBe(
+      mockHandleCancelarAlteracaoSenha
+    );
+  });
 });

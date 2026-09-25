@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import EditarProfessor from './page';
 import { STATUS_ERROR } from '@/constants/statusError';
 import { IDIOMA } from '@/constants';
+import { ProfessorForm } from '@/components';
 
 // Mock dos hooks
 jest.mock('@/hooks/professores/useEditarProfessor');
@@ -36,37 +37,29 @@ jest.mock('@/components', () => ({
   ),
   PageTitle: ({ children }) => <h1 data-testid="page-title">{children}</h1>,
   Loading: () => <div data-testid="loading">Carregando...</div>,
-  ProfessorForm: ({
-    handleSubmit,
-    handleChange,
-    formData,
-    isSenhaError,
-    isLoading,
-    message,
-    errors,
-    isEdit,
-    alterarSenhaAtivo,
-    handleAlterarSenha,
-    handleCancelarAlteracaoSenha,
-  }) => (
-    <form data-testid="professor-form" onSubmit={handleSubmit}>
-      <div data-testid="form-data">{JSON.stringify(formData)}</div>
-      {isSenhaError && <div data-testid="senha-error">Erro na senha</div>}
-      {isLoading && <div data-testid="form-loading">Enviando...</div>}
-      {message && <div data-testid="message">{message}</div>}
-      {errors && <div data-testid="errors">{JSON.stringify(errors)}</div>}
-      {isEdit && <div data-testid="is-edit">Modo Edição</div>}
-      <div data-testid="alterar-senha-ativo">
-        {String(Boolean(alterarSenhaAtivo))}
-      </div>
-      <div data-testid="handle-alterar-senha-type">
-        {typeof handleAlterarSenha}
-      </div>
-      <div data-testid="handle-cancelar-alteracao-senha-type">
-        {typeof handleCancelarAlteracaoSenha}
-      </div>
-      <button type="submit">Salvar</button>
-    </form>
+  // `jest.fn(...)` envolvendo o componente: renderiza a marcação que os
+  // demais testes já liam por testid, e também expõe `.mock.calls` para as
+  // asserções estritas de identidade (sem `Boolean()`/`typeof`) abaixo.
+  ProfessorForm: jest.fn(
+    ({
+      handleSubmit,
+      formData,
+      isSenhaError,
+      isLoading,
+      message,
+      errors,
+      isEdit,
+    }) => (
+      <form data-testid="professor-form" onSubmit={handleSubmit}>
+        <div data-testid="form-data">{JSON.stringify(formData)}</div>
+        {isSenhaError && <div data-testid="senha-error">Erro na senha</div>}
+        {isLoading && <div data-testid="form-loading">Enviando...</div>}
+        {message && <div data-testid="message">{message}</div>}
+        {errors && <div data-testid="errors">{JSON.stringify(errors)}</div>}
+        {isEdit && <div data-testid="is-edit">Modo Edição</div>}
+        <button type="submit">Salvar</button>
+      </form>
+    )
   ),
   FormPage: ({ title, subTitle, buttons, extraButton, children }) => (
     <div data-testid="form-page">
@@ -397,19 +390,46 @@ describe('EditarProfessor Page', () => {
     expect(formDataElement).toHaveTextContent(JSON.stringify(mockFormData));
   });
 
-  // Cobertura reversa (TASK-002-004): ProfessorForm recebe o retorno novo do
-  // hook useProfessorForm.
+  // Cobertura reversa: ProfessorForm recebe o retorno novo do hook
+  // useProfessorForm.
   it('passes alterarSenhaAtivo, handleAlterarSenha and handleCancelarAlteracaoSenha to ProfessorForm', () => {
     render(<EditarProfessor />);
 
-    expect(screen.getByTestId('alterar-senha-ativo')).toHaveTextContent(
-      'false'
+    const props = ProfessorForm.mock.calls[0][0];
+    expect(props.alterarSenhaAtivo).toBe(false);
+    expect(typeof props.handleAlterarSenha).toBe('function');
+    expect(typeof props.handleCancelarAlteracaoSenha).toBe('function');
+  });
+
+  // Retry pós-gate 7 F2 (pai AC-001-004 e a cobertura das 3 páginas): hook
+  // mockado — fixture `alterarSenhaAtivo: true` com asserção estrita (sem
+  // `Boolean()`) e handlers por identidade (`toBe`). Mutantes: tirar o prop
+  // da página, e trocar os dois handlers entre si → vermelho.
+  it('passes alterarSenhaAtivo=true and the exact hook handlers to ProfessorForm', () => {
+    const {
+      useProfessorForm,
+    } = require('@/hooks/professores/useProfessorForm');
+    const mockHandleAlterarSenha = jest.fn();
+    const mockHandleCancelarAlteracaoSenha = jest.fn();
+    useProfessorForm.mockReturnValue({
+      formData: mockFormData,
+      isSenhaError: false,
+      handleChange: mockHandleChange,
+      handleSubmit: mockHandleSubmit,
+      setFormData: mockSetFormData,
+      alterarSenhaAtivo: true,
+      handleAlterarSenha: mockHandleAlterarSenha,
+      handleCancelarAlteracaoSenha: mockHandleCancelarAlteracaoSenha,
+    });
+
+    render(<EditarProfessor />);
+
+    const props =
+      ProfessorForm.mock.calls[ProfessorForm.mock.calls.length - 1][0];
+    expect(props.alterarSenhaAtivo).toBe(true);
+    expect(props.handleAlterarSenha).toBe(mockHandleAlterarSenha);
+    expect(props.handleCancelarAlteracaoSenha).toBe(
+      mockHandleCancelarAlteracaoSenha
     );
-    expect(screen.getByTestId('handle-alterar-senha-type')).toHaveTextContent(
-      'function'
-    );
-    expect(
-      screen.getByTestId('handle-cancelar-alteracao-senha-type')
-    ).toHaveTextContent('function');
   });
 });
