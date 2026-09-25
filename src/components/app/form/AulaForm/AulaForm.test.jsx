@@ -150,6 +150,7 @@ jest.mock('@/components', () => ({
                   role="option"
                   aria-selected={option.value === value}
                   data-testid={`select-field-${htmlFor}-option`}
+                  data-value={option.value}
                   onClick={() =>
                     onChange({ target: { name: htmlFor, value: option.value } })
                   }
@@ -1175,10 +1176,7 @@ describe('AulaForm User Interactions', () => {
 });
 
 // Cobre o conteúdo computado de `contratoOptions`/`professorOptions`: filtro
-// por aluno, ordem ATIVO-primeiro, restrição do professor não-admin. Os
-// campos Contrato/Professor são `SearchableSelectField` (TASK-002-007): as
-// opções são verificadas pela lista `role="option"` do mock, não por
-// `<select>` nativo.
+// por aluno, ordem ATIVO-primeiro, restrição do professor não-admin.
 describe('AulaForm Non-Regression (AC-001-017)', () => {
   const mockHandleChange = jest.fn();
   const mockHandleSubmit = jest.fn(e => e.preventDefault());
@@ -1235,10 +1233,14 @@ describe('AulaForm Non-Regression (AC-001-017)', () => {
     );
 
     // aluno 2 (id=4) e o contrato PENDENTE (id=2) ficam fora; ATIVO (id=3)
-    // vem antes do CONCLUIDO (id=1).
+    // vem antes do CONCLUIDO (id=1) — identidade por `data-value` do mock,
+    // não só prefixo/contagem: trocar o ATIVO esperado (id=3) por outro
+    // ATIVO do fixture (id=4) reprova esta asserção.
     const options = screen.getAllByTestId('select-field-idContrato-option');
     expect(options).toHaveLength(2);
+    expect(options[0]).toHaveAttribute('data-value', '3');
     expect(options[0]).toHaveTextContent(/^ATIVO/);
+    expect(options[1]).toHaveAttribute('data-value', '1');
     expect(options[1]).toHaveTextContent(/^CONCLUIDO/);
   });
 
