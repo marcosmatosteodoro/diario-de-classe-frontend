@@ -108,8 +108,8 @@ describe('Editar Perfil Page', () => {
     );
   });
 
-  // Convergência de fecho (gap 2, FR-001-006/AC-001-004): deriva idioma/idiomas
-  // de current.idiomas exatamente como professores/[id]/editar/page.jsx.
+  // FR-001-006/AC-001-004: deriva idioma/idiomas de current.idiomas
+  // exatamente como professores/[id]/editar/page.jsx.
   it('derives idioma and idiomas from current.idiomas', async () => {
     useEditarProfessor.mockReturnValue({
       message: null,
