@@ -481,6 +481,44 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
     expect(result.current.errosValidacao.duracaoAula).toBeUndefined();
   });
 
+  it('nova leitura (rerender com outra configuracao) zera tentouSalvar: sem erro após a nova leitura, e digitar valor inválido não reaparece antes do próximo Salvar', async () => {
+    const submitMock = jest.fn();
+    const { result, rerender } = renderHook(
+      ({ configuracao }) =>
+        useConfiguracaoForm({ submit: submitMock, configuracao }),
+      { initialProps: { configuracao: configValida } }
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '' },
+      });
+    });
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent());
+    });
+    expect(submitMock).not.toHaveBeenCalled();
+    expect(result.current.errosValidacao.duracaoAula).toBe('Campo obrigatório');
+
+    const configuracaoAposNovaLeitura = {
+      ...configValida,
+      tolerancia: 15,
+    };
+    rerender({ configuracao: configuracaoAposNovaLeitura });
+
+    expect(result.current.errosValidacao.duracaoAula).toBeUndefined();
+
+    // Prova o reset da flag, não só o valor da nova leitura: digitar de novo um valor
+    // inválido, sem novo Salvar, não deve reacender o erro — se `tentouSalvar`
+    // permanecesse `true` (mutante), o erro reapareceria neste passo.
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '' },
+      });
+    });
+    expect(result.current.errosValidacao.duracaoAula).toBeUndefined();
+  });
+
   it.each([
     [
       'só horaInicial inválida',
@@ -590,6 +628,7 @@ describe('useConfiguracaoForm — foco no primeiro campo inválido', () => {
       <input id="duracaoAula" />
       <input id="tolerancia" />
       <input id="QUARTA.ativo" type="checkbox" />
+      <input id="TERCA.horaInicial" />
       <input id="TERCA.horaFinal" />
     `;
   }
@@ -645,6 +684,47 @@ describe('useConfiguracaoForm — foco no primeiro campo inválido', () => {
 
     expect(document.activeElement).toBe(
       document.getElementById('QUARTA.ativo')
+    );
+  });
+
+  it('erro só na tolerância (duração e dias válidos) move o foco para #tolerancia', () => {
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({ submit: jest.fn(), configuracao: configComFoco })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'tolerancia', value: '0' },
+      });
+    });
+    act(() => {
+      result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(document.activeElement).toBe(document.getElementById('tolerancia'));
+  });
+
+  it('horaInicial e horaFinal inválidas no mesmo dia ativo movem o foco para horaInicial (antes de horaFinal)', () => {
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({ submit: jest.fn(), configuracao: configComFoco })
+    );
+
+    act(() => {
+      result.current.handleDiasDeFuncionamentoChange({
+        target: { name: 'TERCA.horaInicial', value: '8:00' },
+      });
+    });
+    act(() => {
+      result.current.handleDiasDeFuncionamentoChange({
+        target: { name: 'TERCA.horaFinal', value: '25:00' },
+      });
+    });
+    act(() => {
+      result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(document.activeElement).toBe(
+      document.getElementById('TERCA.horaInicial')
     );
   });
 });
