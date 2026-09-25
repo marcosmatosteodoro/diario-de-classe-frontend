@@ -1,5 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AulaForm } from '.';
+import { useAlunos } from '@/hooks/alunos/useAlunos';
+import { useContratos } from '@/hooks/contratos/useContratos';
 
 // Mock dos componentes
 jest.mock('@/components', () => ({
@@ -55,6 +57,114 @@ jest.mock('@/components', () => ({
       </select>
     </div>
   ),
+  // Estande equivalente ao `SelectField` acima (mesma superfície observável:
+  // label, options, onChange no formato { target: { name, value } }), mas
+  // sem <select>/<option> nativos — reflete o widget combobox real:
+  // `disabledReason` e `errorMessage` são mutuamente exclusivos com a lista
+  // de opções (só um dos três — bloqueio, erro/vazio, lista — aparece por
+  // vez, como no componente real), e `requiredError` renderiza um
+  // `role="alert"` ligado ao input via `aria-describedby` (DEC-002-006).
+  SearchableSelectField: ({
+    htmlFor,
+    label,
+    placeholder,
+    options,
+    onChange,
+    value,
+    required,
+    disabledReason,
+    selectedLabel,
+    isLoading,
+    errorMessage,
+    requiredError,
+  }) => {
+    const selectedOption = options?.find(option => option.value === value);
+    const displayValue = selectedOption
+      ? selectedOption.label
+      : value
+        ? selectedLabel || String(value)
+        : '';
+    const requiredErrorId = `${htmlFor}-required-error`;
+    return (
+      <div data-testid={`aula-select-${htmlFor}`}>
+        <label htmlFor={htmlFor}>
+          {label}
+          {required && ' *'}
+        </label>
+        <input
+          id={htmlFor}
+          name={htmlFor}
+          role="combobox"
+          aria-expanded="false"
+          aria-controls={`${htmlFor}-listbox`}
+          aria-invalid={requiredError ? 'true' : undefined}
+          aria-describedby={requiredError ? requiredErrorId : undefined}
+          placeholder={placeholder}
+          value={displayValue}
+          readOnly
+          data-testid={`select-${htmlFor}`}
+        />
+        {disabledReason ? (
+          <p data-testid={`select-field-${htmlFor}-disabled-reason`}>
+            {disabledReason}
+          </p>
+        ) : (
+          <>
+            {isLoading && (
+              <p data-testid={`select-field-${htmlFor}-loading`}>
+                Carregando...
+              </p>
+            )}
+            {errorMessage && (
+              <p data-testid={`select-field-${htmlFor}-error`}>
+                {errorMessage}
+              </p>
+            )}
+            {!errorMessage && options?.length === 0 && (
+              <p data-testid={`select-field-${htmlFor}-empty`}>
+                Nenhum resultado encontrado.
+              </p>
+            )}
+            {value && (
+              <button
+                type="button"
+                data-testid={`select-field-${htmlFor}-clear`}
+                onClick={() =>
+                  onChange({ target: { name: htmlFor, value: '' } })
+                }
+              >
+                Limpar
+              </button>
+            )}
+            <ul data-testid={`select-field-${htmlFor}-options`}>
+              {options?.map((option, idx) => (
+                <li
+                  key={idx}
+                  role="option"
+                  aria-selected={option.value === value}
+                  data-testid={`select-field-${htmlFor}-option`}
+                  onClick={() =>
+                    onChange({ target: { name: htmlFor, value: option.value } })
+                  }
+                >
+                  {option.label}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        {requiredError && (
+          <p
+            id={requiredErrorId}
+            role="alert"
+            data-testid={`select-field-${htmlFor}-required-error`}
+          >
+            {requiredError}
+          </p>
+        )}
+      </div>
+    );
+  },
   TextAreaField: ({
     htmlFor,
     label,
@@ -89,26 +199,16 @@ jest.mock('@/components', () => ({
 }));
 
 // Mock dos hooks
+// `useAlunos`/`useContratos` viram `jest.fn()` (não factory fixa) para as
+// suítes de AC-001-007/008 abaixo sobrescreverem a lista por teste (2º Aluno,
+// Contrato de outro Aluno, Contrato PENDENTE) sem afetar o default usado
+// pelos testes pré-existentes deste arquivo.
 jest.mock('@/hooks/alunos/useAlunos', () => ({
-  useAlunos: () => ({
-    alunos: [
-      { id: 1, nome: 'João', sobrenome: 'Silva', email: 'joao@example.com' },
-    ],
-  }),
+  useAlunos: jest.fn(),
 }));
 
 jest.mock('@/hooks/contratos/useContratos', () => ({
-  useContratos: () => ({
-    contratos: [
-      {
-        id: 1,
-        idAluno: 1,
-        status: 'ATIVO',
-        dataInicio: '2024-01-01',
-        dataTermino: '2024-12-31',
-      },
-    ],
-  }),
+  useContratos: jest.fn(),
 }));
 
 jest.mock('@/hooks/professores/useProfessores', () => ({
@@ -152,6 +252,28 @@ jest.mock('@/utils/getEntityOptions', () => ({
     return [];
   },
 }));
+
+// Default de `useAlunos`/`useContratos` — mesmos dados que a factory fixa
+// tinha antes (aluno 1 "João Silva", contrato 1 ATIVO do aluno 1); só as
+// suítes de AC-001-007/008 sobrescrevem por teste.
+beforeEach(() => {
+  useAlunos.mockReturnValue({
+    alunos: [
+      { id: 1, nome: 'João', sobrenome: 'Silva', email: 'joao@example.com' },
+    ],
+  });
+  useContratos.mockReturnValue({
+    contratos: [
+      {
+        id: 1,
+        idAluno: 1,
+        status: 'ATIVO',
+        dataInicio: '2024-01-01',
+        dataTermino: '2024-12-31',
+      },
+    ],
+  });
+});
 
 describe('AulaForm', () => {
   const mockFormData = {
@@ -1038,5 +1160,225 @@ describe('AulaForm User Interactions', () => {
       .querySelector('a');
     expect(cancelLink).toBeInTheDocument();
     expect(cancelLink.textContent).toBe('Cancelar');
+  });
+});
+
+describe('AulaForm — Contrato: disabledReason/errorMessage (AC-001-007)', () => {
+  const mockFormData = {
+    idAluno: 1,
+    idProfessor: 1,
+    idContrato: 1,
+    tipo: 'PADRAO',
+    dataAula: '2024-03-11',
+    horaInicial: '10:00',
+    horaFinal: '11:00',
+    observacao: 'Test observation',
+    status: 'REALIZADA',
+  };
+  const mockHandleChange = jest.fn();
+  const mockHandleSubmit = jest.fn(e => e.preventDefault());
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('sem Aluno selecionado, o campo Contrato mostra disabledReason "Selecione um Aluno antes", distinto do estado vazio', () => {
+    render(
+      <AulaForm
+        handleSubmit={mockHandleSubmit}
+        message=""
+        errors={null}
+        handleChange={mockHandleChange}
+        formData={{ ...mockFormData, idAluno: '', idContrato: '' }}
+        isLoading={false}
+        isEdit={false}
+      />
+    );
+
+    expect(
+      screen.getByTestId('select-field-idContrato-disabled-reason')
+    ).toHaveTextContent('Selecione um Aluno antes');
+    expect(
+      screen.queryByTestId('select-field-idContrato-empty')
+    ).not.toBeInTheDocument();
+  });
+
+  it('com Aluno selecionado e nenhum contrato elegível, exibe "Nenhum contrato disponível para este aluno", distinta do bloqueio sem Aluno', () => {
+    useContratos.mockReturnValue({ contratos: [] });
+
+    render(
+      <AulaForm
+        handleSubmit={mockHandleSubmit}
+        message=""
+        errors={null}
+        handleChange={mockHandleChange}
+        formData={{ ...mockFormData, idAluno: 1, idContrato: '' }}
+        isLoading={false}
+        isEdit={false}
+      />
+    );
+
+    expect(
+      screen.getByTestId('select-field-idContrato-error')
+    ).toHaveTextContent('Nenhum contrato disponível para este aluno.');
+    expect(
+      screen.queryByTestId('select-field-idContrato-disabled-reason')
+    ).not.toBeInTheDocument();
+  });
+});
+
+describe('AulaForm — FR-001-008: troca de Aluno limpa Contrato quando não pertence ao novo Aluno (AC-001-007)', () => {
+  const mockFormData = {
+    idAluno: 1,
+    idProfessor: 1,
+    idContrato: 1,
+    tipo: 'PADRAO',
+    dataAula: '2024-03-11',
+    horaInicial: '10:00',
+    horaFinal: '11:00',
+    observacao: 'Test observation',
+    status: 'REALIZADA',
+  };
+  const mockHandleSubmit = jest.fn(e => e.preventDefault());
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useAlunos.mockReturnValue({
+      alunos: [
+        { id: 1, nome: 'João', sobrenome: 'Silva', email: 'joao@example.com' },
+        { id: 2, nome: 'Ana', sobrenome: 'Souza', email: 'ana@example.com' },
+      ],
+    });
+    useContratos.mockReturnValue({
+      contratos: [
+        {
+          id: 1,
+          idAluno: 1,
+          status: 'ATIVO',
+          dataInicio: '2024-01-01',
+          dataTermino: '2024-12-31',
+        },
+        {
+          id: 2,
+          idAluno: 2,
+          status: 'ATIVO',
+          dataInicio: '2024-01-01',
+          dataTermino: '2024-12-31',
+        },
+      ],
+    });
+  });
+
+  it('trocar para um Aluno que não possui o Contrato selecionado limpa idContrato antes de aplicar o novo idAluno', () => {
+    const handleChange = jest.fn();
+    render(
+      <AulaForm
+        handleSubmit={mockHandleSubmit}
+        message=""
+        errors={null}
+        handleChange={handleChange}
+        formData={{ ...mockFormData, idAluno: 1, idContrato: 1 }}
+        isLoading={false}
+        isEdit={false}
+      />
+    );
+
+    fireEvent.click(screen.getByText('Ana Souza (ana@example.com)'));
+
+    expect(handleChange).toHaveBeenNthCalledWith(1, {
+      target: { name: 'idContrato', value: '' },
+    });
+    expect(handleChange).toHaveBeenNthCalledWith(2, {
+      target: { name: 'idAluno', value: 2 },
+    });
+  });
+
+  it('controle positivo: o Contrato selecionado já pertence ao Aluno recém-selecionado — não é limpo', () => {
+    const handleChange = jest.fn();
+    render(
+      <AulaForm
+        handleSubmit={mockHandleSubmit}
+        message=""
+        errors={null}
+        handleChange={handleChange}
+        formData={{ ...mockFormData, idAluno: 1, idContrato: 1 }}
+        isLoading={false}
+        isEdit={false}
+      />
+    );
+
+    fireEvent.click(screen.getByText('João Silva (joao@example.com)'));
+
+    expect(handleChange).toHaveBeenCalledTimes(1);
+    expect(handleChange).toHaveBeenCalledWith({
+      target: { name: 'idAluno', value: 1 },
+    });
+  });
+});
+
+describe('AulaForm — FR-001-010/AC-001-008: rótulo do Contrato fora de contratoOptions (selectedLabel)', () => {
+  const mockFormData = {
+    idAluno: 1,
+    idProfessor: 1,
+    idContrato: 1,
+    tipo: 'PADRAO',
+    dataAula: '2024-03-11',
+    horaInicial: '10:00',
+    horaFinal: '11:00',
+    observacao: 'Test observation',
+    status: 'REALIZADA',
+  };
+  const mockHandleChange = jest.fn();
+  const mockHandleSubmit = jest.fn(e => e.preventDefault());
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('contrato virou PENDENTE (fora de contratoOptions) — o campo exibe o rótulo resolvido a partir de `contratos`, nunca descarta o valor em silêncio', () => {
+    useContratos.mockReturnValue({
+      contratos: [
+        {
+          id: 1,
+          idAluno: 1,
+          status: 'PENDENTE',
+          dataInicio: '2024-01-01',
+          dataTermino: '2024-12-31',
+        },
+      ],
+    });
+
+    render(
+      <AulaForm
+        handleSubmit={mockHandleSubmit}
+        message=""
+        errors={null}
+        handleChange={mockHandleChange}
+        formData={{ ...mockFormData, idAluno: 1, idContrato: 1 }}
+        isLoading={false}
+        isEdit={false}
+      />
+    );
+
+    const contratoInput = screen.getByTestId('select-idContrato');
+    expect(contratoInput.value).toContain('PENDENTE');
+    expect(contratoInput.value).not.toBe('');
+  });
+
+  it('contrato dentro de contratoOptions ignora o cálculo de selectedLabel — usa o rótulo real da opção', () => {
+    render(
+      <AulaForm
+        handleSubmit={mockHandleSubmit}
+        message=""
+        errors={null}
+        handleChange={mockHandleChange}
+        formData={{ ...mockFormData, idAluno: 1, idContrato: 1 }}
+        isLoading={false}
+        isEdit={false}
+      />
+    );
+
+    const contratoInput = screen.getByTestId('select-idContrato');
+    expect(contratoInput.value).toContain('ATIVO');
   });
 });
