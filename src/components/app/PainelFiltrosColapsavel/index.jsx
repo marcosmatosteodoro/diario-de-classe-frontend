@@ -117,6 +117,48 @@ export const PainelFiltrosColapsavel = ({
   // de montado, os dois passam a refletir o valor real, sem flash visual — o
   // visual já deriva do atributo `data-panel-state`, não deste estado.
   const [hidratado, setHidratado] = useState(false);
+  // Overflow só é liberado (`overflow-visible`) quando o painel está aberto
+  // E PARADO — fechado ou em transição, continua obrigatório (necessário
+  // para a transição de `grid-template-rows` ter efeito, per o comentário do
+  // outro `<div>`; sem isso, a lista aberta de um combobox filho corta a
+  // poucos pixels de altura).
+  //
+  // "Derivar estado durante o render" (padrão documentado do React, não um
+  // efeito): comparar a prop `isOpen` contra o valor da renderização anterior
+  // e, se mudou, já ligar `emTransicao` NA MESMA passada — nunca depois, via
+  // `useEffect`/`useLayoutEffect`, que deixaria uma primeira pintura com o
+  // overflow liberado por um instante no início real de toda transição
+  // aberto→fechado (a régua da mudança em si, nunca lida do servidor: os dois
+  // realms sempre concordam em `false` no primeiro render, sem risco de
+  // divergência de hidratação — ao contrário de `isOpen`, que a leitura
+  // síncrona de localStorage do hook pode divergir do default do servidor).
+  const [isOpenAnterior, setIsOpenAnterior] = useState(isOpen);
+  const [emTransicao, setEmTransicao] = useState(false);
+  if (isOpen !== isOpenAnterior) {
+    setIsOpenAnterior(isOpen);
+    // `prefers-reduced-motion`/`motion-reduce`: a transição CSS não roda
+    // (`transition-none`), então o `transitionend` que fecharia a janela
+    // abaixo nunca dispara — sem esta guarda, `emTransicao` ficaria preso em
+    // `true` para sempre. `matchMedia` é só de navegador: a checagem nunca
+    // roda durante SSR (este bloco só executa de fato quando `isOpen` MUDA
+    // após a montagem, nunca no primeiro render).
+    const prefereMovimentoReduzido =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setEmTransicao(!prefereMovimentoReduzido);
+  }
+
+  // Encerra a janela de transição no fim REAL da animação de
+  // `grid-template-rows` (`transitionend` é o próprio motor de renderização
+  // avisando, não um timer arbitrário). `target !== currentTarget` filtra
+  // eventos borbulhados de qualquer transição dos filhos (ex.: algo dentro de
+  // `children`) — só a transição deste nó encerra a janela.
+  const handleTransitionEndConteudo = event => {
+    if (event.target !== event.currentTarget) return;
+    if (event.propertyName !== 'grid-template-rows') return;
+    setEmTransicao(false);
+  };
   // `useLayoutEffect`, não `useEffect`: o segundo é agendado pelo scheduler e
   // pode deixar uma janela síncrona entre o commit (botão já clicável) e o
   // efeito (que ainda não rodou) — um toggle do usuário caindo nela leria
@@ -157,6 +199,7 @@ export const PainelFiltrosColapsavel = ({
     <div
       data-testid="painel-filtros-colapsavel"
       data-panel-state={isOpen ? undefined : RECOLHIDO}
+      data-panel-transition={emTransicao ? 'ativa' : undefined}
       className="group"
     >
       <script
@@ -241,9 +284,23 @@ export const PainelFiltrosColapsavel = ({
         id={contentId}
         data-testid="painel-filtros-conteudo"
         inert={hidratado ? !isOpen : undefined}
+        onTransitionEnd={handleTransitionEndConteudo}
         className="grid grid-rows-[1fr] visible transition-[grid-template-rows,visibility] duration-200 ease-in-out motion-reduce:transition-none group-data-[panel-state=recolhido]:grid-rows-[0fr] group-data-[panel-state=recolhido]:invisible"
       >
-        <div className="overflow-hidden">{children}</div>
+        {/* `overflow-hidden` condicionado por CSS (variantes `group-data`),
+            nunca por classe computada em JS a partir de `isOpen` direto —
+            isso reintroduziria a mesma divergência de hidratação que os
+            atributos de dado na raiz (`data-panel-state`,
+            `data-panel-transition`) já resolvem: eles concordam por
+            construção nos dois realms, enquanto `isOpen` pode divergir do
+            default do servidor na primeira renderização do cliente
+            (localStorage lido sincronamente pelo hook). */}
+        <div
+          data-testid="painel-filtros-conteudo-overflow"
+          className="group-data-[panel-state=recolhido]:overflow-hidden group-data-[panel-transition=ativa]:overflow-hidden"
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

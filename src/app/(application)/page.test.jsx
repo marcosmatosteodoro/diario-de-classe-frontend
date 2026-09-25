@@ -1,4 +1,10 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import {
+  render,
+  screen,
+  waitFor,
+  within,
+  fireEvent,
+} from '@testing-library/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { act } from 'react';
 import { JSDOM } from 'jsdom';
@@ -12,7 +18,11 @@ import { useDashboard } from '@/hooks/dashboard/useDashboard';
 import { useProfessores } from '@/hooks/professores/useProfessores';
 import { makeEmailLabel } from '@/utils/makeEmailLabel';
 import { makeFullNameLabel } from '@/utils/makeFullNameLabel';
-import { FILTER_PANEL_STORAGE_KEYS, FILTER_STORAGE_KEYS } from '@/constants';
+import {
+  FILTER_PANEL_STORAGE_KEYS,
+  FILTER_STORAGE_KEYS,
+  STATUS,
+} from '@/constants';
 
 // Mock providers and hooks
 jest.mock('@/providers/UserAuthProvider');
@@ -442,5 +452,240 @@ describe('Home — fiação real do painel colapsável (AC-001-015/018/021, acha
         root.unmount();
       });
     });
+  });
+});
+
+describe('Home — isLoading/errorMessage de useAlunos()/useProfessores() chegam ao SearchableSelectField real', () => {
+  const defaultMocks = {
+    currentUser: { id: 1, nome: 'Professor Test', email: 'test@example.com' },
+    isAdmin: () => true,
+  };
+
+  const defaultDashboardData = {
+    aulas: [],
+    isLoading: false,
+    homeCardValues: [],
+    formData: {
+      dataInicio: '',
+      dataTermino: '',
+      tipo: '',
+      status: '',
+      alunoId: '',
+      professorId: '',
+      minhasAulas: false,
+    },
+    handleSubmit: jest.fn(),
+    handleChange: jest.fn(),
+    handleClearFilter: jest.fn(),
+    handleClick: jest.fn(),
+    appliedCount: 0,
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    useUserAuth.mockReturnValue(defaultMocks);
+    useDashboard.mockReturnValue(defaultDashboardData);
+  });
+
+  it('useAlunos() com isLoading=true: o combobox real de Aluno mostra o indicador de carregamento ao abrir, não "Nenhum resultado encontrado"', () => {
+    useAlunos.mockReturnValue({
+      alunoOptions: [],
+      isLoading: true,
+      status: STATUS.LOADING,
+      action: 'getAlunos',
+    });
+    useProfessores.mockReturnValue({ professorOptions: [] });
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^aluno$/i }));
+
+    expect(screen.getByTestId('loading')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('searchable-select-field-empty')
+    ).not.toBeInTheDocument();
+  });
+
+  it('useAlunos() com status FAILED da ação getAlunos: o combobox real de Aluno mostra a frase fixa em pt-BR, nunca o `message` cru do slice', () => {
+    useAlunos.mockReturnValue({
+      alunoOptions: [],
+      isLoading: false,
+      status: STATUS.FAILED,
+      action: 'getAlunos',
+      message: 'Request failed with status code 500',
+    });
+    useProfessores.mockReturnValue({ professorOptions: [] });
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^aluno$/i }));
+
+    expect(
+      screen.getByTestId('searchable-select-field-error')
+    ).toHaveTextContent(
+      'Não foi possível carregar os alunos. Tente novamente.'
+    );
+    expect(screen.queryByText(/request failed/i)).not.toBeInTheDocument();
+  });
+
+  it('useProfessores() com isLoading=true: o combobox real de Professor mostra o indicador de carregamento ao abrir', () => {
+    useAlunos.mockReturnValue({ alunoOptions: [] });
+    useProfessores.mockReturnValue({
+      professorOptions: [],
+      isLoading: true,
+      status: STATUS.LOADING,
+      action: 'getProfessores',
+    });
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^professor/i }));
+
+    expect(screen.getByTestId('loading')).toBeInTheDocument();
+  });
+
+  it('useProfessores() com status FAILED da ação getProfessores: o combobox real de Professor mostra a frase fixa em pt-BR, nunca o `message` cru do slice', () => {
+    useAlunos.mockReturnValue({ alunoOptions: [] });
+    useProfessores.mockReturnValue({
+      professorOptions: [],
+      isLoading: false,
+      status: STATUS.FAILED,
+      action: 'getProfessores',
+      message: 'Request failed with status code 500',
+    });
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^professor/i }));
+
+    expect(
+      screen.getByTestId('searchable-select-field-error')
+    ).toHaveTextContent(
+      'Não foi possível carregar os professores. Tente novamente.'
+    );
+    expect(screen.queryByText(/request failed/i)).not.toBeInTheDocument();
+  });
+
+  it('useProfessores() com status FAILED de outra ação do slice (ex.: updateProfessor): o combobox real NÃO mostra erro — status é compartilhado entre ações do slice', () => {
+    useAlunos.mockReturnValue({ alunoOptions: [] });
+    useProfessores.mockReturnValue({
+      professorOptions: [],
+      isLoading: false,
+      status: STATUS.FAILED,
+      action: 'updateProfessor',
+    });
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^professor/i }));
+
+    expect(
+      screen.queryByTestId('searchable-select-field-error')
+    ).not.toBeInTheDocument();
+  });
+
+  it('useAlunos() com status FAILED de outra ação do slice (ex.: updateAluno): o combobox real NÃO mostra erro — status é compartilhado entre ações do slice', () => {
+    useAlunos.mockReturnValue({
+      alunoOptions: [],
+      isLoading: false,
+      status: STATUS.FAILED,
+      action: 'updateAluno',
+    });
+    useProfessores.mockReturnValue({ professorOptions: [] });
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^aluno$/i }));
+
+    expect(
+      screen.queryByTestId('searchable-select-field-error')
+    ).not.toBeInTheDocument();
+  });
+
+  it('selecionar uma opção de Aluno chama handleChange com { target: { name: "alunoId", value } }', () => {
+    const handleChange = jest.fn();
+    useDashboard.mockReturnValue({ ...defaultDashboardData, handleChange });
+    useAlunos.mockReturnValue({
+      alunoOptions: [{ label: 'João Silva', value: 'cuid-aluno-1' }],
+    });
+    useProfessores.mockReturnValue({ professorOptions: [] });
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^aluno$/i }));
+    fireEvent.click(screen.getByRole('option', { name: 'João Silva' }));
+
+    expect(handleChange).toHaveBeenCalledWith({
+      target: { name: 'alunoId', value: 'cuid-aluno-1' },
+    });
+  });
+
+  it('selecionar uma opção de Professor chama handleChange com { target: { name: "professorId", value } }', () => {
+    const handleChange = jest.fn();
+    useDashboard.mockReturnValue({ ...defaultDashboardData, handleChange });
+    useAlunos.mockReturnValue({ alunoOptions: [] });
+    useProfessores.mockReturnValue({
+      professorOptions: [
+        { label: 'Pedro Oliveira', value: 'cuid-professor-1' },
+      ],
+    });
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^professor/i }));
+    fireEvent.click(screen.getByRole('option', { name: 'Pedro Oliveira' }));
+
+    expect(handleChange).toHaveBeenCalledWith({
+      target: { name: 'professorId', value: 'cuid-professor-1' },
+    });
+  });
+
+  it('isAdmin()=true e formData.minhasAulas=true: o campo Professor não é renderizado (mesma condição do form, ramo ainda não coberto)', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, nome: 'Admin Teste' },
+      isAdmin: () => true,
+    });
+    useDashboard.mockReturnValue({
+      ...defaultDashboardData,
+      formData: { ...defaultDashboardData.formData, minhasAulas: true },
+    });
+    useAlunos.mockReturnValue({ alunoOptions: [] });
+    useProfessores.mockReturnValue({ professorOptions: [] });
+
+    render(<Home />);
+
+    expect(
+      screen.queryByRole('combobox', { name: /^professor/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it('AC-001-008: com formData.alunoId/professorId apontando para um registro excluído (fora de `alunoOptions`/`professorOptions`), a home renderiza sem erro e sem descartar o valor em silêncio (fallback ao value bruto, sem `selectedLabel`)', () => {
+    useDashboard.mockReturnValue({
+      ...defaultDashboardData,
+      formData: {
+        ...defaultDashboardData.formData,
+        alunoId: '999',
+        professorId: '888',
+      },
+    });
+    useAlunos.mockReturnValue({ alunoOptions: [] });
+    useProfessores.mockReturnValue({ professorOptions: [] });
+
+    render(<Home />);
+
+    expect(screen.getByRole('combobox', { name: /^aluno$/i }).value).toBe(
+      '999'
+    );
+    expect(screen.getByRole('combobox', { name: /^professor/i }).value).toBe(
+      '888'
+    );
+  });
+
+  it('professor não-admin (isAdmin() === false): o campo Professor não é renderizado — comportamento pré-existente inalterado pelo wiring', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 2, nome: 'Professor Comum' },
+      isAdmin: () => false,
+    });
+    useAlunos.mockReturnValue({ alunoOptions: [] });
+    useProfessores.mockReturnValue({ professorOptions: [] });
+
+    render(<Home />);
+
+    expect(
+      screen.queryByRole('combobox', { name: /^professor/i })
+    ).not.toBeInTheDocument();
   });
 });

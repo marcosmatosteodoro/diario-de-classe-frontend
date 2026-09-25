@@ -79,6 +79,7 @@ describe('useAlunos', () => {
     expect(result.current).toEqual({
       alunos: [],
       status: STATUS.IDLE,
+      action: 'getAlunos',
       isLoading: true,
       alunoOptions: [],
       searchParams: expect.any(Function),
@@ -141,6 +142,7 @@ describe('useAlunos', () => {
     expect(result.current).toEqual({
       alunos: mockAlunos,
       status: STATUS.SUCCESS,
+      action: 'getAlunos',
       isLoading: false,
       alunoOptions: expectedOptions,
       searchParams: expect.any(Function),

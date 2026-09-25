@@ -61,6 +61,7 @@ export function useContratos() {
   return {
     contratos: list,
     status,
+    action,
     isLoading,
     searchParams,
     handleSubmit,
