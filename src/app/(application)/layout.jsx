@@ -1,7 +1,7 @@
 'use client';
 
 import { useApplicationLayout } from './useApplicationLayout';
-import { Header, Sidebar, Footer, Loading } from '@/components';
+import { Header, Sidebar, Footer, Loading, InstallPrompt } from '@/components';
 
 export default function ApplicationLayout({ children }) {
   const { isUnauthorized, isLoading, sidebarExpanded, toggleSidebar } =
@@ -31,6 +31,7 @@ export default function ApplicationLayout({ children }) {
         </main>
       </div>
       <Footer />
+      {!isLoading && !isUnauthorized && <InstallPrompt />}
     </div>
   );
 }
