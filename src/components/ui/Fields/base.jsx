@@ -35,12 +35,23 @@ export const OptionField = ({ value, label }) => {
   );
 };
 
+// Único ponto de cálculo dos ids referenciados por aria-describedby: reflete a
+// presença real de hint/error, nunca um estado de validação isolado.
+export const describedByIds = (htmlFor, { hint, error } = {}) => {
+  const ids = [];
+  if (hint) ids.push(`${htmlFor}-hint`);
+  if (error) ids.push(`${htmlFor}-error`);
+  return ids.length ? ids.join(' ') : undefined;
+};
+
 export const BaseField = ({
   htmlFor,
   required,
   label,
   inputGroupClass,
   labelClass,
+  hint,
+  error,
   children,
 }) => {
   label = required ? `${label} *` : label;
@@ -51,6 +62,13 @@ export const BaseField = ({
       </LabelField>
 
       {children}
+
+      {hint && <p id={`${htmlFor}-hint`}>{hint}</p>}
+      {error && (
+        <p id={`${htmlFor}-error`} role="alert">
+          {error}
+        </p>
+      )}
     </InputGroupField>
   );
 };

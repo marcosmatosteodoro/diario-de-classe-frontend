@@ -1,4 +1,4 @@
-import { LabelField, InputGroupField } from './base';
+import { LabelField, InputGroupField, describedByIds } from './base';
 
 export const CheckboxField = ({
   htmlFor,
@@ -10,6 +10,8 @@ export const CheckboxField = ({
   labelClass,
   className,
   disabled,
+  hint,
+  error,
   ...props
 }) => {
   const checkboxClassName =
@@ -36,11 +38,19 @@ export const CheckboxField = ({
         disabled={disabled}
         className={checkboxClassName}
         data-testid="checkbox-field"
+        aria-describedby={describedByIds(htmlFor, { hint, error })}
+        aria-invalid={error ? 'true' : undefined}
         {...props}
       />
       <LabelField htmlFor={htmlFor} className={labelTextClassName}>
         {required ? `${label} *` : label}
       </LabelField>
+      {hint && <p id={`${htmlFor}-hint`}>{hint}</p>}
+      {error && (
+        <p id={`${htmlFor}-error`} role="alert">
+          {error}
+        </p>
+      )}
     </InputGroupField>
   );
 };
