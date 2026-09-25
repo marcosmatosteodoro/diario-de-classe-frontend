@@ -1,5 +1,7 @@
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { BREAKPOINT_NAV_PX } from '@/constants/layout';
+import { useUnsavedChangesGuard } from '@/providers/UnsavedChangesGuardProvider';
 
 export const SidebarItem = ({
   children,
@@ -9,7 +11,10 @@ export const SidebarItem = ({
   active,
   onNavigate,
 }) => {
-  const handleClick = () => {
+  const router = useRouter();
+  const { confirmNavigation } = useUnsavedChangesGuard();
+
+  const fecharDrawerSeMobile = () => {
     if (!onNavigate) {
       return;
     }
@@ -19,6 +24,31 @@ export const SidebarItem = ({
     if (isBelowNavBreakpoint) {
       onNavigate();
     }
+  };
+
+  const handleClick = e => {
+    // Ctrl/Cmd/Shift/Alt ou botão diferente do esquerdo: o navegador segue o
+    // <Link> nativo (abrir em nova aba, etc.) — não consulta o guard nem
+    // intercepta o clique.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+      return;
+    }
+
+    const resultado = confirmNavigation();
+    if (resultado === true) {
+      fecharDrawerSeMobile();
+      return;
+    }
+
+    // Há alteração pendente: o clique no <Link> é síncrono, mas a
+    // confirmação é assíncrona — impede a navegação nativa e, se
+    // confirmado, navega programaticamente.
+    e.preventDefault();
+    resultado.then(confirmado => {
+      if (!confirmado) return;
+      fecharDrawerSeMobile();
+      router.push(href);
+    });
   };
 
   return (
