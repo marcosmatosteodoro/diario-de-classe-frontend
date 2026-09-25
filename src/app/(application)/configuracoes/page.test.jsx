@@ -24,8 +24,8 @@ jest.mock('@/providers/UserAuthProvider');
 // `UnsavedChangesGuardProvider` (componente) fica real: o teste do padrão
 // "nega se o diálogo falhar" precisa do merge/`liberarSeFalhar`
 // reais, não de um duplo (mock) do próprio provider. `useUnsavedChangesGuard`
-// continua um jest.fn — default aponta pra implementação real, e os testes que
-// não chamam `mockReturnValue` a exercitam de verdade dentro do provider real.
+// continua um jest.fn — provider real mantido para o teste do padrão "nega",
+// que reinstala o hook real via mockImplementation.
 jest.mock('@/providers/UnsavedChangesGuardProvider', () => {
   const real = jest.requireActual('@/providers/UnsavedChangesGuardProvider');
   return {

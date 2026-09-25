@@ -525,9 +525,8 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
         target: { name: 'tolerancia', value: '20' },
       });
     });
-    // duracaoAula mudou (50 -> 55): passa pela confirmação do COMP-002-007 (beforeEach de
-    // nível de arquivo, linhas 10-14, confirma) antes de gravar — por isso o submit é
-    // assíncrono.
+    // duracaoAula mudou (50 -> 55): passa pela confirmação do COMP-002-007 (beforeEach do
+    // topo do arquivo, confirma) antes de gravar — por isso o submit é assíncrono.
     await act(async () => {
       await result.current.handleSubmit(fakeEvent());
     });
