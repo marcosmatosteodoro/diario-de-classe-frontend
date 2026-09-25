@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { computeAccessibleName } from 'dom-accessibility-api';
 import { SearchableSelectField } from './SearchableSelectField';
@@ -188,7 +188,9 @@ describe('SearchableSelectField', () => {
     );
     const input = screen.getByLabelText('Aluno');
     await user.click(input);
-    expect(screen.getByText('Erro ao buscar alunos')).toBeInTheDocument();
+    const errorText = screen.getByText('Erro ao buscar alunos');
+    expect(errorText).toBeInTheDocument();
+    expect(errorText.classList.contains('text-danger')).toBe(true);
     expect(screen.getAllByRole('option')).toHaveLength(OPTIONS.length);
     expect(input).not.toBeDisabled();
     await user.type(input, 'x');
@@ -436,7 +438,7 @@ describe('SearchableSelectField', () => {
     );
   });
 
-  it('sem item destacado por padrão ao abrir mesmo quando value já tem uma opção selecionada (achado do code-reviewer, 2ª rodada)', async () => {
+  it('sem item destacado por padrão ao abrir mesmo quando value já tem uma opção selecionada', async () => {
     const user = userEvent.setup();
     render(
       <SearchableSelectField
@@ -526,7 +528,7 @@ describe('SearchableSelectField', () => {
     });
   });
 
-  it('scrollIntoView é chamado sobre o item correto, não só "foi chamado" (achado do code-reviewer, 2ª rodada: off-by-one na indexação do ref)', async () => {
+  it('scrollIntoView é chamado sobre o item correto, não só "foi chamado"', async () => {
     const user = userEvent.setup();
     render(
       <SearchableSelectField
@@ -683,6 +685,70 @@ describe('SearchableSelectField', () => {
       expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
 
+    it('após limpar (o botão desmonta), o foco volta ao input de busca em vez de cair no body, sem reabrir a lista', async () => {
+      const user = userEvent.setup();
+      render(<ControlledSearchableSelectField initialValue="1" />);
+      const clearButton = screen.getByRole('button', {
+        name: 'Limpar seleção',
+      });
+      await user.click(clearButton);
+
+      expect(
+        screen.queryByRole('button', { name: 'Limpar seleção' })
+      ).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Aluno')).toHaveFocus();
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    });
+
+    it('o botão de limpar carrega o token btn-icon, o anel de foco visível e não usa .input-field', () => {
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value="1"
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const clearButton = screen.getByRole('button', {
+        name: 'Limpar seleção',
+      });
+      expect(clearButton.classList.contains('btn-icon')).toBe(true);
+      expect(clearButton.classList.contains('focus-visible:ring-2')).toBe(true);
+      expect(clearButton.classList.contains('focus-visible:ring-inset')).toBe(
+        true
+      );
+      expect(clearButton.classList.contains('input-field')).toBe(false);
+    });
+
+    it('input com value ganha pr-20 (espaço para o botão de limpar não sobrepor texto longo); sem value, pr-10', () => {
+      const { rerender } = render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value="1"
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      expect(screen.getByLabelText('Aluno').classList.contains('pr-20')).toBe(
+        true
+      );
+
+      rerender(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      expect(screen.getByLabelText('Aluno').classList.contains('pr-10')).toBe(
+        true
+      );
+    });
+
     it('sem value selecionado, o botão de limpar não é renderizado', () => {
       render(
         <SearchableSelectField
@@ -756,7 +822,7 @@ describe('SearchableSelectField', () => {
       expect(onChangeSpy).toHaveBeenCalledTimes(1);
     });
 
-    it('sem seleção implícita por texto parecido: estreitar a lista a exatamente 1 opção e sair sem clicar/Enter não seleciona (achado do QA pré-código)', async () => {
+    it('sem seleção implícita por texto parecido: estreitar a lista a exatamente 1 opção e sair sem clicar/Enter não seleciona', async () => {
       const user = userEvent.setup();
       const onChangeSpy = jest.fn();
       render(
@@ -821,7 +887,7 @@ describe('SearchableSelectField', () => {
     });
   });
 
-  describe('marca do valor atual na lista aberta (achado do product-designer, roteado da TASK-002-002)', () => {
+  describe('marca do valor atual na lista aberta', () => {
     it('abrir com value correspondendo a uma opção marca só essa opção (ícone + peso de fonte), sem tocar aria-selected/option-highlighted', async () => {
       const user = userEvent.setup();
       render(
@@ -847,9 +913,16 @@ describe('SearchableSelectField', () => {
       expect(
         screen.getByTestId('searchable-select-field-current-mark')
       ).toBeInTheDocument();
+      // Alternativa para leitor de tela, nunca "selecionado" (colidiria
+      // semanticamente com aria-selected/aria-activedescendant).
+      expect(
+        within(options[1]).getByTestId(
+          'searchable-select-field-current-mark-sr-text'
+        )
+      ).toHaveTextContent('valor atual');
     });
 
-    it('ao abrir com value presente em options, rola até a opção atual via scrollIntoView, sem escrever em highlightedIndex', async () => {
+    it('ao abrir com value presente em options, rola até a opção atual via scrollIntoView — sobre o elemento certo, não só "foi chamado"', async () => {
       const user = userEvent.setup();
       render(
         <SearchableSelectField
@@ -866,9 +939,38 @@ describe('SearchableSelectField', () => {
       expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
         block: 'nearest',
       });
+      expect(Element.prototype.scrollIntoView.mock.contexts.at(-1)).toBe(
+        screen.getByRole('option', { name: /José Santos/ })
+      );
       expect(
         screen.queryByRole('option', { selected: true })
       ).not.toBeInTheDocument();
+    });
+
+    it('abrir digitando diretamente (mesmo lote que abre a lista) rola para a opção atual no espaço de índice de filteredOptions, não da lista completa', () => {
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value="3"
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      // "jo" filtra para [João, José] — José muda de posição 2 (lista
+      // completa) para 1 (lista filtrada); optionRefs é indexado pela lista
+      // filtrada, então usar o índice da lista completa apontaria para um
+      // ref inexistente e scrollIntoView nunca seria chamado sobre a opção
+      // certa.
+      fireEvent.change(input, { target: { value: 'jo' } });
+
+      expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+        block: 'nearest',
+      });
+      expect(Element.prototype.scrollIntoView.mock.contexts.at(-1)).toBe(
+        screen.getByRole('option', { name: /José Santos/ })
+      );
     });
 
     it('ao filtrar de forma que a opção marcada saia da lista, a marca some (nenhuma opção marcada)', async () => {
@@ -933,9 +1035,36 @@ describe('SearchableSelectField', () => {
         screen.getByTestId('searchable-select-field-disabled-reason')
       ).toBeInTheDocument();
       expect(
+        screen.getByTestId('searchable-select-field-disabled-icon')
+      ).toBeInTheDocument();
+      expect(
         screen.queryByTestId('searchable-select-field-empty')
       ).not.toBeInTheDocument();
       expect(screen.queryByRole('option')).not.toBeInTheDocument();
+    });
+
+    it('com a lista aberta, ArrowDown/Enter não têm efeito (sem opções renderizadas) e Escape ainda fecha', async () => {
+      const user = userEvent.setup();
+      const onChangeSpy = jest.fn();
+      render(
+        <SearchableSelectField
+          htmlFor="idContrato"
+          label="Contrato"
+          value=""
+          onChange={onChangeSpy}
+          options={OPTIONS}
+          disabledReason="Selecione um Aluno antes"
+        />
+      );
+      const input = screen.getByLabelText('Contrato');
+      await user.click(input);
+      await user.keyboard('{ArrowDown}{ArrowUp}{Enter}');
+
+      expect(onChangeSpy).not.toHaveBeenCalled();
+      expect(input).toHaveAttribute('aria-expanded', 'true');
+
+      await user.keyboard('{Escape}');
+      expect(input).toHaveAttribute('aria-expanded', 'false');
     });
 
     it('ausente: comportamento padrão de abertura inalterado', async () => {
@@ -976,6 +1105,7 @@ describe('SearchableSelectField', () => {
       expect(alert).toHaveTextContent('Campo obrigatório');
       expect(input).toHaveAttribute('aria-invalid', 'true');
       expect(input).toHaveAttribute('aria-describedby', alert.id);
+      expect(alert.classList.contains('text-danger')).toBe(true);
     });
 
     it('ausente: nenhum dos três (role="alert", aria-describedby, aria-invalid) aparece', () => {
@@ -992,6 +1122,37 @@ describe('SearchableSelectField', () => {
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
       expect(input).not.toHaveAttribute('aria-invalid');
       expect(input).not.toHaveAttribute('aria-describedby');
+    });
+  });
+
+  describe('required chega como aria-required (nunca o atributo nativo)', () => {
+    it('required: combobox tem aria-required="true", sem o atributo required nativo', () => {
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          required
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByRole('combobox');
+      expect(input).toHaveAttribute('aria-required', 'true');
+      expect(input).not.toHaveAttribute('required');
+    });
+
+    it('omitido ou false: sem aria-required', () => {
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      expect(screen.getByRole('combobox')).not.toHaveAttribute('aria-required');
     });
   });
 
@@ -1045,6 +1206,29 @@ describe('SearchableSelectField', () => {
       expect(options[0]).toHaveAttribute('aria-selected', 'true');
       expect(options[1]).toHaveAttribute('aria-selected', 'false');
       expect(options[2]).toHaveAttribute('aria-selected', 'false');
+    });
+
+    it('o input tem aria-activedescendant apontando para o id estável da opção destacada por teclado, ausente sem destaque', async () => {
+      const user = userEvent.setup();
+      render(
+        <SearchableSelectField
+          htmlFor="idAluno"
+          label="Aluno"
+          value=""
+          onChange={jest.fn()}
+          options={OPTIONS}
+        />
+      );
+      const input = screen.getByLabelText('Aluno');
+      await user.click(input);
+      expect(input).not.toHaveAttribute('aria-activedescendant');
+
+      await user.keyboard('{ArrowDown}');
+      const options = screen.getAllByRole('option');
+      expect(input).toHaveAttribute('aria-activedescendant', options[0].id);
+
+      await user.keyboard('{ArrowDown}');
+      expect(input).toHaveAttribute('aria-activedescendant', options[1].id);
     });
 
     it('aria-busy reflete isLoading', () => {
@@ -1125,9 +1309,16 @@ describe('SearchableSelectField', () => {
       const options = screen.getAllByRole('option');
       options.forEach(option => {
         expect(option.classList.contains('tap-target')).toBe(true);
+        // Espaço do ícone reservado em toda opção, marcada ou não, para o
+        // rótulo alinhar na mesma coluna.
+        expect(
+          within(option).getByTestId('searchable-select-field-option-icon-slot')
+        ).toBeInTheDocument();
       });
 
-      const labelSpan = options[0].querySelector('span');
+      const labelSpan = within(options[0]).getByTestId(
+        'searchable-select-field-option-label'
+      );
       expect(labelSpan.classList.contains('break-words')).toBe(true);
     });
   });

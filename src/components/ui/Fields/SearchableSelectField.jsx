@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ChevronDown, X } from 'lucide-react';
+import { Check, ChevronDown, Lock, X } from 'lucide-react';
 import { classNameDefault, BaseField } from './base';
 import { Loading } from '../Loading';
 import { normalizeSearchText } from '@/utils/matchesSearchText';
@@ -31,9 +31,12 @@ export const SearchableSelectField = ({
   // destaque automático).
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const optionRefs = useRef([]);
+  const inputRef = useRef(null);
 
   const listboxId = `${htmlFor}-listbox`;
   const requiredErrorId = `${htmlFor}-required-error`;
+  const activeDescendantId =
+    highlightedIndex >= 0 ? `${htmlFor}-option-${highlightedIndex}` : undefined;
 
   // DEC-002-005: a lista de rótulos normaliza uma vez por mudança de `options`
   // (memoizada); a query normaliza a cada tecla, sem renormalizar os rótulos.
@@ -68,12 +71,16 @@ export const SearchableSelectField = ({
       : '';
   const displayValue = isOpen ? query : resolvedLabel;
 
-  // Posição de `value` dentro da lista completa (não filtrada) — usada só
-  // para rolar até a opção atual ao abrir; a marca visual em si deriva por
-  // opção, no render.
+  // Posição de `value` dentro de `filteredOptions` — o mesmo espaço de
+  // índice que `optionRefs` usa (a lista renderizada, não a lista completa):
+  // ao abrir por digitação, `isOpen` e `query` mudam no mesmo lote, e
+  // `filteredOptions` já reflete o filtro no primeiro render aberto; indexar
+  // pela lista completa apontaria para a posição errada em `optionRefs`
+  // sempre que o filtro mudar a ordem/tamanho da lista. A marca visual em
+  // si deriva por opção, no render.
   const currentValueIndex = useMemo(
-    () => normalizedOptions.findIndex(option => option.value === value),
-    [normalizedOptions, value]
+    () => filteredOptions.findIndex(option => option.value === value),
+    [filteredOptions, value]
   );
 
   // Item destacado sempre alcançável por rolagem: sem isso, ArrowDown além da
@@ -136,8 +143,11 @@ export const SearchableSelectField = ({
     setHighlightedIndex(-1);
   };
 
+  // O botão desmonta ao limpar (só é renderizado quando há `value`) — sem
+  // devolver o foco, ele cai no `<body>`. Não reabre a lista.
   const handleClear = () => {
     onChange({ target: { name: htmlFor, value: '' } });
+    inputRef.current?.focus();
   };
 
   const handleKeyDown = e => {
@@ -148,6 +158,16 @@ export const SearchableSelectField = ({
       }
       return;
     }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsOpen(false);
+      return;
+    }
+
+    // Sem lista renderizada (mensagem de bloqueio no lugar dela), não há o
+    // que navegar ou selecionar por teclado.
+    if (disabledReason) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -167,9 +187,6 @@ export const SearchableSelectField = ({
       if (option) {
         selectOption(option);
       }
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      setIsOpen(false);
     }
   };
 
@@ -192,6 +209,7 @@ export const SearchableSelectField = ({
     >
       <div className="relative">
         <input
+          ref={inputRef}
           id={htmlFor}
           role="combobox"
           aria-expanded={isOpen}
@@ -201,6 +219,8 @@ export const SearchableSelectField = ({
           aria-busy={isLoading ? 'true' : undefined}
           aria-invalid={hasRequiredError ? 'true' : undefined}
           aria-describedby={hasRequiredError ? requiredErrorId : undefined}
+          aria-activedescendant={activeDescendantId}
+          aria-required={required ? 'true' : undefined}
           autoComplete="off"
           placeholder={placeholder}
           value={displayValue}
@@ -208,7 +228,7 @@ export const SearchableSelectField = ({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
-          className={`${className} ${value ? 'pr-16' : 'pr-10'}`}
+          className={`${className} ${value ? 'pr-20' : 'pr-10'}`}
           data-testid="searchable-select-field-input"
         />
         {value && (
@@ -216,7 +236,7 @@ export const SearchableSelectField = ({
             type="button"
             onMouseDown={e => e.preventDefault()}
             onClick={handleClear}
-            className="absolute right-9 top-1/2 -translate-y-1/2 tap-target flex items-center justify-center text-gray-500 hover:text-gray-700 focus:outline-none cursor-pointer"
+            className="absolute right-9 top-1/2 -translate-y-1/2 tap-target flex items-center justify-center rounded-md btn-icon focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 cursor-pointer"
             aria-label="Limpar seleção"
             data-testid="searchable-select-field-clear"
           >
@@ -236,9 +256,16 @@ export const SearchableSelectField = ({
             {disabledReason ? (
               <p
                 role="status"
-                className="px-3 py-2 text-sm text-muted"
+                className="px-3 py-2 text-sm text-muted flex items-center gap-2"
                 data-testid="searchable-select-field-disabled-reason"
               >
+                <Lock
+                  size={16}
+                  strokeWidth={1.5}
+                  className="shrink-0"
+                  aria-hidden="true"
+                  data-testid="searchable-select-field-disabled-icon"
+                />
                 {disabledReason}
               </p>
             ) : isLoading && !showError ? (
@@ -247,7 +274,7 @@ export const SearchableSelectField = ({
               <>
                 {showError && (
                   <p
-                    className="px-3 py-2 text-sm text-red-600"
+                    className="px-3 py-2 text-sm text-danger"
                     data-testid="searchable-select-field-error"
                   >
                     {errorMessage}
@@ -273,6 +300,7 @@ export const SearchableSelectField = ({
                       return (
                         <li
                           key={option.value}
+                          id={`${htmlFor}-option-${index}`}
                           ref={el => {
                             optionRefs.current[index] = el;
                           }}
@@ -288,16 +316,34 @@ export const SearchableSelectField = ({
                           onClick={() => selectOption(option)}
                           onMouseEnter={() => setHighlightedIndex(index)}
                         >
-                          {isCurrentValue && (
-                            <Check
-                              size={16}
-                              strokeWidth={2}
-                              className="shrink-0"
-                              data-testid="searchable-select-field-current-mark"
-                            />
-                          )}
-                          <span className="min-w-0 flex-1 break-words">
+                          {/* Espaço do ícone reservado em toda opção — marcada
+                              ou não — para o rótulo alinhar na mesma coluna. */}
+                          <span
+                            className="w-4 shrink-0 flex items-center justify-center"
+                            data-testid="searchable-select-field-option-icon-slot"
+                          >
+                            {isCurrentValue && (
+                              <Check
+                                size={16}
+                                strokeWidth={2}
+                                data-testid="searchable-select-field-current-mark"
+                              />
+                            )}
+                          </span>
+                          <span
+                            className="min-w-0 flex-1 break-words"
+                            data-testid="searchable-select-field-option-label"
+                          >
                             {option.label}
+                            {isCurrentValue && (
+                              <span
+                                className="sr-only"
+                                data-testid="searchable-select-field-current-mark-sr-text"
+                              >
+                                {' '}
+                                (valor atual)
+                              </span>
+                            )}
                           </span>
                         </li>
                       );
@@ -314,7 +360,7 @@ export const SearchableSelectField = ({
         <p
           id={requiredErrorId}
           role="alert"
-          className="mt-1 text-sm text-red-600"
+          className="mt-1 text-sm text-danger"
           data-testid="searchable-select-field-required-error"
         >
           {requiredError}

@@ -101,6 +101,9 @@
   .text-muted {
     @apply text-gray-600;
   }
+  .text-danger {
+    @apply text-red-600;
+  }
   .primary-color {
     @apply text-blue-600;
   }
@@ -119,6 +122,12 @@
      contraste real (>=3:1) nos dois temas. */
   .option-highlighted {
     @apply ring-2 ring-inset ring-blue-500;
+  }
+  /* Botão-ícone dentro de campo (ex.: limpar seleção do SearchableSelectField)
+     — par claro/escuro com contraste suficiente de hover nos dois temas
+     (mesmo padrão do botão de fechar do Toast). */
+  .btn-icon {
+    @apply text-gray-500 hover:text-gray-700;
   }
   .page-title {
     @apply text-xl font-bold mb-4 text-gray-800;
@@ -147,6 +156,9 @@
     .text-muted {
       @apply text-slate-400;
     }
+    .text-danger {
+      @apply text-red-400;
+    }
     .primary-color {
       @apply text-blue-400;
     }
@@ -161,6 +173,9 @@
     }
     .option-highlighted {
       @apply ring-2 ring-inset ring-blue-400;
+    }
+    .btn-icon {
+      @apply text-slate-400 hover:text-slate-100;
     }
     /* Ícone nativo do date/time picker é pseudo-elemento do UA, não
        alcançável por color/background comuns; color-scheme: dark pede os
@@ -255,6 +270,9 @@
       .text-muted {
         @apply text-slate-400;
       }
+      .text-danger {
+        @apply text-red-400;
+      }
       .primary-color {
         @apply text-blue-400;
       }
@@ -269,6 +287,9 @@
       }
       .option-highlighted {
         @apply ring-2 ring-inset ring-blue-400;
+      }
+      .btn-icon {
+        @apply text-slate-400 hover:text-slate-100;
       }
       .page-title {
         @apply text-slate-100;
