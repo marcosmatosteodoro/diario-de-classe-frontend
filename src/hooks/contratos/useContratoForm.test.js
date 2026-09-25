@@ -1156,6 +1156,126 @@ describe('useContratoForm Hook', () => {
     });
   });
 
+  describe('Validação de obrigatoriedade de Aluno/Professor no submit (AC-001-014)', () => {
+    it('bloqueia o submit e popula fieldErrors.alunoId quando Aluno está vazio', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit })
+      );
+      // professorId nasce preenchido com o currentUser mockado (id 10); só
+      // alunoId fica vazio aqui.
+
+      const fakeEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+
+      expect(submit).not.toHaveBeenCalled();
+      expect(result.current.fieldErrors.alunoId).toEqual(expect.any(String));
+    });
+
+    it('bloqueia o submit e popula fieldErrors.professorId quando Professor está vazio', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit })
+      );
+
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'alunoId', value: '1' },
+        });
+        result.current.handleChange({
+          target: { name: 'professorId', value: '' },
+        });
+      });
+
+      const fakeEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+
+      expect(submit).not.toHaveBeenCalled();
+      expect(result.current.fieldErrors.professorId).toEqual(
+        expect.any(String)
+      );
+    });
+
+    it('controle positivo: com Aluno e Professor preenchidos, submit é chamado e fieldErrors permanece vazio', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit })
+      );
+
+      act(() => {
+        result.current.handleAlunoChange({
+          target: { name: 'alunoId', value: '1' },
+        });
+        result.current.handleProfessorChange({
+          target: { name: 'professorId', value: '10' },
+        });
+      });
+
+      const fakeEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+
+      expect(submit).toHaveBeenCalled();
+      expect(result.current.fieldErrors).toEqual({});
+    });
+
+    it('limpa fieldErrors.alunoId ao preencher o campo depois do bloqueio (handleAlunoChange)', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit })
+      );
+
+      const fakeEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+      expect(result.current.fieldErrors.alunoId).toEqual(expect.any(String));
+
+      act(() => {
+        result.current.handleAlunoChange({
+          target: { name: 'alunoId', value: '1' },
+        });
+      });
+      expect(result.current.fieldErrors.alunoId).toBeUndefined();
+    });
+
+    it('limpa fieldErrors.professorId ao preencher o campo depois do bloqueio (handleProfessorChange)', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit })
+      );
+
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'alunoId', value: '1' },
+        });
+        result.current.handleChange({
+          target: { name: 'professorId', value: '' },
+        });
+      });
+
+      const fakeEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+      expect(result.current.fieldErrors.professorId).toEqual(
+        expect.any(String)
+      );
+
+      act(() => {
+        result.current.handleProfessorChange({
+          target: { name: 'professorId', value: '10' },
+        });
+      });
+      expect(result.current.fieldErrors.professorId).toBeUndefined();
+    });
+  });
+
   describe('dataInicio default estável até montar (AC-001-006)', () => {
     afterEach(() => {
       jest.useRealTimers();
