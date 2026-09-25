@@ -3,6 +3,7 @@ import {
   Form,
   FormError,
   FormGroup,
+  FormSection,
   InputField,
   TextAreaField,
 } from '@/components';
@@ -26,63 +27,67 @@ export const AlunoForm = ({
       />
 
       <div className="grid gap-6">
-        <FormGroup dataTestId="aluno-form-group">
-          {/* Nome */}
-          <InputField
-            required
-            htmlFor="nome"
-            label="Nome"
-            placeholder="Digite o nome"
-            maxLength={200}
-            minLength={3}
-            onChange={handleChange}
-            value={formData.nome}
-          />
+        <FormSection title="Informações pessoais">
+          <FormGroup dataTestId="aluno-form-group">
+            {/* Nome */}
+            <InputField
+              required
+              htmlFor="nome"
+              label="Nome"
+              placeholder="Digite o nome"
+              maxLength={200}
+              minLength={3}
+              onChange={handleChange}
+              value={formData.nome}
+            />
 
-          {/* Sobrenome */}
-          <InputField
-            required
-            htmlFor="sobrenome"
-            label="Sobrenome"
-            placeholder="Digite o sobrenome"
-            maxLength={200}
-            minLength={3}
-            onChange={handleChange}
-            value={formData.sobrenome}
-          />
+            {/* Sobrenome */}
+            <InputField
+              required
+              htmlFor="sobrenome"
+              label="Sobrenome"
+              placeholder="Digite o sobrenome"
+              maxLength={200}
+              minLength={3}
+              onChange={handleChange}
+              value={formData.sobrenome}
+            />
 
-          {/* Email */}
-          <InputField
-            required
-            htmlFor="email"
-            label="Email"
-            placeholder="Digite o email"
-            maxLength={200}
-            minLength={3}
-            onChange={handleChange}
-            value={formData.email}
-          />
+            {/* Email */}
+            <InputField
+              required
+              htmlFor="email"
+              label="Email"
+              placeholder="Digite o email"
+              maxLength={200}
+              minLength={3}
+              onChange={handleChange}
+              value={formData.email}
+            />
 
-          {/* Telefone */}
-          <InputField
-            htmlFor="telefone"
-            label="Telefone"
-            placeholder="(11) 99999-9999"
-            maxLength={11}
-            onChange={handleChange}
-            value={formData.telefone}
-          />
-        </FormGroup>
+            {/* Telefone */}
+            <InputField
+              htmlFor="telefone"
+              label="Telefone"
+              placeholder="(11) 99999-9999"
+              maxLength={11}
+              onChange={handleChange}
+              value={formData.telefone}
+            />
+          </FormGroup>
+        </FormSection>
 
         {isAdmin() && (
-          <TextAreaField
-            htmlFor="material"
-            label="Material"
-            placeholder="Digite o material"
-            maxLength={2000}
-            onChange={handleChange}
-            value={formData.material}
-          />
+          <FormSection title="Material">
+            <TextAreaField
+              htmlFor="material"
+              label="Material"
+              placeholder="Digite o material"
+              maxLength={2000}
+              onChange={handleChange}
+              value={formData.material}
+            />
+          </FormSection>
         )}
       </div>
 
