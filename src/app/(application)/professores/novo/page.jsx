@@ -6,8 +6,15 @@ import { FormPage, ProfessorForm } from '@/components';
 export default function NovoProfessor() {
   const { message, errors, isLoading, isSubmitting, submit } =
     useNovoProfessor();
-  const { formData, isSenhaError, handleChange, handleSubmit } =
-    useProfessorForm({ submit });
+  const {
+    formData,
+    isSenhaError,
+    handleChange,
+    handleSubmit,
+    alterarSenhaAtivo,
+    handleAlterarSenha,
+    handleCancelarAlteracaoSenha,
+  } = useProfessorForm({ submit });
 
   return (
     <FormPage
@@ -30,6 +37,9 @@ export default function NovoProfessor() {
         isLoading={isLoading}
         message={message}
         errors={errors}
+        alterarSenhaAtivo={alterarSenhaAtivo}
+        handleAlterarSenha={handleAlterarSenha}
+        handleCancelarAlteracaoSenha={handleCancelarAlteracaoSenha}
       />
     </FormPage>
   );

@@ -1,8 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { AlunoForm } from '.';
 
-// Mock dos componentes
+// Mock dos componentes. `FormSection` (e o `Section` que ela compõe) permanece
+// real (`jest.requireActual` do barrel `@/components/ui` — nunca o barrel
+// `@/components` completo, que reexporta este próprio `AlunoForm` e criaria
+// ciclo de módulo), para que os testes de AC-001-002/AC-001-013 exercitem a
+// associação título↔grupo (fieldset/legend) de verdade, não um duplo.
 jest.mock('@/components', () => ({
+  ...jest.requireActual('@/components/ui'),
   Form: ({ children, handleSubmit }) => (
     <form data-testid="form" onSubmit={handleSubmit}>
       {children}
@@ -197,5 +202,39 @@ describe('AlunoForm', () => {
     render(<AlunoFormWithAdmin {...defaultProps} />);
     expect(screen.getByTestId('textarea-material')).toBeInTheDocument();
     expect(screen.getByLabelText('Material')).toBeInTheDocument();
+  });
+
+  // AC-001-002, AC-001-013
+  it('renders "Informações pessoais" and "Material" sections in this order for an administrator', () => {
+    jest.resetModules();
+    jest.doMock('@/providers/UserAuthProvider', () => ({
+      useUserAuth: () => ({ isAdmin: jest.fn(() => true) }),
+    }));
+    const { AlunoForm: AlunoFormWithAdmin } = require('.');
+    render(<AlunoFormWithAdmin {...defaultProps} />);
+
+    const infoSection = screen.getByRole('group', {
+      name: 'Informações pessoais',
+    });
+    const materialSection = screen.getByRole('group', { name: 'Material' });
+
+    expect(infoSection).toBeInTheDocument();
+    expect(materialSection).toBeInTheDocument();
+    expect(
+      infoSection.compareDocumentPosition(materialSection) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('hides the "Material" section entirely for a non-administrator user', () => {
+    render(<AlunoForm {...defaultProps} />);
+
+    expect(
+      screen.getByRole('group', { name: 'Informações pessoais' })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('group', { name: 'Material' })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('textarea-material')).not.toBeInTheDocument();
   });
 });

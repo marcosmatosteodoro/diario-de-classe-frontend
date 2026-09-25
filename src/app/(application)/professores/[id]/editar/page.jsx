@@ -12,8 +12,16 @@ export default function EditarProfessor() {
   const params = useParams();
   const { message, errors, isLoading, current, statusError, submit } =
     useEditarProfessor(params.id);
-  const { formData, isSenhaError, handleChange, handleSubmit, setFormData } =
-    useProfessorForm({ submit, isEdit: true, id: params.id });
+  const {
+    formData,
+    isSenhaError,
+    handleChange,
+    handleSubmit,
+    setFormData,
+    alterarSenhaAtivo,
+    handleAlterarSenha,
+    handleCancelarAlteracaoSenha,
+  } = useProfessorForm({ submit, isEdit: true, id: params.id });
 
   useEffect(() => {
     if (current) {
@@ -60,6 +68,9 @@ export default function EditarProfessor() {
         isLoading={isLoading}
         message={message}
         errors={errors}
+        alterarSenhaAtivo={alterarSenhaAtivo}
+        handleAlterarSenha={handleAlterarSenha}
+        handleCancelarAlteracaoSenha={handleCancelarAlteracaoSenha}
         isEdit
       />
     </FormPage>

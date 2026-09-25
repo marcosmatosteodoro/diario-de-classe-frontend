@@ -7,6 +7,7 @@ import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useEditarProfessor } from '@/hooks/professores/useEditarProfessor';
 import { useProfessorForm } from '@/hooks/professores/useProfessorForm';
 import { STATUS_ERROR } from '@/constants/statusError';
+import { IDIOMA } from '@/constants';
 import {
   ButtonGroup,
   PageContent,
@@ -20,8 +21,16 @@ export default function EditarProfessor() {
   const { currentUser } = useUserAuth();
   const { message, errors, isLoading, current, statusError, submit } =
     useEditarProfessor(currentUser?.id);
-  const { formData, isSenhaError, handleChange, handleSubmit, setFormData } =
-    useProfessorForm({ submit, isEdit: true, id: currentUser?.id });
+  const {
+    formData,
+    isSenhaError,
+    handleChange,
+    handleSubmit,
+    setFormData,
+    alterarSenhaAtivo,
+    handleAlterarSenha,
+    handleCancelarAlteracaoSenha,
+  } = useProfessorForm({ submit, isEdit: true, id: currentUser?.id });
 
   useEffect(() => {
     if (current) {
@@ -29,6 +38,8 @@ export default function EditarProfessor() {
         ...current,
         senha: '',
         repetirSenha: '',
+        idioma: current?.idiomas.length ? current.idiomas[0] : IDIOMA.INGLES,
+        idiomas: current?.idiomas.length ? current.idiomas : [IDIOMA.INGLES],
       });
     }
   }, [current, setFormData]);
@@ -67,6 +78,9 @@ export default function EditarProfessor() {
         isLoading={isLoading}
         message={message}
         errors={errors}
+        alterarSenhaAtivo={alterarSenhaAtivo}
+        handleAlterarSenha={handleAlterarSenha}
+        handleCancelarAlteracaoSenha={handleCancelarAlteracaoSenha}
         isEdit
       />
     </>
