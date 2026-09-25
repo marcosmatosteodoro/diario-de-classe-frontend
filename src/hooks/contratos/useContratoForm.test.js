@@ -1268,6 +1268,40 @@ describe('useContratoForm Hook', () => {
       expect(result.current.fieldErrors).toEqual({});
     });
 
+    it('reseta fieldErrors para {} ao reenviar com sucesso, mesmo quando o campo foi preenchido por fora de clearFieldError', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit })
+      );
+
+      // Bloqueia o submit primeiro para popular fieldErrors.alunoId.
+      const blockedEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(blockedEvent);
+      });
+      expect(result.current.fieldErrors.alunoId).toEqual(expect.any(String));
+
+      // Preenche alunoId/professorId via setFormData direto — não passa por
+      // handleAlunoChange/handleProfessorChange, então clearFieldError nunca
+      // roda e fieldErrors.alunoId segue populado até aqui.
+      act(() => {
+        result.current.setFormData(prev => ({
+          ...prev,
+          alunoId: '1',
+          professorId: '10',
+        }));
+      });
+      expect(result.current.fieldErrors.alunoId).toEqual(expect.any(String));
+
+      const validEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(validEvent);
+      });
+
+      expect(submit).toHaveBeenCalled();
+      expect(result.current.fieldErrors).toEqual({});
+    });
+
     it('limpa fieldErrors.alunoId ao preencher o campo depois do bloqueio (handleAlunoChange)', () => {
       const submit = jest.fn();
       const { result } = renderHook(() =>
@@ -1357,6 +1391,13 @@ describe('useContratoForm Hook', () => {
           name: 'Limpar seleção',
         })
       );
+
+      // handleClear (SearchableSelectField) já devolve o foco ao Professor
+      // ao limpar — para provar que é o handleSubmit (e não o handleClear)
+      // quem move o foco no bloqueio, tiramos o foco do Professor antes de
+      // submeter e provamos a pré-condição.
+      screen.getByRole('combobox', { name: /^aluno/i }).focus();
+      expect(document.activeElement).not.toBe(professorInput);
 
       fireEvent.submit(screen.getByTestId('harness-form'));
 
