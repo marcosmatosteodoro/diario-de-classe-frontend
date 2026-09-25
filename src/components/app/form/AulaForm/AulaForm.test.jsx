@@ -1,11 +1,11 @@
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import { AulaForm } from '.';
 
-// Mock dos componentes. `FormSection` (e o `Section` que ela compõe) permanece
-// real (`jest.requireActual` do barrel `@/components/ui` — nunca o barrel
-// `@/components` completo, que reexporta este próprio `AulaForm` e criaria
-// ciclo de módulo), para que os testes de AC-001-003/AC-001-013 exercitem a
-// associação título↔grupo (fieldset/legend) de verdade, não um duplo.
+// Mock dos componentes. `FormSection` permanece real (`jest.requireActual`
+// do barrel `@/components/ui` — nunca o barrel `@/components` completo, que
+// reexporta este próprio `AulaForm` e criaria ciclo de módulo), para que os
+// testes de AC-001-003/AC-001-013 exercitem a associação título↔grupo
+// (fieldset/legend) de verdade, não um duplo.
 jest.mock('@/components', () => ({
   ...jest.requireActual('@/components/ui'),
   Form: ({ children, handleSubmit }) => (
@@ -107,8 +107,7 @@ jest.mock('@/hooks/alunos/useAlunos', () => ({
 // `jest.resetModules()` + `require('.')` fresco: `AulaForm` chama `useMemo`
 // (React) direto — um segundo módulo `react` carregado por um `require`
 // pós-reset teria dispatcher próprio e null, e a chamada do hook quebraria
-// ("Invalid hook call"), diferente do precedente `AlunoForm.test.jsx` (sem
-// hook de React direto no componente).
+// ("Invalid hook call").
 const mockUseContratos = jest.fn(() => ({
   contratos: [
     {
@@ -1254,5 +1253,59 @@ describe('AulaForm Sections', () => {
     expect(
       within(detalhesSection).getByTestId('aula-textarea-observacao')
     ).toBeInTheDocument();
+  });
+
+  // Retry pós-gate 11 (AC-001-003/FR-001-004, AC-001-016)
+  it('wraps the three "Detalhes da aula" blocks in an internal grid gap-6 spacer', () => {
+    render(
+      <AulaForm
+        handleSubmit={mockHandleSubmit}
+        message=""
+        errors={null}
+        handleChange={mockHandleChange}
+        formData={mockFormData}
+        isLoading={false}
+        isEdit={false}
+      />
+    );
+
+    const detalhesSection = screen.getByRole('group', {
+      name: 'Detalhes da aula',
+    });
+
+    // children[0] é o <legend>; children[1] é o único filho de conteúdo.
+    expect(detalhesSection.children).toHaveLength(2);
+    const wrapper = detalhesSection.children[1];
+    expect(wrapper).toHaveClass('grid');
+    expect(wrapper).toHaveClass('gap-6');
+    expect(
+      within(wrapper).getByTestId('aula-select-idContrato')
+    ).toBeInTheDocument();
+    expect(
+      within(wrapper).getByTestId('aula-textarea-observacao')
+    ).toBeInTheDocument();
+  });
+
+  // Legítimo: "Participantes" tem um único filho direto e segue sem wrapper
+  it('does not wrap "Participantes" content in a grid gap-6 spacer', () => {
+    render(
+      <AulaForm
+        handleSubmit={mockHandleSubmit}
+        message=""
+        errors={null}
+        handleChange={mockHandleChange}
+        formData={mockFormData}
+        isLoading={false}
+        isEdit={false}
+      />
+    );
+
+    const participantesSection = screen.getByRole('group', {
+      name: 'Participantes',
+    });
+
+    // children[0] é o <legend>; children[1] é o FormGroup, sem wrapper extra.
+    expect(participantesSection.children).toHaveLength(2);
+    expect(participantesSection.children[1]).not.toHaveClass('grid');
   });
 });
