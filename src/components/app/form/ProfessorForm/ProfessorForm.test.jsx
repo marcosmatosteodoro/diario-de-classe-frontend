@@ -1,15 +1,18 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ProfessorForm } from '.';
-// Mock do hook useUserAuth para evitar erro de contexto
-jest.mock('@/providers/UserAuthProvider', () => ({
-  useUserAuth: () => ({
-    currentUser: { id: 1, permissao: 'admin' },
-  }),
-}));
+import { useUserAuth } from '@/providers/UserAuthProvider';
 import { PERMISSAO, IDIOMA } from '@/constants';
 
-// Mock dos componentes
+jest.mock('@/providers/UserAuthProvider');
+
+// Mock parcial do barrel `@/components`: `FormSection` (e o `Section` que ela
+// compõe) permanece real (`jest.requireActual('@/components/ui')` — nunca o
+// barrel `@/components` completo, que reexporta este próprio `ProfessorForm`
+// e gera ciclo de módulo, fato medido na TASK-002-002 / `AlunoForm.test.jsx`,
+// commit 11f5fa9), para que `getByRole('group', { name })` resolva sobre a
+// implementação real de fieldset/legend (AC-001-013).
 jest.mock('@/components', () => ({
+  ...jest.requireActual('@/components/ui'),
   Form: ({ children, handleSubmit }) => (
     <form data-testid="form" onSubmit={handleSubmit}>
       {children}
@@ -21,7 +24,9 @@ jest.mock('@/components', () => ({
       {errors && <div data-testid="errors">{JSON.stringify(errors)}</div>}
     </div>
   ),
-  FormGroup: ({ children }) => <div data-testid="form-group">{children}</div>,
+  FormGroup: ({ children, dataTestId = 'form-group' }) => (
+    <div data-testid={dataTestId}>{children}</div>
+  ),
   InputField: ({ htmlFor, label, value, onChange, required, placeholder }) => (
     <div data-testid={`input-${htmlFor}`}>
       <label htmlFor={htmlFor}>
@@ -96,10 +101,14 @@ jest.mock('@/components', () => ({
 describe('ProfessorForm', () => {
   const mockHandleSubmit = jest.fn(e => e.preventDefault());
   const mockHandleChange = jest.fn();
+  const mockHandleAlterarSenha = jest.fn();
+  const mockHandleCancelarAlteracaoSenha = jest.fn();
 
   const defaultProps = {
     handleSubmit: mockHandleSubmit,
     handleChange: mockHandleChange,
+    handleAlterarSenha: mockHandleAlterarSenha,
+    handleCancelarAlteracaoSenha: mockHandleCancelarAlteracaoSenha,
     formData: {
       nome: '',
       sobrenome: '',
@@ -116,17 +125,21 @@ describe('ProfessorForm', () => {
     errors: null,
     isLoading: false,
     isEdit: false,
+    alterarSenhaAtivo: false,
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, permissao: 'admin' },
+      isAdmin: jest.fn(() => true),
+    });
   });
 
   it('renders the form with all fields', () => {
     render(<ProfessorForm {...defaultProps} />);
 
     expect(screen.getByTestId('form')).toBeInTheDocument();
-    expect(screen.getByTestId('form-group')).toBeInTheDocument();
     expect(screen.getByTestId('input-nome')).toBeInTheDocument();
     expect(screen.getByTestId('input-sobrenome')).toBeInTheDocument();
     expect(screen.getByTestId('input-email')).toBeInTheDocument();
@@ -138,7 +151,31 @@ describe('ProfessorForm', () => {
     expect(screen.getByTestId('buttons-fields')).toBeInTheDocument();
   });
 
-  it('renders all required fields with asterisk when not in edit mode', () => {
+  // AC-001-001, AC-001-013
+  it('renders "Informações pessoais", "Acesso" and "Segurança" sections in this order', () => {
+    render(<ProfessorForm {...defaultProps} />);
+
+    const infoSection = screen.getByRole('group', {
+      name: 'Informações pessoais',
+    });
+    const acessoSection = screen.getByRole('group', { name: 'Acesso' });
+    const segurancaSection = screen.getByRole('group', { name: 'Segurança' });
+
+    expect(infoSection).toBeInTheDocument();
+    expect(acessoSection).toBeInTheDocument();
+    expect(segurancaSection).toBeInTheDocument();
+    expect(
+      infoSection.compareDocumentPosition(acessoSection) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(
+      acessoSection.compareDocumentPosition(segurancaSection) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  // AC-001-006
+  it('renders all required fields with asterisk when not in edit mode, including senha/repetirSenha', () => {
     render(<ProfessorForm {...defaultProps} />);
 
     expect(screen.getByText('Nome *')).toBeInTheDocument();
@@ -150,18 +187,168 @@ describe('ProfessorForm', () => {
     expect(screen.getByText('Idioma *')).toBeInTheDocument();
   });
 
-  it('renders password fields as not required in edit mode', () => {
-    render(<ProfessorForm {...defaultProps} isEdit={true} />);
+  it('telefone field is not required', () => {
+    render(<ProfessorForm {...defaultProps} />);
 
-    // Nome, Sobrenome, Email e Permissão ainda devem ser obrigatórios
-    expect(screen.getByText('Nome *')).toBeInTheDocument();
-    expect(screen.getByText('Sobrenome *')).toBeInTheDocument();
-    expect(screen.getByText('Email *')).toBeInTheDocument();
-    expect(screen.getByText('Permissão *')).toBeInTheDocument();
+    expect(screen.queryByText('Telefone *')).not.toBeInTheDocument();
+    expect(screen.getByText('Telefone')).toBeInTheDocument();
+  });
 
-    // Senhas não devem ser obrigatórias em modo edição
-    expect(screen.queryByText('Senha *')).not.toBeInTheDocument();
-    expect(screen.queryByText('Repetir Senha *')).not.toBeInTheDocument();
+  // AC-001-007
+  it('shows "Alterar senha" button and hides password fields in edit mode for an administrator editing another professor', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, permissao: 'admin' },
+      isAdmin: jest.fn(() => true),
+    });
+    render(
+      <ProfessorForm
+        {...defaultProps}
+        isEdit
+        formData={{ ...defaultProps.formData, id: 2 }}
+      />
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Alterar senha' })
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('password-senha')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('password-repetirSenha')
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows "Alterar senha" button in edit mode for the professor editing their own profile', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, permissao: 'member' },
+      isAdmin: jest.fn(() => false),
+    });
+    render(
+      <ProfessorForm
+        {...defaultProps}
+        isEdit
+        formData={{ ...defaultProps.formData, id: 1 }}
+      />
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Alterar senha' })
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('password-senha')).not.toBeInTheDocument();
+  });
+
+  // AC-001-007, caso simétrico (prova da ausência, perfil next-16.md §6.3)
+  it('hides the "Alterar senha" button for a non-administrator editing another professor', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, permissao: 'member' },
+      isAdmin: jest.fn(() => false),
+    });
+    render(
+      <ProfessorForm
+        {...defaultProps}
+        isEdit
+        formData={{ ...defaultProps.formData, id: 2 }}
+      />
+    );
+
+    expect(
+      screen.queryByRole('button', { name: 'Alterar senha' })
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('password-senha')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('password-repetirSenha')
+    ).not.toBeInTheDocument();
+  });
+
+  it('calls handleAlterarSenha when the "Alterar senha" button is clicked', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, permissao: 'admin' },
+      isAdmin: jest.fn(() => true),
+    });
+    render(
+      <ProfessorForm
+        {...defaultProps}
+        isEdit
+        formData={{ ...defaultProps.formData, id: 2 }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Alterar senha' }));
+    expect(mockHandleAlterarSenha).toHaveBeenCalled();
+  });
+
+  // AC-001-008, AC-001-011 (parte componente)
+  it('reveals password fields as required and shows "Cancelar alteração de senha" once acionado', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, permissao: 'admin' },
+      isAdmin: jest.fn(() => true),
+    });
+    render(
+      <ProfessorForm
+        {...defaultProps}
+        isEdit
+        alterarSenhaAtivo
+        formData={{ ...defaultProps.formData, id: 2 }}
+      />
+    );
+
+    expect(screen.getByText('Senha *')).toBeInTheDocument();
+    expect(screen.getByText('Repetir Senha *')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Alterar senha' })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Cancelar alteração de senha' })
+    ).toBeInTheDocument();
+  });
+
+  it('calls handleCancelarAlteracaoSenha when "Cancelar alteração de senha" is clicked', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, permissao: 'admin' },
+      isAdmin: jest.fn(() => true),
+    });
+    render(
+      <ProfessorForm
+        {...defaultProps}
+        isEdit
+        alterarSenhaAtivo
+        formData={{ ...defaultProps.formData, id: 2 }}
+      />
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Cancelar alteração de senha' })
+    );
+    expect(mockHandleCancelarAlteracaoSenha).toHaveBeenCalled();
+  });
+
+  // AC-001-016
+  it('renders "Alterar senha" and "Cancelar alteração de senha" buttons with the tap-target class', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, permissao: 'admin' },
+      isAdmin: jest.fn(() => true),
+    });
+    const { rerender } = render(
+      <ProfessorForm
+        {...defaultProps}
+        isEdit
+        formData={{ ...defaultProps.formData, id: 2 }}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Alterar senha' })).toHaveClass(
+      'tap-target'
+    );
+
+    rerender(
+      <ProfessorForm
+        {...defaultProps}
+        isEdit
+        alterarSenhaAtivo
+        formData={{ ...defaultProps.formData, id: 2 }}
+      />
+    );
+    expect(
+      screen.getByRole('button', { name: 'Cancelar alteração de senha' })
+    ).toHaveClass('tap-target');
   });
 
   it('displays FormError with message when message is provided', () => {
@@ -280,15 +467,14 @@ describe('ProfessorForm', () => {
     expect(screen.getByDisplayValue('11999999999')).toBeInTheDocument();
     expect(screen.getAllByDisplayValue('senha123')).toHaveLength(2);
 
-    // Verifica se o select de idioma tem o valor correto
     const idiomSelect = screen.getByLabelText(/idioma/i);
     expect(idiomSelect).toHaveValue(IDIOMA.ESPANHOL);
 
-    // Verifica se o select tem o valor correto
     const select = screen.getByLabelText(/permissão/i);
     expect(select).toHaveValue(PERMISSAO.ADMIN);
   });
 
+  // AC-001-005 (parte, não-regressão)
   it('passes isLoading prop to ButtonsFields', () => {
     const props = {
       ...defaultProps,
@@ -326,13 +512,5 @@ describe('ProfessorForm', () => {
     render(<ProfessorForm {...defaultProps} />);
 
     expect(screen.getByTestId('form-error')).toBeInTheDocument();
-  });
-
-  it('telefone field is not required', () => {
-    render(<ProfessorForm {...defaultProps} />);
-
-    // Telefone não deve ter asterisco
-    expect(screen.queryByText('Telefone *')).not.toBeInTheDocument();
-    expect(screen.getByText('Telefone')).toBeInTheDocument();
   });
 });

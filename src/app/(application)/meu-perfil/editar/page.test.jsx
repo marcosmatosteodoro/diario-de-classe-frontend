@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import EditarPerfil from './page';
 import { useUserAuth } from '@/providers/UserAuthProvider';
+import { ProfessorForm } from '@/components';
 
 jest.mock('@/providers/UserAuthProvider');
 jest.mock('@/hooks/professores/useEditarProfessor');
@@ -39,6 +40,9 @@ describe('Editar Perfil Page', () => {
       handleChange: jest.fn(),
       handleSubmit: jest.fn(),
       setFormData: jest.fn(),
+      alterarSenhaAtivo: false,
+      handleAlterarSenha: jest.fn(),
+      handleCancelarAlteracaoSenha: jest.fn(),
     });
   });
 
@@ -50,5 +54,26 @@ describe('Editar Perfil Page', () => {
   it('displays loading state', () => {
     render(<EditarPerfil />);
     expect(useUserAuth).toHaveBeenCalled();
+  });
+
+  // AC-001-004: mesmo componente ProfessorForm, mesmas props de segurança de
+  // senha de professores/[id]/editar.
+  it('calls useProfessorForm with isEdit true and id equal to currentUser.id', () => {
+    render(<EditarPerfil />);
+
+    expect(useProfessorForm).toHaveBeenCalledWith({
+      submit: expect.any(Function),
+      isEdit: true,
+      id: 1,
+    });
+  });
+
+  it('passes alterarSenhaAtivo, handleAlterarSenha and handleCancelarAlteracaoSenha to ProfessorForm', () => {
+    render(<EditarPerfil />);
+
+    const props = ProfessorForm.mock.calls[0][0];
+    expect(props.alterarSenhaAtivo).toBe(false);
+    expect(typeof props.handleAlterarSenha).toBe('function');
+    expect(typeof props.handleCancelarAlteracaoSenha).toBe('function');
   });
 });

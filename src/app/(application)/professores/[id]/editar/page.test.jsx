@@ -45,6 +45,9 @@ jest.mock('@/components', () => ({
     message,
     errors,
     isEdit,
+    alterarSenhaAtivo,
+    handleAlterarSenha,
+    handleCancelarAlteracaoSenha,
   }) => (
     <form data-testid="professor-form" onSubmit={handleSubmit}>
       <div data-testid="form-data">{JSON.stringify(formData)}</div>
@@ -53,6 +56,15 @@ jest.mock('@/components', () => ({
       {message && <div data-testid="message">{message}</div>}
       {errors && <div data-testid="errors">{JSON.stringify(errors)}</div>}
       {isEdit && <div data-testid="is-edit">Modo Edição</div>}
+      <div data-testid="alterar-senha-ativo">
+        {String(Boolean(alterarSenhaAtivo))}
+      </div>
+      <div data-testid="handle-alterar-senha-type">
+        {typeof handleAlterarSenha}
+      </div>
+      <div data-testid="handle-cancelar-alteracao-senha-type">
+        {typeof handleCancelarAlteracaoSenha}
+      </div>
       <button type="submit">Salvar</button>
     </form>
   ),
@@ -122,6 +134,9 @@ describe('EditarProfessor Page', () => {
       handleChange: mockHandleChange,
       handleSubmit: mockHandleSubmit,
       setFormData: mockSetFormData,
+      alterarSenhaAtivo: false,
+      handleAlterarSenha: jest.fn(),
+      handleCancelarAlteracaoSenha: jest.fn(),
     });
   });
 
@@ -380,5 +395,21 @@ describe('EditarProfessor Page', () => {
     // Verifica se formData está sendo passado
     const formDataElement = screen.getByTestId('form-data');
     expect(formDataElement).toHaveTextContent(JSON.stringify(mockFormData));
+  });
+
+  // Cobertura reversa (TASK-002-004): ProfessorForm recebe o retorno novo do
+  // hook useProfessorForm.
+  it('passes alterarSenhaAtivo, handleAlterarSenha and handleCancelarAlteracaoSenha to ProfessorForm', () => {
+    render(<EditarProfessor />);
+
+    expect(screen.getByTestId('alterar-senha-ativo')).toHaveTextContent(
+      'false'
+    );
+    expect(screen.getByTestId('handle-alterar-senha-type')).toHaveTextContent(
+      'function'
+    );
+    expect(
+      screen.getByTestId('handle-cancelar-alteracao-senha-type')
+    ).toHaveTextContent('function');
   });
 });
