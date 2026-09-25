@@ -57,6 +57,13 @@ jest.mock('@/components', () => ({
   // label, options, onChange no formato { target: { name, value } }), mas
   // sem <select>/<option> nativos — reflete o widget combobox real
   // (SearchableSelectField exibe o rótulo resolvido, não o id bruto).
+  // Contrato espelhado do componente real (achado do code-reviewer,
+  // TASK-002-004): `onChange` só dispara ao selecionar uma opção ou ao
+  // limpar — nunca ao digitar no campo de busca (o input de busca do
+  // componente real só atualiza `query`, estado interno, em
+  // `handleInputChange`) — e a comparação `value`↔`option.value` usa
+  // igualdade estrita, sem coerção (`Aluno.id` é `String @default(cuid())`
+  // no schema Prisma: o domínio já entrega string dos dois lados).
   SearchableSelectField: ({
     htmlFor,
     label,
@@ -65,10 +72,10 @@ jest.mock('@/components', () => ({
     onChange,
     value,
     selectedLabel,
+    isLoading,
+    errorMessage,
   }) => {
-    const selectedOption = options.find(
-      option => String(option.value) === String(value)
-    );
+    const selectedOption = options.find(option => option.value === value);
     const displayValue = selectedOption
       ? selectedOption.label
       : value
@@ -83,13 +90,27 @@ jest.mock('@/components', () => ({
           role="combobox"
           aria-expanded="false"
           aria-controls={`${htmlFor}-listbox`}
+          aria-busy={isLoading ? 'true' : undefined}
           placeholder={placeholder}
           value={displayValue}
-          onChange={e =>
-            onChange({ target: { name: htmlFor, value: e.target.value } })
-          }
+          readOnly
           data-testid={`select-field-${htmlFor}`}
         />
+        {isLoading && (
+          <p data-testid={`select-field-${htmlFor}-loading`}>Carregando...</p>
+        )}
+        {errorMessage && (
+          <p data-testid={`select-field-${htmlFor}-error`}>{errorMessage}</p>
+        )}
+        {value && (
+          <button
+            type="button"
+            data-testid={`select-field-${htmlFor}-clear`}
+            onClick={() => onChange({ target: { name: htmlFor, value: '' } })}
+          >
+            Limpar
+          </button>
+        )}
         <ul
           id={`${htmlFor}-listbox`}
           data-testid={`select-field-${htmlFor}-options`}
@@ -98,7 +119,7 @@ jest.mock('@/components', () => ({
             <li
               key={idx}
               role="option"
-              aria-selected={String(option.value) === String(value)}
+              aria-selected={option.value === value}
               data-testid={`select-field-${htmlFor}-option`}
               onClick={() =>
                 onChange({ target: { name: htmlFor, value: option.value } })
@@ -127,9 +148,13 @@ describe('Filter Component', () => {
     idioma: '',
     idAluno: '',
   };
+  // `Aluno.id` é `String @default(cuid())` no schema Prisma — fixture usa o
+  // tipo real do domínio, nunca id numérico (achado do code-reviewer,
+  // TASK-002-004: a comparação `value`↔`option.value` do estande usa
+  // igualdade estrita, sem coerção).
   const mockAlunos = [
-    { id: 1, nome: 'João Silva', email: 'joao@email.com' },
-    { id: 2, nome: 'Maria Santos', email: 'maria@email.com' },
+    { id: 'cuid-aluno-1', nome: 'João Silva', email: 'joao@email.com' },
+    { id: 'cuid-aluno-2', nome: 'Maria Santos', email: 'maria@email.com' },
   ];
 
   beforeEach(() => {
@@ -298,7 +323,7 @@ describe('Filter Component', () => {
     });
 
     it('should display idAluno value from formData', () => {
-      const formDataWithAluno = { ...mockFormData, idAluno: '1' };
+      const formDataWithAluno = { ...mockFormData, idAluno: 'cuid-aluno-1' };
 
       render(
         <Filter
@@ -365,7 +390,7 @@ describe('Filter Component', () => {
       expect(mockHandleChange).toHaveBeenCalled();
     });
 
-    it('should call handleChange when idAluno changes', () => {
+    it('should call handleChange when idAluno changes (seleção de opção — o combobox real nunca dispara onChange ao digitar)', () => {
       render(
         <Filter
           handleSubmit={mockHandleSubmit}
@@ -375,12 +400,28 @@ describe('Filter Component', () => {
         />
       );
 
-      const alunoSelect = screen.getByTestId('select-field-idAluno');
-      fireEvent.change(alunoSelect, { target: { value: '1' } });
+      const opcoes = screen.getAllByTestId('select-field-idAluno-option');
+      fireEvent.click(opcoes[0]);
 
       expect(mockHandleChange).toHaveBeenCalledWith({
-        target: { name: 'idAluno', value: '1' },
+        target: { name: 'idAluno', value: 'cuid-aluno-1' },
       });
+    });
+
+    it('digitar no campo de busca NUNCA chama handleChange — só a seleção de uma opção ou o botão de limpar disparam (achado do code-reviewer, TASK-002-004)', () => {
+      render(
+        <Filter
+          handleSubmit={mockHandleSubmit}
+          handleChange={mockHandleChange}
+          formData={mockFormData}
+          alunos={mockAlunos}
+        />
+      );
+
+      const alunoInput = screen.getByTestId('select-field-idAluno');
+      fireEvent.change(alunoInput, { target: { value: 'joão' } });
+
+      expect(mockHandleChange).not.toHaveBeenCalled();
     });
 
     it('should call handleSubmit when form is submitted', () => {
@@ -495,6 +536,64 @@ describe('Filter Component', () => {
       // delete). Sem `selectedLabel` passado por este ponto de consumo, o
       // fallback é o próprio value bruto — nunca vazio/silencioso.
       expect(screen.getByTestId('select-field-idAluno').value).toBe('999');
+    });
+  });
+
+  describe('isLoading/errorMessage wiring (achado do product-designer, TASK-002-004)', () => {
+    it('com isLoadingAlunos=true, o SearchableSelectField recebe isLoading (indicador de carregamento, não "nenhum resultado")', () => {
+      render(
+        <Filter
+          handleSubmit={mockHandleSubmit}
+          handleChange={mockHandleChange}
+          formData={mockFormData}
+          alunos={mockAlunos}
+          isLoadingAlunos={true}
+        />
+      );
+
+      expect(
+        screen.getByTestId('select-field-idAluno-loading')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByTestId('select-field-idAluno-error')
+      ).not.toBeInTheDocument();
+    });
+
+    it('com erroAlunos definido, o SearchableSelectField recebe errorMessage com a frase fixa em pt-BR (nunca o `message` cru do slice)', () => {
+      const mensagemFixa =
+        'Não foi possível carregar os alunos. Tente novamente.';
+
+      render(
+        <Filter
+          handleSubmit={mockHandleSubmit}
+          handleChange={mockHandleChange}
+          formData={mockFormData}
+          alunos={mockAlunos}
+          erroAlunos={mensagemFixa}
+        />
+      );
+
+      expect(
+        screen.getByTestId('select-field-idAluno-error')
+      ).toHaveTextContent(mensagemFixa);
+    });
+
+    it('sem isLoadingAlunos/erroAlunos (default), nenhum indicador de carregamento nem erro aparece', () => {
+      render(
+        <Filter
+          handleSubmit={mockHandleSubmit}
+          handleChange={mockHandleChange}
+          formData={mockFormData}
+          alunos={mockAlunos}
+        />
+      );
+
+      expect(
+        screen.queryByTestId('select-field-idAluno-loading')
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId('select-field-idAluno-error')
+      ).not.toBeInTheDocument();
     });
   });
 

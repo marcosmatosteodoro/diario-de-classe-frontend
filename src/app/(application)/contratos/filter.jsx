@@ -15,6 +15,8 @@ export const Filter = ({
   handleClearFilter,
   formData,
   alunos,
+  isLoadingAlunos,
+  erroAlunos,
 }) => {
   return (
     <Form handleSubmit={handleSubmit}>
@@ -52,6 +54,8 @@ export const Filter = ({
           options={getEntityOptions(alunos)}
           onChange={handleChange}
           value={formData.idAluno}
+          isLoading={isLoadingAlunos}
+          errorMessage={erroAlunos}
         />
       </FormGroup>
       <ClearFiltersButton onClick={handleClearFilter} />
