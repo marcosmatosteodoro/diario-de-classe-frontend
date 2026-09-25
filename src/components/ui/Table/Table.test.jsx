@@ -39,6 +39,9 @@ jest.mock('react-data-table-component', () => {
           {JSON.stringify({
             progress: customStyles.progress ?? null,
             noData: customStyles.noData ?? null,
+            pagination: customStyles.pagination ?? null,
+            headCells: customStyles.headCells ?? null,
+            rows: customStyles.rows ?? null,
           })}
         </div>
       </div>
@@ -102,6 +105,21 @@ describe('Table component', () => {
 
     expect(getByTestId('no-data').textContent).toContain('Nada');
   });
+
+  // DEC-002-001: scroll horizontal contido ao próprio container, nunca à página.
+  it('contém o scroll ao container (overflow-x-auto max-w-full) sem className customizado', () => {
+    const { getByTestId } = render(
+      <Table columns={[]} data={[]} isLoading={false} notFoundMessage="Nada" />
+    );
+
+    const wrapperClassName = getByTestId('table').className;
+    expect(wrapperClassName).toContain('overflow-x-auto');
+    expect(wrapperClassName).toContain('max-w-full');
+    expect(wrapperClassName).toContain('bg-main');
+    expect(wrapperClassName).toContain('p-2');
+    expect(wrapperClassName).toContain('rounded-lg');
+    expect(wrapperClassName).toContain('shadow-md');
+  });
 });
 
 // BI-41: sem customStyles em progress/noData no tema dark, esses containers
@@ -140,12 +158,103 @@ describe('Table component - customStyles do tema dark (BI-41)', () => {
     });
   });
 
-  it('não define customStyles (mantém padrão da lib) no tema claro', () => {
+  it('não customiza progress/noData no tema claro', () => {
     const { getByTestId } = renderWithTheme('light');
 
     const customStyles = JSON.parse(getByTestId('custom-styles').textContent);
 
     expect(customStyles.progress).toBeNull();
     expect(customStyles.noData).toBeNull();
+  });
+
+  it('define backgroundColor de hover da linha no tema escuro (antes só existia num CSS morto, .dark, que o app nunca aplica — usa data-theme)', () => {
+    const { getByTestId } = renderWithTheme('dark');
+
+    const customStyles = JSON.parse(getByTestId('custom-styles').textContent);
+
+    expect(customStyles.rows.highlightOnHoverStyle.backgroundColor).toBe(
+      '#334155'
+    );
+  });
+});
+
+// AC-001-009: paginação e cabeçalho de ordenação precisam de área de toque
+// mínima de 44px (2.75rem, via var(--tap-target-size)) nos dois ramos de
+// tema. Os botões reais de paginação (#pagination-first-page, previous,
+// next, last-page) só respeitam `pagination.pageButtonsStyle` — a lib NÃO
+// aplica `pagination.style` a eles, só ao <nav> container.
+describe('Table component - área de toque da paginação e ordenação (AC-001-009)', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  const renderWithTheme = theme => {
+    localStorage.setItem('theme', theme);
+    const columns = [{ name: 'Col' }];
+    return render(
+      <ThemeProvider>
+        <Table
+          columns={columns}
+          data={[]}
+          isLoading={false}
+          notFoundMessage="Nada"
+        />
+      </ThemeProvider>
+    );
+  };
+
+  it('aplica área de toque aos botões de paginação e ao cabeçalho de ordenação no tema claro', () => {
+    const { getByTestId } = renderWithTheme('light');
+
+    const customStyles = JSON.parse(getByTestId('custom-styles').textContent);
+
+    expect(customStyles.pagination.pageButtonsStyle.height).toBe(
+      'var(--tap-target-size)'
+    );
+    expect(customStyles.pagination.pageButtonsStyle.width).toBe(
+      'var(--tap-target-size)'
+    );
+    expect(customStyles.headCells.style.minHeight).toBe(
+      'var(--tap-target-size)'
+    );
+    expect(customStyles.headCells.style.minWidth).toBe(
+      'var(--tap-target-size)'
+    );
+  });
+
+  it('aplica área de toque aos botões de paginação e ao cabeçalho de ordenação no tema escuro', () => {
+    const { getByTestId } = renderWithTheme('dark');
+
+    const customStyles = JSON.parse(getByTestId('custom-styles').textContent);
+
+    expect(customStyles.pagination.pageButtonsStyle.height).toBe(
+      'var(--tap-target-size)'
+    );
+    expect(customStyles.pagination.pageButtonsStyle.width).toBe(
+      'var(--tap-target-size)'
+    );
+    expect(customStyles.headCells.style.minHeight).toBe(
+      'var(--tap-target-size)'
+    );
+    expect(customStyles.headCells.style.minWidth).toBe(
+      'var(--tap-target-size)'
+    );
+  });
+
+  it('não encolhe o container de paginação abaixo do default da lib (56px) em nenhum tema', () => {
+    const light = renderWithTheme('light');
+    const lightStyles = JSON.parse(
+      light.getByTestId('custom-styles').textContent
+    );
+    expect(lightStyles.pagination.style?.minHeight).toBeUndefined();
+    expect(lightStyles.pagination.style?.minWidth).toBeUndefined();
+    light.unmount();
+
+    const dark = renderWithTheme('dark');
+    const darkStyles = JSON.parse(
+      dark.getByTestId('custom-styles').textContent
+    );
+    expect(darkStyles.pagination.style?.minHeight).toBeUndefined();
+    expect(darkStyles.pagination.style?.minWidth).toBeUndefined();
   });
 });

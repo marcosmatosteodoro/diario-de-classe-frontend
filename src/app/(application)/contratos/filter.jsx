@@ -3,6 +3,7 @@ import {
   FormGroup,
   InputField,
   SelectField,
+  SearchableSelectField,
   ClearFiltersButton,
 } from '@/components';
 import { IDIOMA_ARRAY, IDIOMA_LABEL } from '@/constants';
@@ -14,6 +15,8 @@ export const Filter = ({
   handleClearFilter,
   formData,
   alunos,
+  isLoadingAlunos,
+  erroAlunos,
 }) => {
   return (
     <Form handleSubmit={handleSubmit}>
@@ -44,13 +47,15 @@ export const Filter = ({
           value={formData.idioma}
         />
 
-        <SelectField
+        <SearchableSelectField
           htmlFor="idAluno"
           label="Aluno"
           placeholder="Selecione o aluno"
           options={getEntityOptions(alunos)}
           onChange={handleChange}
           value={formData.idAluno}
+          isLoading={isLoadingAlunos}
+          errorMessage={erroAlunos}
         />
       </FormGroup>
       <ClearFiltersButton onClick={handleClearFilter} />

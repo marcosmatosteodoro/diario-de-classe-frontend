@@ -1,7 +1,57 @@
 import { createElement } from 'react';
-import { renderHook, act } from '@testing-library/react';
+import {
+  renderHook,
+  act,
+  render,
+  screen,
+  fireEvent,
+} from '@testing-library/react';
 import { mountRaw } from '@/utils/mountRaw';
+import { todayLocalDate } from '@/utils/todayLocalDate';
 import { useAulaForm } from './useAulaForm';
+import { SearchableSelectField } from '@/components/ui/Fields/SearchableSelectField';
+
+// Harness com o `SearchableSelectField` real (não mockado): só assim o foco
+// que `handleSubmit` move ao bloquear o envio (AC-001-014) pousa num `<input>`
+// de verdade, alcançável por `document.activeElement`/`getElementById`.
+function FormHarness({
+  alunoOptions,
+  professorOptions,
+  contratoOptions,
+  submit,
+}) {
+  const { formData, fieldErrors, handleChange, handleSubmit } = useAulaForm({
+    submit,
+  });
+  return createElement(
+    'form',
+    { 'data-testid': 'harness-form', onSubmit: handleSubmit },
+    createElement(SearchableSelectField, {
+      htmlFor: 'idAluno',
+      label: 'Aluno',
+      value: formData.idAluno,
+      onChange: handleChange,
+      options: alunoOptions,
+      requiredError: fieldErrors.idAluno,
+    }),
+    createElement(SearchableSelectField, {
+      htmlFor: 'idProfessor',
+      label: 'Professor',
+      value: formData.idProfessor,
+      onChange: handleChange,
+      options: professorOptions,
+      requiredError: fieldErrors.idProfessor,
+    }),
+    createElement(SearchableSelectField, {
+      htmlFor: 'idContrato',
+      label: 'Contrato',
+      value: formData.idContrato,
+      onChange: handleChange,
+      options: contratoOptions,
+      requiredError: fieldErrors.idContrato,
+    })
+  );
+}
 
 // `mountRaw` (ACH-10) cuida do `flushSync`/supressão de aviso de `act`
 // compartilhados entre os 7 testes que precisam observar estado pré-efeito;
@@ -197,8 +247,22 @@ describe('useAulaForm', () => {
       const submit = jest.fn();
       const { result } = renderHook(() => useAulaForm({ id: 1, submit }));
       const fakeEvent = { preventDefault: jest.fn() };
-      const today = new Date();
-      const todayStr = today.toISOString().split('T')[0];
+      // `todayLocalDate()`, não `new Date().toISOString()`: o campo é
+      // `<input type="date">`, que trabalha em data local — em UTC-3, das
+      // 21h em diante `.toISOString()` já virou o dia seguinte em UTC
+      // (mesmo bug que `todayLocalDate.js` documenta e corrige).
+      const todayStr = todayLocalDate();
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'idAluno', value: '1' },
+        });
+        result.current.handleChange({
+          target: { name: 'idProfessor', value: '2' },
+        });
+        result.current.handleChange({
+          target: { name: 'idContrato', value: '3' },
+        });
+      });
       act(() => {
         result.current.handleChange({
           target: { name: 'dataAula', value: todayStr },
@@ -221,6 +285,9 @@ describe('useAulaForm', () => {
       act(() => {
         result.current.setFormData(prev => ({
           ...prev,
+          idAluno: '1',
+          idProfessor: '2',
+          idContrato: '3',
           duracaoAula: 60,
         }));
       });
@@ -264,6 +331,188 @@ describe('useAulaForm', () => {
       expect(callArgs.dataToSend.tipo).toBe('REPOSICAO');
       expect(callArgs.dataToSend.status).toBe('CONCLUIDA');
       expect(callArgs.dataToSend.observacao).toBe('Test observation');
+    });
+  });
+
+  describe('Validação de obrigatoriedade de Aluno/Professor/Contrato no submit (AC-001-014)', () => {
+    it('bloqueia o submit e popula fieldErrors quando os três campos estão vazios', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() => useAulaForm({ id: null, submit }));
+      const fakeEvent = { preventDefault: jest.fn() };
+
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+
+      expect(submit).not.toHaveBeenCalled();
+      expect(result.current.fieldErrors.idAluno).toEqual(expect.any(String));
+      expect(result.current.fieldErrors.idProfessor).toEqual(
+        expect.any(String)
+      );
+      expect(result.current.fieldErrors.idContrato).toEqual(expect.any(String));
+    });
+
+    it('bloqueia o submit só com idContrato vazio, sem popular erro nos campos já preenchidos', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() => useAulaForm({ id: null, submit }));
+      const fakeEvent = { preventDefault: jest.fn() };
+
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'idAluno', value: '1' },
+        });
+        result.current.handleChange({
+          target: { name: 'idProfessor', value: '2' },
+        });
+      });
+
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+
+      expect(submit).not.toHaveBeenCalled();
+      expect(result.current.fieldErrors.idContrato).toEqual(expect.any(String));
+      expect(result.current.fieldErrors.idAluno).toBeUndefined();
+      expect(result.current.fieldErrors.idProfessor).toBeUndefined();
+    });
+
+    it('controle positivo: com os três campos preenchidos, o submit não bloqueia e chama submit', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() => useAulaForm({ id: null, submit }));
+      const fakeEvent = { preventDefault: jest.fn() };
+
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'idAluno', value: '1' },
+        });
+        result.current.handleChange({
+          target: { name: 'idProfessor', value: '2' },
+        });
+        result.current.handleChange({
+          target: { name: 'idContrato', value: '3' },
+        });
+      });
+
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+
+      expect(submit).toHaveBeenCalled();
+      expect(result.current.fieldErrors).toEqual({});
+    });
+
+    it('limpa fieldErrors.idAluno ao preencher o campo depois do bloqueio (handleChange)', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() => useAulaForm({ id: null, submit }));
+      const fakeEvent = { preventDefault: jest.fn() };
+
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+      expect(result.current.fieldErrors.idAluno).toEqual(expect.any(String));
+
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'idAluno', value: '1' },
+        });
+      });
+      expect(result.current.fieldErrors.idAluno).toBeUndefined();
+    });
+  });
+
+  describe('Foco no primeiro campo com erro ao bloquear o submit (AC-001-014)', () => {
+    const alunoOptions = [{ value: 1, label: 'Aluno 1' }];
+    const professorOptions = [{ value: 10, label: 'Professor 1' }];
+    const contratoOptions = [{ value: 100, label: 'Contrato 1' }];
+
+    it('com os três campos vazios, o foco vai para o combobox Aluno', () => {
+      const submit = jest.fn();
+      render(
+        createElement(FormHarness, {
+          alunoOptions,
+          professorOptions,
+          contratoOptions,
+          submit,
+        })
+      );
+
+      fireEvent.submit(screen.getByTestId('harness-form'));
+
+      expect(submit).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(
+        screen.getByRole('combobox', { name: /^aluno/i })
+      );
+    });
+
+    it('com só Professor e Contrato vazios, o foco vai para o combobox Professor', () => {
+      const submit = jest.fn();
+      render(
+        createElement(FormHarness, {
+          alunoOptions,
+          professorOptions,
+          contratoOptions,
+          submit,
+        })
+      );
+
+      fireEvent.click(screen.getByRole('combobox', { name: /^aluno/i }));
+      fireEvent.click(screen.getByText('Aluno 1'));
+
+      fireEvent.submit(screen.getByTestId('harness-form'));
+
+      expect(submit).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(
+        screen.getByRole('combobox', { name: /^professor/i })
+      );
+    });
+
+    it('com só Contrato vazio (Aluno e Professor preenchidos), o foco vai para o combobox Contrato', () => {
+      const submit = jest.fn();
+      render(
+        createElement(FormHarness, {
+          alunoOptions,
+          professorOptions,
+          contratoOptions,
+          submit,
+        })
+      );
+
+      fireEvent.click(screen.getByRole('combobox', { name: /^aluno/i }));
+      fireEvent.click(screen.getByText('Aluno 1'));
+
+      fireEvent.click(screen.getByRole('combobox', { name: /^professor/i }));
+      fireEvent.click(screen.getByText('Professor 1'));
+
+      fireEvent.submit(screen.getByTestId('harness-form'));
+
+      expect(submit).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(
+        screen.getByRole('combobox', { name: /^contrato/i })
+      );
+    });
+
+    it('caso irmão: preencher o Aluno depois do bloqueio não move o foco para o Professor', () => {
+      const submit = jest.fn();
+      render(
+        createElement(FormHarness, {
+          alunoOptions,
+          professorOptions,
+          contratoOptions,
+          submit,
+        })
+      );
+
+      fireEvent.submit(screen.getByTestId('harness-form'));
+      expect(document.activeElement).toBe(
+        screen.getByRole('combobox', { name: /^aluno/i })
+      );
+
+      fireEvent.click(screen.getByRole('combobox', { name: /^aluno/i }));
+      fireEvent.click(screen.getByText('Aluno 1'));
+
+      expect(document.activeElement).not.toBe(
+        screen.getByRole('combobox', { name: /^professor/i })
+      );
     });
   });
 

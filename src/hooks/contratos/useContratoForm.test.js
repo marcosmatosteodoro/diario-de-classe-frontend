@@ -1,7 +1,15 @@
 import { createElement } from 'react';
-import { renderHook, act } from '@testing-library/react';
+import {
+  renderHook,
+  act,
+  render,
+  screen,
+  fireEvent,
+  within,
+} from '@testing-library/react';
 import { mountRaw } from '@/utils/mountRaw';
 import { useContratoForm } from './useContratoForm';
+import { SearchableSelectField } from '@/components/ui/Fields/SearchableSelectField';
 
 jest.mock('@/providers/UserAuthProvider', () => ({
   useUserAuth: () => ({
@@ -41,6 +49,42 @@ function mountHookRaw(hookArgs) {
       return text === '' ? null : text;
     },
   };
+}
+
+// Harness com o `SearchableSelectField` real (não mockado): só assim o foco
+// que `handleSubmit` move ao bloquear o envio (AC-001-014) pousa num `<input>`
+// de verdade, alcançável por `document.activeElement`/`getElementById`.
+function FormHarness({ alunos, professores, submit }) {
+  const {
+    formData,
+    fieldErrors,
+    handleSubmit,
+    handleAlunoChange,
+    handleProfessorChange,
+  } = useContratoForm({ alunos, professores, submit });
+  return createElement(
+    'form',
+    { 'data-testid': 'harness-form', onSubmit: handleSubmit },
+    createElement(SearchableSelectField, {
+      htmlFor: 'alunoId',
+      label: 'Aluno',
+      value: formData.alunoId,
+      onChange: handleAlunoChange,
+      options: alunos.map(aluno => ({ value: aluno.id, label: aluno.nome })),
+      requiredError: fieldErrors.alunoId,
+    }),
+    createElement(SearchableSelectField, {
+      htmlFor: 'professorId',
+      label: 'Professor principal',
+      value: formData.professorId,
+      onChange: handleProfessorChange,
+      options: professores.map(professor => ({
+        value: professor.id,
+        label: professor.nome,
+      })),
+      requiredError: fieldErrors.professorId,
+    })
+  );
 }
 
 describe('useContratoForm Hook', () => {
@@ -1153,6 +1197,232 @@ describe('useContratoForm Hook', () => {
         d => d.diaSemana === 'SEGUNDA'
       );
       expect(segundaDia.horaInicial).toBe('21:30');
+    });
+  });
+
+  describe('Validação de obrigatoriedade de Aluno/Professor no submit (AC-001-014)', () => {
+    it('bloqueia o submit e popula fieldErrors.alunoId quando Aluno está vazio', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit })
+      );
+      // professorId nasce preenchido com o currentUser mockado (id 10); só
+      // alunoId fica vazio aqui.
+
+      const fakeEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+
+      expect(submit).not.toHaveBeenCalled();
+      expect(result.current.fieldErrors.alunoId).toEqual(expect.any(String));
+    });
+
+    it('bloqueia o submit e popula fieldErrors.professorId quando Professor está vazio', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit })
+      );
+
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'alunoId', value: '1' },
+        });
+        result.current.handleChange({
+          target: { name: 'professorId', value: '' },
+        });
+      });
+
+      const fakeEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+
+      expect(submit).not.toHaveBeenCalled();
+      expect(result.current.fieldErrors.professorId).toEqual(
+        expect.any(String)
+      );
+    });
+
+    it('controle positivo: com Aluno e Professor preenchidos, submit é chamado e fieldErrors permanece vazio', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit })
+      );
+
+      act(() => {
+        result.current.handleAlunoChange({
+          target: { name: 'alunoId', value: '1' },
+        });
+        result.current.handleProfessorChange({
+          target: { name: 'professorId', value: '10' },
+        });
+      });
+
+      const fakeEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+
+      expect(submit).toHaveBeenCalled();
+      expect(result.current.fieldErrors).toEqual({});
+    });
+
+    it('reseta fieldErrors para {} ao reenviar com sucesso, mesmo quando o campo foi preenchido por fora de clearFieldError', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit })
+      );
+
+      // Bloqueia o submit primeiro para popular fieldErrors.alunoId.
+      const blockedEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(blockedEvent);
+      });
+      expect(result.current.fieldErrors.alunoId).toEqual(expect.any(String));
+
+      // Preenche alunoId/professorId via setFormData direto — não passa por
+      // handleAlunoChange/handleProfessorChange, então clearFieldError nunca
+      // roda e fieldErrors.alunoId segue populado até aqui.
+      act(() => {
+        result.current.setFormData(prev => ({
+          ...prev,
+          alunoId: '1',
+          professorId: '10',
+        }));
+      });
+      expect(result.current.fieldErrors.alunoId).toEqual(expect.any(String));
+
+      const validEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(validEvent);
+      });
+
+      expect(submit).toHaveBeenCalled();
+      expect(result.current.fieldErrors).toEqual({});
+    });
+
+    it('limpa fieldErrors.alunoId ao preencher o campo depois do bloqueio (handleAlunoChange)', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit })
+      );
+
+      const fakeEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+      expect(result.current.fieldErrors.alunoId).toEqual(expect.any(String));
+
+      act(() => {
+        result.current.handleAlunoChange({
+          target: { name: 'alunoId', value: '1' },
+        });
+      });
+      expect(result.current.fieldErrors.alunoId).toBeUndefined();
+    });
+
+    it('limpa fieldErrors.professorId ao preencher o campo depois do bloqueio (handleProfessorChange)', () => {
+      const submit = jest.fn();
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit })
+      );
+
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'alunoId', value: '1' },
+        });
+        result.current.handleChange({
+          target: { name: 'professorId', value: '' },
+        });
+      });
+
+      const fakeEvent = { preventDefault: jest.fn() };
+      act(() => {
+        result.current.handleSubmit(fakeEvent);
+      });
+      expect(result.current.fieldErrors.professorId).toEqual(
+        expect.any(String)
+      );
+
+      act(() => {
+        result.current.handleProfessorChange({
+          target: { name: 'professorId', value: '10' },
+        });
+      });
+      expect(result.current.fieldErrors.professorId).toBeUndefined();
+    });
+  });
+
+  describe('Foco no primeiro campo com erro ao bloquear o submit (AC-001-014)', () => {
+    const alunos = [{ id: 1, nome: 'Aluno 1' }];
+    const professores = [{ id: 10, nome: 'Professor 1' }];
+
+    it('com Aluno e Professor vazios, o foco vai para o combobox Aluno', () => {
+      const submit = jest.fn();
+      render(createElement(FormHarness, { alunos, professores, submit }));
+
+      // Professor nasce preenchido com o currentUser mockado — limpa para
+      // isolar o cenário "os dois vazios".
+      fireEvent.click(
+        screen.getAllByRole('button', { name: 'Limpar seleção' })[0]
+      );
+
+      fireEvent.submit(screen.getByTestId('harness-form'));
+
+      expect(submit).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(
+        screen.getByRole('combobox', { name: /^aluno/i })
+      );
+    });
+
+    it('com só Professor vazio, o foco vai para o combobox Professor', () => {
+      const submit = jest.fn();
+      render(createElement(FormHarness, { alunos, professores, submit }));
+
+      fireEvent.click(screen.getByRole('combobox', { name: /^aluno/i }));
+      fireEvent.click(screen.getByText('Aluno 1'));
+
+      const professorInput = screen.getByRole('combobox', {
+        name: /^professor/i,
+      });
+      fireEvent.click(
+        within(professorInput.parentElement).getByRole('button', {
+          name: 'Limpar seleção',
+        })
+      );
+
+      // handleClear (SearchableSelectField) já devolve o foco ao Professor
+      // ao limpar — para provar que é o handleSubmit (e não o handleClear)
+      // quem move o foco no bloqueio, tiramos o foco do Professor antes de
+      // submeter e provamos a pré-condição.
+      screen.getByRole('combobox', { name: /^aluno/i }).focus();
+      expect(document.activeElement).not.toBe(professorInput);
+
+      fireEvent.submit(screen.getByTestId('harness-form'));
+
+      expect(submit).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(professorInput);
+    });
+
+    it('caso irmão: preencher o Aluno depois do bloqueio não move o foco para o Professor', () => {
+      const submit = jest.fn();
+      render(createElement(FormHarness, { alunos, professores, submit }));
+
+      fireEvent.click(
+        screen.getAllByRole('button', { name: 'Limpar seleção' })[0]
+      );
+      fireEvent.submit(screen.getByTestId('harness-form'));
+      expect(document.activeElement).toBe(
+        screen.getByRole('combobox', { name: /^aluno/i })
+      );
+
+      fireEvent.click(screen.getByRole('combobox', { name: /^aluno/i }));
+      fireEvent.click(screen.getByText('Aluno 1'));
+
+      expect(document.activeElement).not.toBe(
+        screen.getByRole('combobox', { name: /^professor/i })
+      );
     });
   });
 

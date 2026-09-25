@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { JSDOM } from 'jsdom';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { act } from 'react';
 import { renderToStaticMarkup, renderToString } from 'react-dom/server';
@@ -1284,6 +1284,241 @@ describe('PainelFiltrosColapsavel', () => {
         expect(mediaReduzido).not.toBeNull();
         expect(mediaReduzido.toString()).toContain('motion-reduce');
         expect(mediaReduzido.toString()).toMatch(/transition-property:\s*none/);
+      });
+    });
+
+    describe('overflow liberado só quando aberto E parado', () => {
+      // As classes `group-data-[...]:overflow-hidden` são tokens ESTÁTICOS,
+      // sempre presentes no markup (nos dois realms) — o que varia é só o
+      // ATRIBUTO na raiz que a variante casa contra. Por isso a prova
+      // funcional lê o efeito real do CSS (`getComputedStyle`, com a folha
+      // real compilada injetada, mesmo padrão de "Risco 1/2" acima), nunca
+      // `classList.contains('overflow-hidden')` — esse token isolado nunca
+      // existe como classe própria neste elemento.
+      //
+      // `getComputedStyle(...).overflow` no jsdom só resolve quando alguma
+      // regra casa (medido: sem regra casando, devolve string vazia — jsdom
+      // não resolve o valor inicial da spec, `visible`, como um navegador
+      // real). Por isso as asserções do caso "liberado" usam `not.toBe
+      // ('hidden')` (cobre `''` e `'visible'`), nunca `toBe('visible')`.
+      function overflowComputado(container) {
+        return getComputedStyle(
+          within(container).getByTestId('painel-filtros-conteudo-overflow')
+        ).overflow;
+      }
+
+      // Este jsdom (26.1.0) não implementa o construtor `TransitionEvent` —
+      // `fireEvent.transitionEnd` (testing-library) cai no fallback `Event`
+      // genérico, que IGNORA `propertyName` no dicionário de init (medido:
+      // `e.propertyName` chega `undefined`). Disparar manualmente e atribuir
+      // a propriedade como own-property no evento já construído contorna a
+      // lacuna do polyfill sem depender de um construtor que não existe.
+      function dispararTransitionEnd(node, propertyName) {
+        const evento = new Event('transitionend', {
+          bubbles: true,
+          cancelable: true,
+        });
+        evento.propertyName = propertyName;
+        fireEvent(node, evento);
+      }
+
+      it('mecanismo: as duas variantes group-data que forçam overflow-hidden (recolhido / em transição) existem no CSS real compilado', () => {
+        const regraRecolhido = encontrarRegra(
+          cssReal,
+          'group-data-\\[panel-state\\=recolhido\\]\\:overflow-hidden'
+        );
+        expect(regraRecolhido).not.toBeNull();
+        expect(regraRecolhido.selector).toContain(':where(.group)');
+        expect(regraRecolhido.selector).toContain(
+          '[data-panel-state="recolhido"]'
+        );
+        expect(regraRecolhido.toString()).toContain('overflow: hidden');
+
+        const regraTransicao = encontrarRegra(
+          cssReal,
+          'group-data-\\[panel-transition\\=ativa\\]\\:overflow-hidden'
+        );
+        expect(regraTransicao).not.toBeNull();
+        expect(regraTransicao.selector).toContain(':where(.group)');
+        expect(regraTransicao.selector).toContain(
+          '[data-panel-transition="ativa"]'
+        );
+        expect(regraTransicao.toString()).toContain('overflow: hidden');
+      });
+
+      it('montagem direta aberta, sem transição em curso: overflow computado é "visible" — a lista aberta do seletor não é mais cortada', () => {
+        const removerCss = injetarCssReal(cssReal);
+        const { container } = render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={true}
+            onToggle={() => {}}
+            storageKey="panel_teste_overflow_aberto_parado"
+          >
+            <div>conteudo</div>
+          </PainelFiltrosColapsavel>
+        );
+
+        expect(overflowComputado(container)).not.toBe('hidden');
+        removerCss();
+      });
+
+      it('montagem direta recolhida: overflow computado é "hidden"', () => {
+        const removerCss = injetarCssReal(cssReal);
+        const { container } = render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={false}
+            onToggle={() => {}}
+            storageKey="panel_teste_overflow_recolhido"
+          >
+            <div>conteudo</div>
+          </PainelFiltrosColapsavel>
+        );
+
+        expect(overflowComputado(container)).toBe('hidden');
+        removerCss();
+      });
+
+      it('abrindo (recolhido→aberto): overflow computado PERMANECE "hidden" até o fim real da transição de grid-template-rows, mesmo já sem data-panel-state=recolhido — é exatamente a janela que o achado mediu como cortando a lista', () => {
+        const removerCss = injetarCssReal(cssReal);
+        const { container, rerender } = render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={false}
+            onToggle={() => {}}
+            storageKey="panel_teste_overflow_abrindo"
+          >
+            <div>conteudo</div>
+          </PainelFiltrosColapsavel>
+        );
+
+        rerender(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={true}
+            onToggle={() => {}}
+            storageKey="panel_teste_overflow_abrindo"
+          >
+            <div>conteudo</div>
+          </PainelFiltrosColapsavel>
+        );
+
+        expect(overflowComputado(container)).toBe('hidden');
+
+        dispararTransitionEnd(
+          screen.getByTestId('painel-filtros-conteudo'),
+          'grid-template-rows'
+        );
+
+        expect(overflowComputado(container)).not.toBe('hidden');
+        removerCss();
+      });
+
+      it('fechando (aberto→recolhido): overflow computado nunca vira "visible", antes ou depois do fim da transição (redundante com data-panel-state=recolhido, mas nunca solto)', () => {
+        const removerCss = injetarCssReal(cssReal);
+        const { container, rerender } = render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={true}
+            onToggle={() => {}}
+            storageKey="panel_teste_overflow_fechando"
+          >
+            <div>conteudo</div>
+          </PainelFiltrosColapsavel>
+        );
+
+        rerender(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={false}
+            onToggle={() => {}}
+            storageKey="panel_teste_overflow_fechando"
+          >
+            <div>conteudo</div>
+          </PainelFiltrosColapsavel>
+        );
+
+        expect(overflowComputado(container)).toBe('hidden');
+
+        dispararTransitionEnd(
+          screen.getByTestId('painel-filtros-conteudo'),
+          'grid-template-rows'
+        );
+
+        expect(overflowComputado(container)).toBe('hidden');
+        removerCss();
+      });
+
+      it('transitionend de OUTRA propriedade (visibility) não encerra a janela de transição — só grid-template-rows conta', () => {
+        const removerCss = injetarCssReal(cssReal);
+        const { container, rerender } = render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={false}
+            onToggle={() => {}}
+            storageKey="panel_teste_overflow_ignora_visibility"
+          >
+            <div>conteudo</div>
+          </PainelFiltrosColapsavel>
+        );
+
+        rerender(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={true}
+            onToggle={() => {}}
+            storageKey="panel_teste_overflow_ignora_visibility"
+          >
+            <div>conteudo</div>
+          </PainelFiltrosColapsavel>
+        );
+
+        dispararTransitionEnd(
+          screen.getByTestId('painel-filtros-conteudo'),
+          'visibility'
+        );
+
+        expect(overflowComputado(container)).toBe('hidden');
+        removerCss();
+      });
+
+      it('prefers-reduced-motion: reduce — abrir libera o overflow na MESMA passada, sem esperar transitionend (que nunca dispara sem transição real)', () => {
+        const removerCss = injetarCssReal(cssReal);
+        const matchMediaOriginal = window.matchMedia;
+        window.matchMedia = jest.fn().mockImplementation(query => ({
+          matches: query === '(prefers-reduced-motion: reduce)',
+          media: query,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+        }));
+
+        const { container, rerender } = render(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={false}
+            onToggle={() => {}}
+            storageKey="panel_teste_overflow_motion_reduce"
+          >
+            <div>conteudo</div>
+          </PainelFiltrosColapsavel>
+        );
+
+        rerender(
+          <PainelFiltrosColapsavel
+            titulo="Filtros"
+            isOpen={true}
+            onToggle={() => {}}
+            storageKey="panel_teste_overflow_motion_reduce"
+          >
+            <div>conteudo</div>
+          </PainelFiltrosColapsavel>
+        );
+
+        expect(overflowComputado(container)).not.toBe('hidden');
+
+        window.matchMedia = matchMediaOriginal;
+        removerCss();
       });
     });
 
