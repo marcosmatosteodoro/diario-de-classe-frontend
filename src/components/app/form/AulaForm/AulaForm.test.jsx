@@ -1255,7 +1255,8 @@ describe('AulaForm Sections', () => {
     ).toBeInTheDocument();
   });
 
-  // Retry pós-gate 11 (AC-001-003/FR-001-004, AC-001-016)
+  // AC-001-003/FR-001-004, AC-001-016: espaçamento de 24px entre os três
+  // blocos internos de "Detalhes da aula".
   it('wraps the three "Detalhes da aula" blocks in an internal grid gap-6 spacer', () => {
     render(
       <AulaForm
