@@ -401,10 +401,10 @@ describe('EditarProfessor Page', () => {
     expect(typeof props.handleCancelarAlteracaoSenha).toBe('function');
   });
 
-  // Retry pós-gate 7 F2 (pai AC-001-004 e a cobertura das 3 páginas): hook
-  // mockado — fixture `alterarSenhaAtivo: true` com asserção estrita (sem
-  // `Boolean()`) e handlers por identidade (`toBe`). Mutantes: tirar o prop
-  // da página, e trocar os dois handlers entre si → vermelho.
+  // Cobertura reversa (AC-001-004, hook mockado): fixture
+  // `alterarSenhaAtivo: true` com asserção estrita (sem `Boolean()`) e
+  // handlers por identidade (`toBe`). Mutantes: tirar o prop da página, e
+  // trocar os dois handlers entre si → vermelho.
   it('passes alterarSenhaAtivo=true and the exact hook handlers to ProfessorForm', () => {
     const {
       useProfessorForm,

@@ -62,11 +62,10 @@ describe('Novo Professor Page', () => {
     expect(typeof props.handleCancelarAlteracaoSenha).toBe('function');
   });
 
-  // Retry pós-gate 7 F2 (pai AC-001-004 e a cobertura das 3 páginas): hook
-  // real — chama o `handleAlterarSenha` recebido dentro de `act` e confere
-  // `alterarSenhaAtivo` `true` na última chamada do `ProfessorForm` (e o de
-  // cancelar volta a `false`). Mutantes: tirar o prop da página, e trocar os
-  // dois handlers entre si → vermelho.
+  // Cobertura reversa (AC-001-004, hook real): chama o `handleAlterarSenha`
+  // recebido dentro de `act` e confere `alterarSenhaAtivo` `true` na última
+  // chamada do `ProfessorForm` (e o de cancelar volta a `false`). Mutantes:
+  // tirar o prop da página, e trocar os dois handlers entre si → vermelho.
   it('reflects the real useProfessorForm state through alterarSenhaAtivo when its handlers are exercised', () => {
     render(<NovoProfessor />);
 

@@ -520,11 +520,11 @@ describe('ProfessorForm', () => {
     expect(screen.getByTestId('form-error')).toBeInTheDocument();
   });
 
-  // Retry pós-gate 11, item (a) [pai AC-001-007/FR-001-011, NFR-001-002]:
-  // foco segue a revelação/ocultação dos campos de senha; a montagem
-  // inicial não move foco. Mutante: remover o efeito de foco → os dois
-  // testes de transição abaixo ficam vermelhos.
-  describe('foco ao alternar "Alterar senha" (retry pós-gate 11)', () => {
+  // Foco segue a revelação/ocultação dos campos de senha (AC-001-007/
+  // FR-001-011, NFR-001-002); a montagem inicial não move foco. Mutante:
+  // remover o efeito de foco → os dois testes de transição abaixo ficam
+  // vermelhos.
+  describe('foco ao alternar "Alterar senha" (NFR-001-002)', () => {
     beforeEach(() => {
       useUserAuth.mockReturnValue({
         currentUser: { id: 1, permissao: 'admin' },
@@ -596,10 +596,10 @@ describe('ProfessorForm', () => {
     });
   });
 
-  // Retry pós-gate 8, nota 1, item (e) [pai FR-001-010]: `podeAlterarSenha`
-  // nega quando `currentUser?.id` é nulo/indefinido — a comparação simples
-  // (`undefined === undefined`) liberaria o botão indevidamente. Mutante:
-  // voltar à comparação simples → este teste fica vermelho.
+  // `podeAlterarSenha` (FR-001-010) nega quando `currentUser?.id` é
+  // nulo/indefinido — a comparação simples (`undefined === undefined`)
+  // liberaria o botão indevidamente. Mutante: voltar à comparação simples
+  // → este teste fica vermelho.
   it('does not show "Alterar senha" when currentUser and formData.id are both undefined and the user is not admin', () => {
     useUserAuth.mockReturnValue({
       currentUser: undefined,
@@ -618,10 +618,9 @@ describe('ProfessorForm', () => {
     ).not.toBeInTheDocument();
   });
 
-  // Retry pós-gate 8, nota 2, item (f) [pai AC-001-007]: os dois campos de
-  // senha usam `autoComplete="new-password"` também na edição — o navegador
-  // ignora `off` e pode preencher a senha do admin no campo de outro
-  // professor.
+  // Os dois campos de senha usam `autoComplete="new-password"` também na
+  // edição (AC-001-007) — o navegador ignora `off` e pode preencher a
+  // senha do admin no campo de outro professor.
   it('renders both password fields with autoComplete="new-password" in edit mode', () => {
     useUserAuth.mockReturnValue({
       currentUser: { id: 1, permissao: 'admin' },
@@ -646,9 +645,8 @@ describe('ProfessorForm', () => {
     expect(repetirSenhaInput).toHaveAttribute('autocomplete', 'new-password');
   });
 
-  // Retry pós-gate 11, item (g) [pai FR-001-009]: em edição sem
-  // `podeAlterarSenha`, a seção "Segurança" não é renderizada (nada de
-  // seção vazia).
+  // Em edição sem `podeAlterarSenha` (FR-001-009), a seção "Segurança" não
+  // é renderizada (nada de seção vazia).
   it('does not render the "Segurança" section in edit mode without podeAlterarSenha', () => {
     useUserAuth.mockReturnValue({
       currentUser: { id: 1, permissao: 'member' },

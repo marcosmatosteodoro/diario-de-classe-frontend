@@ -278,9 +278,9 @@ describe('useProfessorForm', () => {
       expect(submit).not.toHaveBeenCalled();
     });
 
-    // Retry pós-gate 7 F3 (AC-001-008/FR-001-012): cancelar zera isSenhaError
-    // junto dos campos de senha, para que nenhuma transição que oculta os
-    // campos deixe o erro de coincidência visível.
+    // `handleCancelarAlteracaoSenha` zera isSenhaError (AC-001-008/
+    // FR-001-012) junto dos campos de senha — nenhuma transição que oculta
+    // os campos deixa o erro de coincidência visível.
     it('cancelar após bloqueio por divergência zera isSenhaError junto com os campos de senha', () => {
       const submit = jest.fn();
       const { result } = renderHook(() =>
