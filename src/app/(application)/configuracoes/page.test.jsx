@@ -1,4 +1,10 @@
-import { render, screen, within, fireEvent } from '@testing-library/react';
+import {
+  render,
+  screen,
+  within,
+  fireEvent,
+  waitFor,
+} from '@testing-library/react';
 import Configuracao from './page';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useUnsavedChangesGuard } from '@/providers/UnsavedChangesGuardProvider';
@@ -111,6 +117,7 @@ describe('Configuracao Page', () => {
       handleChange: jest.fn(),
       handleSubmit: jest.fn(),
       handleDiasDeFuncionamentoChange: jest.fn(),
+      restaurarUltimaLeitura: jest.fn(),
       isLoading: false,
     });
 
@@ -653,6 +660,216 @@ describe('Configuracao Page', () => {
       expect(
         screen.getByLabelText(/Tolerância de Atraso/i)
       ).toHaveAccessibleDescription(/Não pode ser zero/);
+    });
+  });
+
+  describe('Cancelar (TASK-002-007, AC-001-011)', () => {
+    const mockUseConfiguracaoFormComRestaurar = (
+      isDirty,
+      restaurarUltimaLeitura
+    ) => ({
+      formData: {
+        duracaoAula: 40,
+        tolerancia: 10,
+        diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
+      },
+      isDirty,
+      errosValidacao: ERROS_VALIDACAO_VAZIO,
+      handleChange: jest.fn(),
+      handleSubmit: jest.fn(),
+      handleDiasDeFuncionamentoChange: jest.fn(),
+      restaurarUltimaLeitura,
+    });
+
+    it('sem isDirty: clicar em "Cancelar" chama restaurarUltimaLeitura() direto, sem aviso', () => {
+      const confirmNavigationMock = jest.fn(() => true);
+      const restaurarUltimaLeituraMock = jest.fn();
+      useUnsavedChangesGuard.mockReturnValue({
+        setGuard: jest.fn(),
+        clearGuard: jest.fn(),
+        confirmNavigation: confirmNavigationMock,
+      });
+      useConfiguracaoForm.mockReturnValue(
+        mockUseConfiguracaoFormComRestaurar(false, restaurarUltimaLeituraMock)
+      );
+
+      render(<Configuracao />);
+      fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
+
+      expect(confirmNavigationMock).toHaveBeenCalledTimes(1);
+      expect(restaurarUltimaLeituraMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('com isDirty confirmado: aviso exibido (confirmNavigation assíncrono) e restaurarUltimaLeitura() é chamada', async () => {
+      const confirmNavigationMock = jest.fn(() => Promise.resolve(true));
+      const restaurarUltimaLeituraMock = jest.fn();
+      useUnsavedChangesGuard.mockReturnValue({
+        setGuard: jest.fn(),
+        clearGuard: jest.fn(),
+        confirmNavigation: confirmNavigationMock,
+      });
+      useConfiguracaoForm.mockReturnValue(
+        mockUseConfiguracaoFormComRestaurar(true, restaurarUltimaLeituraMock)
+      );
+
+      render(<Configuracao />);
+      fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
+
+      expect(confirmNavigationMock).toHaveBeenCalledTimes(1);
+      await waitFor(() =>
+        expect(restaurarUltimaLeituraMock).toHaveBeenCalledTimes(1)
+      );
+    });
+
+    it('com isDirty cancelado: restaurarUltimaLeitura() não é chamada (formData permanece)', async () => {
+      const confirmNavigationMock = jest.fn(() => Promise.resolve(false));
+      const restaurarUltimaLeituraMock = jest.fn();
+      useUnsavedChangesGuard.mockReturnValue({
+        setGuard: jest.fn(),
+        clearGuard: jest.fn(),
+        confirmNavigation: confirmNavigationMock,
+      });
+      useConfiguracaoForm.mockReturnValue(
+        mockUseConfiguracaoFormComRestaurar(true, restaurarUltimaLeituraMock)
+      );
+
+      render(<Configuracao />);
+      fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
+
+      await waitFor(() =>
+        expect(confirmNavigationMock).toHaveBeenCalledTimes(1)
+      );
+      // flush a resolução da Promise antes de negar a chamada
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(restaurarUltimaLeituraMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('estados de salvar (TASK-002-007, AC-001-004)', () => {
+    it('exibe "Salvando..." (não "Criando...") enquanto isSubmitting', () => {
+      useConfiguracao.mockReturnValue({
+        configuracao: { id: 1, diasTrabalho: 5 },
+        isLoading: false,
+        isNotFound: false,
+        isSubmitting: true,
+      });
+
+      render(<Configuracao />);
+
+      expect(
+        screen.getByRole('button', { name: /salvando/i })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /criando/i })
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('mensagem de falha por ramo (TASK-002-007, AC-001-004/FR-001-019)', () => {
+    const REGEX_ORIENTACAO_RECARREGAR = /Recarregue a tela/i;
+
+    it('falha de validação (erro mapeado por campo): sem a frase de gravação parcial somada', () => {
+      useConfiguracao.mockReturnValue({
+        configuracao: { id: 1, diasTrabalho: 5 },
+        isLoading: false,
+        isNotFound: false,
+        message: 'Erro de validação',
+        errors: ['duracaoAula: Deve ser um número positivo'],
+        action: 'updateConfiguracao',
+        statusError: 400,
+      });
+
+      render(<Configuracao />);
+
+      expect(screen.getByTestId('form-error')).not.toHaveTextContent(
+        REGEX_ORIENTACAO_RECARREGAR
+      );
+    });
+
+    it('falha não-validação (sem mapeamento por campo, ex. 500): soma a orientação de recarregar', () => {
+      useConfiguracao.mockReturnValue({
+        configuracao: { id: 1, diasTrabalho: 5 },
+        isLoading: false,
+        isNotFound: false,
+        message: 'Erro ao atualizar configuração',
+        errors: [],
+        action: 'updateConfiguracao',
+        statusError: 500,
+      });
+
+      render(<Configuracao />);
+
+      expect(screen.getByTestId('form-error')).toHaveTextContent(
+        REGEX_ORIENTACAO_RECARREGAR
+      );
+    });
+
+    it('401: a tela não soma a orientação de gravação parcial (logout forçado é do layout)', () => {
+      useConfiguracao.mockReturnValue({
+        configuracao: { id: 1, diasTrabalho: 5 },
+        isLoading: false,
+        isNotFound: false,
+        message: 'Não autorizado',
+        errors: [],
+        action: 'updateConfiguracao',
+        statusError: 401,
+      });
+
+      render(<Configuracao />);
+
+      expect(
+        screen.queryByText(REGEX_ORIENTACAO_RECARREGAR)
+      ).not.toBeInTheDocument();
+    });
+
+    it('falha de uma leitura (GET), não de gravação: sem a orientação de recarregar somada (o termo de action isolado)', () => {
+      useConfiguracao.mockReturnValue({
+        configuracao: { id: 1, diasTrabalho: 5 },
+        isLoading: false,
+        isNotFound: false,
+        message: 'Erro ao buscar configuração',
+        errors: [],
+        action: 'getConfiguracao',
+        statusError: 500,
+      });
+
+      render(<Configuracao />);
+
+      expect(
+        screen.queryByText(REGEX_ORIENTACAO_RECARREGAR)
+      ).not.toBeInTheDocument();
+    });
+
+    it('falha não-validação: os valores digitados permanecem no campo (nenhum é limpo)', () => {
+      useConfiguracao.mockReturnValue({
+        configuracao: { id: 1, diasTrabalho: 5 },
+        isLoading: false,
+        isNotFound: false,
+        message: 'Erro ao atualizar configuração',
+        errors: [],
+        action: 'updateConfiguracao',
+        statusError: 500,
+      });
+      useConfiguracaoForm.mockReturnValue({
+        formData: {
+          duracaoAula: 999,
+          tolerancia: 77,
+          diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
+        },
+        isDirty: true,
+        errosValidacao: ERROS_VALIDACAO_VAZIO,
+        handleChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        handleDiasDeFuncionamentoChange: jest.fn(),
+        restaurarUltimaLeitura: jest.fn(),
+      });
+
+      render(<Configuracao />);
+
+      expect(screen.getByLabelText(/Duração da Aula/i).value).toBe('999');
+      expect(screen.getByLabelText(/Tolerância de Atraso/i).value).toBe('77');
     });
   });
 });

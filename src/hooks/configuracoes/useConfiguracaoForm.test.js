@@ -428,6 +428,39 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
     expect(result.current.errosValidacao.tolerancia).toBeUndefined();
   });
 
+  it('restaurarUltimaLeitura() zera tentouSalvar: sem erro após restaurar, e digitar valor inválido não reaparece antes do próximo Salvar (TASK-002-007)', () => {
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({ submit: submitMock, configuracao: configValida })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '' },
+      });
+    });
+    act(() => {
+      result.current.handleSubmit(fakeEvent());
+    });
+    expect(submitMock).not.toHaveBeenCalled();
+    expect(result.current.errosValidacao.duracaoAula).toBe('Campo obrigatório');
+
+    act(() => {
+      result.current.restaurarUltimaLeitura();
+    });
+    expect(result.current.errosValidacao.duracaoAula).toBeUndefined();
+
+    // Prova o reset da flag, não só o valor restaurado: digitar de novo um valor
+    // inválido, sem novo Salvar, não deve reacender o erro — se `tentouSalvar`
+    // permanecesse `true` (mutante), o erro reapareceria neste passo.
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '' },
+      });
+    });
+    expect(result.current.errosValidacao.duracaoAula).toBeUndefined();
+  });
+
   it.each([
     [
       'só horaInicial inválida',
