@@ -112,7 +112,7 @@ describe('UnsavedChangesGuardProvider', () => {
     await expect(guardRef.current.confirmNavigation()).resolves.toBe(false);
   });
 
-  it('quando o diálogo rejeita e confirmNavigation é chamado com liberarSeFalhar, resolve true (carona gate 8: logout — sessão encerrada vence rascunho)', async () => {
+  it('quando o diálogo rejeita e confirmNavigation é chamado com liberarSeFalhar, resolve true (logout — sessão encerrada vence rascunho)', async () => {
     showConfirmMock.mockRejectedValue(new Error('falha ao exibir o diálogo'));
     const guardRef = { current: null };
     render(

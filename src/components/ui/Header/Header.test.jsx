@@ -215,7 +215,7 @@ describe('Header Component', () => {
       expect(logoutUserMock).toHaveBeenCalledTimes(1);
     });
 
-    it('carona gate 8: chama confirmNavigation com liberarSeFalhar — falha do diálogo desloga mesmo assim (sessão encerrada vence rascunho)', async () => {
+    it('chama confirmNavigation com liberarSeFalhar — falha do diálogo desloga mesmo assim (sessão encerrada vence rascunho)', async () => {
       let resolveConfirmacao;
       const confirmNavigation = jest.fn(
         () =>

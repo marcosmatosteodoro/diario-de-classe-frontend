@@ -174,7 +174,7 @@ describe('SidebarItem', () => {
     });
   });
 
-  describe('carona gate 11: clique com modificador segue o <Link> nativo', () => {
+  describe('clique com modificador segue o <Link> nativo', () => {
     it('Ctrl+clique com alteração pendente: não consulta o guard, nem previne o clique (abrir em nova aba não perde dados)', () => {
       const confirmNavigation = jest.fn(() => new Promise(() => {}));
       require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
