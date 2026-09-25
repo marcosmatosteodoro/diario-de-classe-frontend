@@ -1,3 +1,17 @@
+# [1.7.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.6.0...v1.7.0) (2026-09-25)
+
+### Bug Fixes
+
+- **navegacao:** BI-4 BI-106 trata rejeição de isAuthenticated() como não-autenticado ([5e9735c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/5e9735c719183c4c6f26a740b8f8cd4eb4485049))
+- **navegacao:** BI-4 BI-108 evita piscar na entrada dos cards da home ([cbc71f8](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/cbc71f82c141f761235313cf36fddd7ad979533d))
+- **navegacao:** BI-4 suaviza duracao/deslocamento da transicao login->home ([b310fe6](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/b310fe6c3e5689f62e437c5b23d7902b9f1d36d6))
+
+### Features
+
+- **navegacao:** BI-4 BI-105 tokens CSS da transicao e gate opt-in de prefers-reduced-motion ([788c8c7](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/788c8c7f74279041c3ec0b46b2874dd520814c67))
+- **navegacao:** BI-4 BI-107 TransitionShell na casca da tela inicial ([41b8c08](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/41b8c086577b4d7536adfb617a4793898a82e90b))
+- **navegacao:** BI-4 BI-108 entrada visual de conclusao nos blocos de dados da Home ([a03be66](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/a03be66ef43165b11afb1d52958008f1763e7743))
+
 # [1.6.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.5.0...v1.6.0) (2026-09-25)
 
 ### Bug Fixes
