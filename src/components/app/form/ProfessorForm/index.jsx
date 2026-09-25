@@ -190,6 +190,7 @@ export const ProfessorForm = ({
                     onChange={handleChange}
                     value={formData.repetirSenha}
                     autoComplete="new-password"
+                    error={isSenhaError ? 'As senhas não coincidem' : undefined}
                   />
                 </FormGroup>
 

@@ -169,4 +169,54 @@ describe('PasswordField', () => {
     const toggleButton = screen.getByRole('button', { name: /mostrar senha/i });
     expect(toggleButton).toHaveClass('tap-target');
   });
+
+  // Convergência de fecho (gap 1): `error`/`hint` repassados ao `BaseField`,
+  // mesmo mecanismo de `CheckboxField`/`InputField` (aria-invalid +
+  // aria-describedby, TASK-002-004).
+  it('marks the input as invalid and exposes the error as an accessible description', () => {
+    const handleChange = jest.fn();
+    render(
+      <PasswordField
+        htmlFor="repetirSenha"
+        label="Repetir Senha"
+        value=""
+        onChange={handleChange}
+        error="As senhas não coincidem"
+      />
+    );
+    const input = screen.getByLabelText(/repetir senha/i);
+    expect(input).toHaveAttribute('aria-invalid', 'true');
+    expect(input).toHaveAccessibleDescription('As senhas não coincidem');
+  });
+
+  it('exposes the hint as an accessible description without marking the input as invalid', () => {
+    const handleChange = jest.fn();
+    render(
+      <PasswordField
+        htmlFor="senha"
+        label="Senha"
+        value=""
+        onChange={handleChange}
+        hint="Mínimo de 6 caracteres"
+      />
+    );
+    const input = screen.getByLabelText(/^senha$/i);
+    expect(input).not.toHaveAttribute('aria-invalid');
+    expect(input).toHaveAccessibleDescription('Mínimo de 6 caracteres');
+  });
+
+  it('does not set aria-invalid nor aria-describedby without error or hint', () => {
+    const handleChange = jest.fn();
+    render(
+      <PasswordField
+        htmlFor="senha"
+        label="Senha"
+        value=""
+        onChange={handleChange}
+      />
+    );
+    const input = screen.getByLabelText(/^senha$/i);
+    expect(input).not.toHaveAttribute('aria-invalid');
+    expect(input).not.toHaveAttribute('aria-describedby');
+  });
 });

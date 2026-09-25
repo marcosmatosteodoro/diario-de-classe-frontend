@@ -46,6 +46,9 @@ jest.mock('@/components', () => ({
   // `ref` chega como prop normal (React 19) e é repassado ao `<input>` real,
   // igual ao `PasswordField` de produção (`...props` espalhado no `<input>`)
   // — necessário para os testes de foco abaixo observarem `document.activeElement`.
+  // `hint`/`error` seguem o mesmo par aria-describedby/aria-invalid + mensagem
+  // associada por id do `PasswordField`/`BaseField` reais (convergência de
+  // fecho, gap 1), replicado aqui porque o stub não importa `describedByIds`.
   PasswordField: ({
     htmlFor,
     label,
@@ -55,6 +58,8 @@ jest.mock('@/components', () => ({
     placeholder,
     ref,
     autoComplete,
+    hint,
+    error,
   }) => (
     <div data-testid={`password-${htmlFor}`}>
       <label htmlFor={htmlFor}>
@@ -71,7 +76,17 @@ jest.mock('@/components', () => ({
         required={required}
         placeholder={placeholder}
         autoComplete={autoComplete}
+        aria-describedby={
+          error ? `${htmlFor}-error` : hint ? `${htmlFor}-hint` : undefined
+        }
+        aria-invalid={error ? 'true' : undefined}
       />
+      {hint && <p id={`${htmlFor}-hint`}>{hint}</p>}
+      {error && (
+        <p id={`${htmlFor}-error`} role="alert">
+          {error}
+        </p>
+      )}
     </div>
   ),
   SelectField: ({ htmlFor, label, value, onChange, required, options }) => (
@@ -382,6 +397,26 @@ describe('ProfessorForm', () => {
     expect(screen.getByTestId('error-title')).toHaveTextContent(
       'As senhas não coincidem'
     );
+  });
+
+  // Convergência de fecho (gap 1, AC-001-010/FR-001-014, AC-001-016): a
+  // mensagem também fica associada ao campo "Repetir Senha", não só no
+  // FormError do topo.
+  it('marks the Repetir Senha field as invalid and describes the mismatch when isSenhaError is true', () => {
+    render(<ProfessorForm {...defaultProps} isSenhaError />);
+
+    const repetirSenhaInput = screen.getByLabelText(/repetir senha/i);
+    expect(repetirSenhaInput).toHaveAttribute('aria-invalid', 'true');
+    expect(repetirSenhaInput).toHaveAccessibleDescription(
+      'As senhas não coincidem'
+    );
+  });
+
+  it('does not mark the Repetir Senha field as invalid without a senha mismatch', () => {
+    render(<ProfessorForm {...defaultProps} isSenhaError={false} />);
+
+    const repetirSenhaInput = screen.getByLabelText(/repetir senha/i);
+    expect(repetirSenhaInput).not.toHaveAttribute('aria-invalid');
   });
 
   it('displays FormError with errors when errors are provided', () => {
