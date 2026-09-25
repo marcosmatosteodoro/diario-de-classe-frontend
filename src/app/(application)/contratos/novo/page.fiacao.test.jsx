@@ -7,13 +7,12 @@ import { useNovoContrato } from '@/hooks/contratos/useNovoContrato';
 import { useGenerateAulasByContrato } from '@/hooks/contratos/useGenerateAulasByContrato';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 
-// Prova de fiação real (achado do developer na 1ª tentativa — furo no plano
-// corrigido em TASK-002-006, mesma classe do achado da TASK-002-005): NÃO
-// mocka `@/hooks/contratos/useContratoForm` (o hook que calcula `fieldErrors`
-// a partir do submit bloqueado) nem `@/components` (o `ContratoForm`/
-// `SearchableSelectField` reais) — só assim se prova que `fieldErrors`
-// atravessa este container até a mensagem `role="alert"` visível no campo
-// (AC-001-014). Só os colaboradores alheios a essa cadeia são mockados.
+// Prova de fiação real: NÃO mocka `@/hooks/contratos/useContratoForm` (o hook
+// que calcula `fieldErrors` a partir do submit bloqueado) nem `@/components`
+// (o `ContratoForm`/`SearchableSelectField` reais) — só assim se prova que
+// `fieldErrors` atravessa este container até a mensagem `role="alert"`
+// visível no campo (AC-001-014). Só os colaboradores alheios a essa cadeia
+// são mockados.
 jest.mock('@/hooks/alunos/useAlunos');
 jest.mock('@/hooks/professores/useProfessores');
 jest.mock('@/hooks/useFormater');

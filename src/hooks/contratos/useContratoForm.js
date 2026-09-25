@@ -148,8 +148,18 @@ export function useContratoForm({
     }
     if (Object.keys(newFieldErrors).length > 0) {
       setFieldErrors(newFieldErrors);
+      // O <select required> nativo que este widget substituiu levava foco e
+      // rolagem ao primeiro campo inválido de graça; SearchableSelectField
+      // não é elemento de formulário nativo, então repomos isso aqui — só no
+      // bloqueio do submit (nunca no ponto que limpa um erro), para não
+      // reabrir o foco a cada correção do usuário.
+      const primeiroCampoComErro = newFieldErrors.alunoId
+        ? 'alunoId'
+        : 'professorId';
+      document.getElementById(primeiroCampoComErro)?.focus();
       return;
     }
+    setFieldErrors({});
     const dataToSend = {
       idAluno: formData.alunoId,
       idProfessor: formData.professorId,

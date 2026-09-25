@@ -7,13 +7,12 @@ import { useFormater } from '@/hooks/useFormater';
 import { useGenerateAulasByContrato } from '@/hooks/contratos/useGenerateAulasByContrato';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 
-// Prova de fiação real (achado do developer na 1ª tentativa — furo no plano
-// corrigido em TASK-002-006, mesma classe do achado da TASK-002-005): NÃO
-// mocka `@/hooks/contratos/useContratoForm` (o hook que calcula `fieldErrors`
-// a partir do submit bloqueado) nem `@/components` (o `ContratoForm`/
-// `SearchableSelectField` reais) — só assim se prova que `fieldErrors`
-// atravessa este container até a mensagem `role="alert"` visível no campo
-// (AC-001-014). Só os colaboradores alheios a essa cadeia são mockados.
+// Prova de fiação real: NÃO mocka `@/hooks/contratos/useContratoForm` (o hook
+// que calcula `fieldErrors` a partir do submit bloqueado) nem `@/components`
+// (o `ContratoForm`/`SearchableSelectField` reais) — só assim se prova que
+// `fieldErrors` atravessa este container até a mensagem `role="alert"`
+// visível no campo (AC-001-014). Só os colaboradores alheios a essa cadeia
+// são mockados.
 jest.mock('@/hooks/contratos/useEditarContrato');
 jest.mock('@/hooks/alunos/useAlunos');
 jest.mock('@/hooks/professores/useProfessores');
@@ -87,8 +86,10 @@ describe('Editar Contrato — fieldErrors de useContratoForm() chega ao Searchab
   it('submit com Professor limpo pelo usuário: o requiredError chega ao campo Professor principal, anunciado por role="alert"', () => {
     render(<EditarContrato />);
 
-    // O efeito de carga do contrato já preenche Aluno e Professor a partir
-    // de `current` — limpa só o Professor para isolar o erro nele.
+    // O efeito de carga do contrato preenche o Aluno a partir de `current`;
+    // com `current.aulas: []`, o Professor vem do fallback
+    // `formData.professorId` (o `currentUser` mockado), não de `current` —
+    // limpa o Professor para isolar o erro nele.
     const professorInput = screen.getByRole('combobox', {
       name: /^professor principal/i,
     });
