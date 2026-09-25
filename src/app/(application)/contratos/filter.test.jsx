@@ -53,6 +53,64 @@ jest.mock('@/components', () => ({
       </select>
     </div>
   ),
+  // Estande equivalente ao SelectField acima (mesma superfície observável:
+  // label, options, onChange no formato { target: { name, value } }), mas
+  // sem <select>/<option> nativos — reflete o widget combobox real
+  // (SearchableSelectField exibe o rótulo resolvido, não o id bruto).
+  SearchableSelectField: ({
+    htmlFor,
+    label,
+    placeholder,
+    options,
+    onChange,
+    value,
+    selectedLabel,
+  }) => {
+    const selectedOption = options.find(
+      option => String(option.value) === String(value)
+    );
+    const displayValue = selectedOption
+      ? selectedOption.label
+      : value
+        ? selectedLabel || String(value)
+        : '';
+    return (
+      <div data-testid={`select-${htmlFor}`}>
+        <label htmlFor={htmlFor}>{label}</label>
+        <input
+          id={htmlFor}
+          name={htmlFor}
+          role="combobox"
+          aria-expanded="false"
+          aria-controls={`${htmlFor}-listbox`}
+          placeholder={placeholder}
+          value={displayValue}
+          onChange={e =>
+            onChange({ target: { name: htmlFor, value: e.target.value } })
+          }
+          data-testid={`select-field-${htmlFor}`}
+        />
+        <ul
+          id={`${htmlFor}-listbox`}
+          data-testid={`select-field-${htmlFor}-options`}
+        >
+          {options.map((option, idx) => (
+            <li
+              key={idx}
+              role="option"
+              aria-selected={String(option.value) === String(value)}
+              data-testid={`select-field-${htmlFor}-option`}
+              onClick={() =>
+                onChange({ target: { name: htmlFor, value: option.value } })
+              }
+            >
+              {option.label}
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  },
   ClearFiltersButton: ({ onClick }) => (
     <button type="button" data-testid="clear-filters-button" onClick={onClick}>
       Limpar filtros
@@ -164,11 +222,15 @@ describe('Filter Component', () => {
         />
       );
 
-      const alunoSelect = screen.getByTestId('select-field-idAluno');
-      const options = alunoSelect.querySelectorAll('option');
+      const alunoOptionsList = screen.getByTestId(
+        'select-field-idAluno-options'
+      );
+      const options = alunoOptionsList.querySelectorAll(
+        '[data-testid="select-field-idAluno-option"]'
+      );
 
-      // +1 for placeholder option
-      expect(options.length).toBe(mockAlunos.length + 1);
+      // Combobox pesquisável não tem opção de placeholder nativa (sem +1).
+      expect(options.length).toBe(mockAlunos.length);
     });
   });
 
@@ -247,8 +309,10 @@ describe('Filter Component', () => {
         />
       );
 
+      // O combobox pesquisável exibe o rótulo resolvido (per getEntityOptions
+      // mockado), não o id bruto — diferente do <select> nativo anterior.
       const alunoSelect = screen.getByTestId('select-field-idAluno');
-      expect(alunoSelect.value).toBe('1');
+      expect(alunoSelect.value).toBe('João Silva - joao@email.com');
     });
   });
 
@@ -314,7 +378,9 @@ describe('Filter Component', () => {
       const alunoSelect = screen.getByTestId('select-field-idAluno');
       fireEvent.change(alunoSelect, { target: { value: '1' } });
 
-      expect(mockHandleChange).toHaveBeenCalled();
+      expect(mockHandleChange).toHaveBeenCalledWith({
+        target: { name: 'idAluno', value: '1' },
+      });
     });
 
     it('should call handleSubmit when form is submitted', () => {
@@ -345,11 +411,15 @@ describe('Filter Component', () => {
         />
       );
 
-      const alunoSelect = screen.getByTestId('select-field-idAluno');
-      const options = alunoSelect.querySelectorAll('option');
+      const alunoOptionsList = screen.getByTestId(
+        'select-field-idAluno-options'
+      );
+      const options = alunoOptionsList.querySelectorAll(
+        '[data-testid="select-field-idAluno-option"]'
+      );
 
-      // Only placeholder option
-      expect(options.length).toBe(1);
+      // Sem placeholder nativo no combobox: lista vazia é zero opções.
+      expect(options.length).toBe(0);
     });
 
     it('should render with empty formData values', () => {
@@ -390,6 +460,41 @@ describe('Filter Component', () => {
 
       expect(dataInicioInput).not.toHaveAttribute('required');
       expect(dataTerminoInput).not.toHaveAttribute('required');
+    });
+  });
+
+  describe('SearchableSelectField widget (AC-001-011, AC-001-008 — parte, wiring do filtro)', () => {
+    it('AC-001-011: com formData.idAluno vazio (estado pós-handleClearFilter), o campo renderiza sem seleção', () => {
+      const clearedFormData = { ...mockFormData, idAluno: '' };
+
+      render(
+        <Filter
+          handleSubmit={mockHandleSubmit}
+          handleChange={mockHandleChange}
+          formData={clearedFormData}
+          alunos={mockAlunos}
+        />
+      );
+
+      expect(screen.getByTestId('select-field-idAluno').value).toBe('');
+    });
+
+    it('AC-001-008: com formData.idAluno apontando para um Aluno excluído (fora de `alunos`), o filtro renderiza sem erro e sem descartar o valor em silêncio (fallback ao value bruto, sem `selectedLabel`)', () => {
+      const formDataWithDeletedAluno = { ...mockFormData, idAluno: '999' };
+
+      render(
+        <Filter
+          handleSubmit={mockHandleSubmit}
+          handleChange={mockHandleChange}
+          formData={formDataWithDeletedAluno}
+          alunos={mockAlunos}
+        />
+      );
+
+      // Nenhum option de `alunos` corresponde a '999' (Aluno deletado, hard
+      // delete). Sem `selectedLabel` passado por este ponto de consumo, o
+      // fallback é o próprio value bruto — nunca vazio/silencioso.
+      expect(screen.getByTestId('select-field-idAluno').value).toBe('999');
     });
   });
 

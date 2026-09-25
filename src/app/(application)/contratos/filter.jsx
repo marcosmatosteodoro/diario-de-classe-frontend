@@ -3,6 +3,7 @@ import {
   FormGroup,
   InputField,
   SelectField,
+  SearchableSelectField,
   ClearFiltersButton,
 } from '@/components';
 import { IDIOMA_ARRAY, IDIOMA_LABEL } from '@/constants';
@@ -44,7 +45,7 @@ export const Filter = ({
           value={formData.idioma}
         />
 
-        <SelectField
+        <SearchableSelectField
           htmlFor="idAluno"
           label="Aluno"
           placeholder="Selecione o aluno"
