@@ -38,7 +38,13 @@ describe('useApplicationLayout', () => {
     removeAuthenticateMock = jest.fn();
     useSelectorMock = require('react-redux').useSelector;
     useSelectorMock.mockImplementation(fn =>
-      fn({ professores: {}, alunos: {}, aulas: {}, contratos: {} })
+      fn({
+        professores: {},
+        alunos: {},
+        aulas: {},
+        contratos: {},
+        configuracao: {},
+      })
     );
     require('next/navigation').useRouter.mockReturnValue(routerMock);
     require('@/providers/UserAuthProvider').useUserAuth.mockReturnValue({
@@ -106,6 +112,7 @@ describe('useApplicationLayout', () => {
         alunos: {},
         aulas: {},
         contratos: {},
+        configuracao: {},
       })
     );
     renderHook(() => useApplicationLayout());
@@ -123,6 +130,25 @@ describe('useApplicationLayout', () => {
         alunos: { statusError: '401' },
         aulas: {},
         contratos: {},
+        configuracao: {},
+      })
+    );
+    renderHook(() => useApplicationLayout());
+    expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
+    expect(removeAuthenticateMock).toHaveBeenCalled();
+    expect(errorMock).toHaveBeenCalledWith('Sua sessão expirou.');
+    expect(routerMock.push).toHaveBeenCalledWith('/login');
+  });
+
+  it('deve chamar dispatch(logout), removeAuthenticate, error e router.push se statusError de configuracao for 401', () => {
+    const { logout } = require('@/store/slices/authSlice');
+    useSelectorMock.mockImplementation(fn =>
+      fn({
+        professores: {},
+        alunos: {},
+        aulas: {},
+        contratos: {},
+        configuracao: { statusError: '401' },
       })
     );
     renderHook(() => useApplicationLayout());
@@ -140,6 +166,30 @@ describe('useApplicationLayout', () => {
         alunos: { statusError: '401' },
         aulas: {},
         contratos: {},
+        configuracao: {},
+      })
+    );
+    renderHook(() => useApplicationLayout());
+    // Conta apenas as chamadas de logout
+    const logoutCalls = dispatchMock.mock.calls.filter(
+      ([action]) => action && action.type === 'auth/logout'
+    );
+    expect(logoutCalls).toHaveLength(1);
+    expect(logoutCalls[0][0]).toEqual(logout(mockRefreshToken));
+    expect(removeAuthenticateMock).toHaveBeenCalledTimes(1);
+    expect(errorMock).toHaveBeenCalledTimes(1);
+    expect(routerMock.push).toHaveBeenCalledTimes(1);
+  });
+
+  it('deve chamar dispatch(logout) apenas uma vez se configuracao e professores tiverem 401 simultaneamente', () => {
+    const { logout } = require('@/store/slices/authSlice');
+    useSelectorMock.mockImplementation(fn =>
+      fn({
+        professores: { statusError: '401' },
+        alunos: {},
+        aulas: {},
+        contratos: {},
+        configuracao: { statusError: '401' },
       })
     );
     renderHook(() => useApplicationLayout());
@@ -162,6 +212,7 @@ describe('useApplicationLayout', () => {
         alunos: { statusError: '500' },
         aulas: {},
         contratos: {},
+        configuracao: {},
       })
     );
     renderHook(() => useApplicationLayout());
@@ -178,7 +229,13 @@ describe('useApplicationLayout', () => {
 
     // Inicialmente sem erro
     useSelectorMock.mockImplementation(fn =>
-      fn({ professores: {}, alunos: {}, aulas: {}, contratos: {} })
+      fn({
+        professores: {},
+        alunos: {},
+        aulas: {},
+        contratos: {},
+        configuracao: {},
+      })
     );
 
     const { rerender } = renderHook(() => useApplicationLayout());
@@ -196,6 +253,7 @@ describe('useApplicationLayout', () => {
         alunos: {},
         aulas: {},
         contratos: {},
+        configuracao: {},
       })
     );
 

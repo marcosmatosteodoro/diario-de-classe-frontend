@@ -26,9 +26,22 @@ export function useApplicationLayout() {
   const alunosState = useSelector(state => state.alunos);
   const aulasState = useSelector(state => state.aulas);
   const contratosState = useSelector(state => state.contratos);
+  const configuracaoState = useSelector(state => state.configuracao);
   const states = useMemo(
-    () => [professoresState, alunosState, aulasState, contratosState],
-    [professoresState, alunosState, aulasState, contratosState]
+    () => [
+      professoresState,
+      alunosState,
+      aulasState,
+      contratosState,
+      configuracaoState,
+    ],
+    [
+      professoresState,
+      alunosState,
+      aulasState,
+      contratosState,
+      configuracaoState,
+    ]
   );
 
   const toggleSidebar = () => {
