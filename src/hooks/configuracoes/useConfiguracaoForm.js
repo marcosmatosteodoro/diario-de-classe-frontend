@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { validarConfiguracao } from './validarConfiguracao';
+import { useConfirmarAlteracaoDuracao } from './useConfirmarAlteracaoDuracao';
 import { DIAS_ARRAY } from '@/constants';
 
 const CAMPOS_DIA_COMPARADOS = ['ativo', 'horaInicial', 'horaFinal'];
@@ -97,6 +98,16 @@ function formDataIgualUltimaLeitura(formData, ultimaLeitura) {
   );
 }
 
+/**
+ * Só compara `duracaoAula` (não o formulário inteiro, como `formDataIgualUltimaLeitura`) —
+ * decide se `handleSubmit` exibe a confirmação do COMP-002-007. Reaproveita `camposIguais`,
+ * o mesmo ponto de normalização number(API)×string(input) do dirty tracking.
+ */
+function duracaoAulaMudou(formData, ultimaLeitura) {
+  if (!ultimaLeitura) return false;
+  return !camposIguais(formData.duracaoAula, ultimaLeitura.duracaoAula);
+}
+
 export function useConfiguracaoForm({ submit, configuracao = null }) {
   const [formData, setFormData] = useState({
     id: '',
@@ -138,6 +149,19 @@ export function useConfiguracaoForm({ submit, configuracao = null }) {
     }));
   };
 
+  const gravarConfiguracao = () => {
+    submit({
+      ...formData,
+      duracaoAula: Number(formData.duracaoAula),
+      tolerancia: Number(formData.tolerancia),
+    });
+  };
+
+  const { confirmarEGravar } = useConfirmarAlteracaoDuracao({
+    duracaoMudou: duracaoAulaMudou(formData, ultimaLeitura),
+    onConfirmar: gravarConfiguracao,
+  });
+
   const handleSubmit = async e => {
     e.preventDefault();
     setTentouSalvar(true);
@@ -151,11 +175,7 @@ export function useConfiguracaoForm({ submit, configuracao = null }) {
       return;
     }
 
-    submit({
-      ...formData,
-      duracaoAula: Number(formData.duracaoAula),
-      tolerancia: Number(formData.tolerancia),
-    });
+    await confirmarEGravar();
   };
 
   const restaurarUltimaLeitura = () => {

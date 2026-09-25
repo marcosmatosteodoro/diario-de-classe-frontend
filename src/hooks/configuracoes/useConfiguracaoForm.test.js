@@ -1,5 +1,17 @@
 import { renderHook, act } from '@testing-library/react';
+import useSweetAlert from '@/hooks/useSweetAlert';
 import { useConfiguracaoForm } from './useConfiguracaoForm';
+import { TEXTO_CONFIRMACAO_DURACAO } from './useConfirmarAlteracaoDuracao';
+
+jest.mock('@/hooks/useSweetAlert', () => jest.fn());
+
+// Default: confirma sempre — as suítes que precisam testar cancelamento sobrescrevem
+// `showConfirm` no próprio teste (TASK-002-008, COMP-002-007).
+beforeEach(() => {
+  useSweetAlert.mockReturnValue({
+    showConfirm: jest.fn(() => Promise.resolve({ isConfirmed: true })),
+  });
+});
 
 describe('useConfiguracaoForm', () => {
   const baseConfig = {
@@ -489,7 +501,7 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
     }
   );
 
-  it('converte duracaoAula/tolerancia para number no payload de submit, mantendo o resto do formData igual', () => {
+  it('converte duracaoAula/tolerancia para number no payload de submit, mantendo o resto do formData igual', async () => {
     const submitMock = jest.fn();
     const { result } = renderHook(() =>
       useConfiguracaoForm({ submit: submitMock, configuracao: configValida })
@@ -505,8 +517,10 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
         target: { name: 'tolerancia', value: '20' },
       });
     });
-    act(() => {
-      result.current.handleSubmit(fakeEvent());
+    // duracaoAula mudou (50 -> 55): passa pela confirmação do COMP-002-007 (mock
+    // padrão do describe confirma) antes de gravar — por isso o submit é assíncrono.
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent());
     });
 
     expect(submitMock).toHaveBeenCalledWith({
@@ -624,5 +638,234 @@ describe('useConfiguracaoForm — foco no primeiro campo inválido', () => {
     expect(document.activeElement).toBe(
       document.getElementById('QUARTA.ativo')
     );
+  });
+});
+
+describe('useConfiguracaoForm — confirmação de alteração de duração (TASK-002-008, COMP-002-007)', () => {
+  const diasValidos = [
+    {
+      diaSemana: 'SEGUNDA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+    {
+      diaSemana: 'TERCA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+  ];
+
+  // Shape do contrato: duracaoAula/tolerancia number, como a leitura da API entrega
+  // (Prisma Int) — o input converte para string ao digitar.
+  const configuracaoBase = {
+    duracaoAula: 50,
+    tolerancia: 10,
+    diasDeFuncionamento: diasValidos,
+  };
+
+  const fakeEvent = () => ({ preventDefault: jest.fn() });
+
+  it('duracaoAula alterado + Salvar: showConfirm é chamado com o texto fixo, e só ele (sem outra chave, ex. html)', async () => {
+    const showConfirmMock = jest.fn(() =>
+      Promise.resolve({ isConfirmed: true })
+    );
+    useSweetAlert.mockReturnValue({ showConfirm: showConfirmMock });
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({
+        submit: submitMock,
+        configuracao: configuracaoBase,
+      })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '60' },
+      });
+    });
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(showConfirmMock).toHaveBeenCalledWith({
+      text: TEXTO_CONFIRMACAO_DURACAO,
+    });
+  });
+
+  it('confirmado: submit() é chamado com o payload já convertido, gravando a alteração', async () => {
+    const showConfirmMock = jest.fn(() =>
+      Promise.resolve({ isConfirmed: true })
+    );
+    useSweetAlert.mockReturnValue({ showConfirm: showConfirmMock });
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({
+        submit: submitMock,
+        configuracao: configuracaoBase,
+      })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '60' },
+      });
+    });
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(submitMock).toHaveBeenCalledWith({
+      ...result.current.formData,
+      duracaoAula: 60,
+      tolerancia: 10,
+    });
+  });
+
+  it('cancelado: submit() não é chamado e todos os campos digitados permanecem — inclusive tolerância, que não dependia de confirmação', async () => {
+    // Controle positivo: mock que de fato resolve isConfirmed: false — não um mock que
+    // nunca resolve, nem um que sempre resolve true (sem esse controle, um bug que
+    // sempre grava passaria despercebido).
+    const showConfirmMock = jest.fn(() =>
+      Promise.resolve({ isConfirmed: false })
+    );
+    useSweetAlert.mockReturnValue({ showConfirm: showConfirmMock });
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({
+        submit: submitMock,
+        configuracao: configuracaoBase,
+      })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '60' },
+      });
+    });
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'tolerancia', value: '25' },
+      });
+    });
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(submitMock).not.toHaveBeenCalled();
+    expect(result.current.formData.duracaoAula).toBe('60');
+    expect(result.current.formData.tolerancia).toBe('25');
+  });
+
+  it('duracaoAula não alterado (mesmo com tolerância alterada) + Salvar: grava direto, sem exibir a confirmação', async () => {
+    const showConfirmMock = jest.fn(() =>
+      Promise.resolve({ isConfirmed: true })
+    );
+    useSweetAlert.mockReturnValue({ showConfirm: showConfirmMock });
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({
+        submit: submitMock,
+        configuracao: configuracaoBase,
+      })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'tolerancia', value: '25' },
+      });
+    });
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(showConfirmMock).not.toHaveBeenCalled();
+    expect(submitMock).toHaveBeenCalledWith({
+      ...result.current.formData,
+      duracaoAula: 50,
+      tolerancia: 25,
+    });
+  });
+
+  it('inválido + duração alterada: handleSubmit não exibe diálogo nem chama submit (validação vem antes da confirmação)', async () => {
+    const showConfirmMock = jest.fn(() =>
+      Promise.resolve({ isConfirmed: true })
+    );
+    useSweetAlert.mockReturnValue({ showConfirm: showConfirmMock });
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({
+        submit: submitMock,
+        configuracao: configuracaoBase,
+      })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '' },
+      });
+    });
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(showConfirmMock).not.toHaveBeenCalled();
+    expect(submitMock).not.toHaveBeenCalled();
+  });
+
+  it('leitura 50 (number da API) x input "50" (string, mesmo valor): não mudou — sem diálogo, grava direto (fixture no tipo do contrato; mutante === estrito deixaria este caso vermelho)', async () => {
+    const showConfirmMock = jest.fn(() =>
+      Promise.resolve({ isConfirmed: true })
+    );
+    useSweetAlert.mockReturnValue({ showConfirm: showConfirmMock });
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({
+        submit: submitMock,
+        configuracao: configuracaoBase,
+      })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '50' },
+      });
+    });
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(showConfirmMock).not.toHaveBeenCalled();
+    expect(submitMock).toHaveBeenCalledWith({
+      ...result.current.formData,
+      duracaoAula: 50,
+      tolerancia: 10,
+    });
+  });
+
+  it('input "60" x leitura 50 (number): mudou — exibe diálogo', async () => {
+    const showConfirmMock = jest.fn(() =>
+      Promise.resolve({ isConfirmed: true })
+    );
+    useSweetAlert.mockReturnValue({ showConfirm: showConfirmMock });
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({
+        submit: submitMock,
+        configuracao: configuracaoBase,
+      })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '60' },
+      });
+    });
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(showConfirmMock).toHaveBeenCalledTimes(1);
   });
 });
