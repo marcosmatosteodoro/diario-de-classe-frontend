@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import { PERMISSAO, IDIOMA_ARRAY, IDIOMA_LABEL } from '@/constants';
 import {
   ButtonsFields,
@@ -28,12 +29,35 @@ export const ProfessorForm = ({
 
   // disponibilidade do botão "Alterar senha" (FR-001-010, DEC-002-003):
   // administrador editando qualquer professor, ou o próprio professor
-  // editando seu perfil.
+  // editando seu perfil. `currentUser?.id != null` nega quando o usuário
+  // logado ainda não resolveu — `undefined === undefined` liberaria o botão
+  // indevidamente com a comparação simples.
   const podeAlterarSenha =
-    isEdit && (isAdmin() || formData.id === currentUser?.id);
+    isEdit &&
+    (isAdmin() || (currentUser?.id != null && formData.id === currentUser.id));
+  const mostrarSecaoSeguranca = !isEdit || podeAlterarSenha;
   const mostrarCamposSenha = !isEdit || (podeAlterarSenha && alterarSenhaAtivo);
   const mostrarBotaoAlterarSenha = podeAlterarSenha && !alterarSenhaAtivo;
   const mostrarBotaoCancelarSenha = podeAlterarSenha && alterarSenhaAtivo;
+
+  const senhaFieldRef = useRef(null);
+  const alterarSenhaButtonRef = useRef(null);
+  const isFirstAlterarSenhaRenderRef = useRef(true);
+
+  // Foco segue a revelação/ocultação dos campos de senha (NFR-001-002): ao
+  // acionar "Alterar senha", vai ao campo Senha; ao cancelar, volta ao botão
+  // "Alterar senha". A montagem inicial (criação ou edição) não move foco.
+  useEffect(() => {
+    if (isFirstAlterarSenhaRenderRef.current) {
+      isFirstAlterarSenhaRenderRef.current = false;
+      return;
+    }
+    if (alterarSenhaAtivo) {
+      senhaFieldRef.current?.focus();
+    } else {
+      alterarSenhaButtonRef.current?.focus();
+    }
+  }, [alterarSenhaAtivo]);
 
   return (
     <Form
@@ -126,58 +150,62 @@ export const ProfessorForm = ({
           </FormGroup>
         </FormSection>
 
-        <FormSection title="Segurança">
-          {mostrarBotaoAlterarSenha && (
-            <button
-              type="button"
-              className="btn-outline btn-outline-secondary tap-target"
-              onClick={handleAlterarSenha}
-            >
-              Alterar senha
-            </button>
-          )}
+        {mostrarSecaoSeguranca && (
+          <FormSection title="Segurança">
+            {mostrarBotaoAlterarSenha && (
+              <button
+                ref={alterarSenhaButtonRef}
+                type="button"
+                className="btn-outline btn-outline-secondary tap-target"
+                onClick={handleAlterarSenha}
+              >
+                Alterar senha
+              </button>
+            )}
 
-          {mostrarCamposSenha && (
-            <>
-              <FormGroup dataTestId="professor-form-group-seguranca">
-                {/* Senha */}
-                <PasswordField
-                  required
-                  htmlFor="senha"
-                  label="Senha"
-                  placeholder="Digite a senha"
-                  minLength={6}
-                  maxLength={100}
-                  onChange={handleChange}
-                  value={formData.senha}
-                  autoComplete={isEdit ? 'off' : 'new-password'}
-                />
-                {/* Repetir Senha */}
-                <PasswordField
-                  required
-                  htmlFor="repetirSenha"
-                  label="Repetir Senha"
-                  placeholder="Confirme a senha"
-                  minLength={6}
-                  maxLength={100}
-                  onChange={handleChange}
-                  value={formData.repetirSenha}
-                  autoComplete={'off'}
-                />
-              </FormGroup>
+            {mostrarCamposSenha && (
+              <>
+                <FormGroup dataTestId="professor-form-group-seguranca">
+                  {/* Senha */}
+                  <PasswordField
+                    ref={senhaFieldRef}
+                    required
+                    htmlFor="senha"
+                    label="Senha"
+                    placeholder="Digite a senha"
+                    minLength={6}
+                    maxLength={100}
+                    onChange={handleChange}
+                    value={formData.senha}
+                    autoComplete="new-password"
+                  />
+                  {/* Repetir Senha */}
+                  <PasswordField
+                    required
+                    htmlFor="repetirSenha"
+                    label="Repetir Senha"
+                    placeholder="Confirme a senha"
+                    minLength={6}
+                    maxLength={100}
+                    onChange={handleChange}
+                    value={formData.repetirSenha}
+                    autoComplete="new-password"
+                  />
+                </FormGroup>
 
-              {mostrarBotaoCancelarSenha && (
-                <button
-                  type="button"
-                  className="btn-outline btn-outline-secondary tap-target mt-3"
-                  onClick={handleCancelarAlteracaoSenha}
-                >
-                  Cancelar alteração de senha
-                </button>
-              )}
-            </>
-          )}
-        </FormSection>
+                {mostrarBotaoCancelarSenha && (
+                  <button
+                    type="button"
+                    className="btn-outline btn-outline-secondary tap-target mt-3"
+                    onClick={handleCancelarAlteracaoSenha}
+                  >
+                    Cancelar alteração de senha
+                  </button>
+                )}
+              </>
+            )}
+          </FormSection>
+        )}
       </div>
 
       {/* Botões */}

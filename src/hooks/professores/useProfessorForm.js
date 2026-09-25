@@ -31,6 +31,7 @@ export function useProfessorForm({ id = null, isEdit = false, submit }) {
 
   const handleCancelarAlteracaoSenha = () => {
     setAlterarSenhaAtivo(false);
+    setIsSenhaError(false);
     setFormData(prev => ({ ...prev, senha: '', repetirSenha: '' }));
   };
 
