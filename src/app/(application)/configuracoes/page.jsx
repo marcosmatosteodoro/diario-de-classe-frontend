@@ -50,11 +50,9 @@ export default function Configuracao() {
   // Ordem estável dos 7 dias por diaSemana (SEGUNDA → DOMINGO, DIAS_ARRAY): o
   // GET ordena diasDeFuncionamento por diaSemana, mas o PUT não — exibir na
   // ordem do array recebido reintroduziria a ordem instável após salvar.
-  const diasDeFuncionamentoOrdenados = formData
-    ? DIAS_ARRAY.map(diaSemana =>
-        formData.diasDeFuncionamento.find(dia => dia.diaSemana === diaSemana)
-      ).filter(Boolean)
-    : [];
+  const diasDeFuncionamentoOrdenados = DIAS_ARRAY.map(diaSemana =>
+    formData.diasDeFuncionamento.find(dia => dia.diaSemana === diaSemana)
+  ).filter(Boolean);
 
   return (
     <>
@@ -70,7 +68,7 @@ export default function Configuracao() {
               <InputField
                 required
                 htmlFor="duracaoAula"
-                label="Duração da Aula"
+                label="Duração da Aula (minutos)"
                 placeholder="Digite a duração da aula em minutos"
                 type="number"
                 onChange={handleChange}
@@ -80,7 +78,7 @@ export default function Configuracao() {
               <InputField
                 required
                 htmlFor="tolerancia"
-                label="Tolerância de Atraso"
+                label="Tolerância de Atraso (minutos)"
                 placeholder="Digite a tolerância de atraso em minutos"
                 type="number"
                 onChange={handleChange}
@@ -99,7 +97,7 @@ export default function Configuracao() {
               {diasDeFuncionamentoOrdenados.map(funcionamento => (
                 <div key={funcionamento.diaSemana} className="mb-4">
                   <div className="flex gap-5">
-                    <h4 className="text-xl font-semibold mb-2">
+                    <h4 className="text-base font-semibold text-main mb-2">
                       {DIAS_LABEL[funcionamento.diaSemana]}
                     </h4>
                     <CheckboxField

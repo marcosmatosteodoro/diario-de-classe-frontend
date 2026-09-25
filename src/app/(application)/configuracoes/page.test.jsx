@@ -10,48 +10,48 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/providers/UserAuthProvider');
 jest.mock('@/hooks/configuracoes/useConfiguracao');
 jest.mock('@/hooks/configuracoes/useConfiguracaoForm');
-// Real Section/SectionTitle/InputField/CheckboxField: as asserções de
-// agrupamento por seção e de texto de apoio (AC-001-001/002, TASK-002-004)
-// precisam do DOM de verdade, não só da chamada ao componente automockado.
-jest.mock('@/components', () => jest.requireActual('@/components'));
 
 const { notFound } = require('next/navigation');
 
 // Ordem deliberadamente embaralhada: prova que a exibição ordena por
 // diaSemana (SEGUNDA → DOMINGO) independentemente da ordem recebida — o PUT
-// devolve os dias sem ordenar, só o GET ordena (furo no plano, fecho wave 1).
+// devolve os dias sem ordenar, só o GET ordena.
+// Valores distintos por dia (nenhum par de horaInicial/horaFinal repetido
+// entre os dias preenchidos): prova que cada dia exibe o próprio estado, não
+// o de outro dia por índice. QUARTA é inativa com hora preenchida — estado
+// residual plausível (dia foi desativado sem limpar o horário).
 const DIAS_DE_FUNCIONAMENTO_EMBARALHADOS = [
   {
     diaSemana: 'QUARTA',
-    ativo: true,
-    horaInicial: '08:00',
-    horaFinal: '12:00',
+    ativo: false,
+    horaInicial: '09:30',
+    horaFinal: '13:30',
   },
   { diaSemana: 'DOMINGO', ativo: false, horaInicial: '', horaFinal: '' },
   {
     diaSemana: 'SEGUNDA',
     ativo: true,
-    horaInicial: '08:00',
-    horaFinal: '12:00',
+    horaInicial: '07:00',
+    horaFinal: '11:00',
   },
   { diaSemana: 'SABADO', ativo: false, horaInicial: '', horaFinal: '' },
   {
     diaSemana: 'SEXTA',
     ativo: true,
-    horaInicial: '08:00',
-    horaFinal: '12:00',
+    horaInicial: '11:15',
+    horaFinal: '15:15',
   },
   {
     diaSemana: 'TERCA',
     ativo: true,
-    horaInicial: '08:00',
-    horaFinal: '12:00',
+    horaInicial: '08:15',
+    horaFinal: '12:15',
   },
   {
     diaSemana: 'QUINTA',
     ativo: true,
-    horaInicial: '08:00',
-    horaFinal: '12:00',
+    horaInicial: '10:45',
+    horaFinal: '14:45',
   },
 ];
 
@@ -159,38 +159,71 @@ describe('Configuracao Page', () => {
         within(secaoHorario).queryByLabelText(/Duração da Aula/i)
       ).not.toBeInTheDocument();
     });
+
+    it('rotula os campos de minutos com a unidade visível no label', () => {
+      render(<Configuracao />);
+
+      expect(
+        screen.getByLabelText('Duração da Aula (minutos) *')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByLabelText('Tolerância de Atraso (minutos) *')
+      ).toBeInTheDocument();
+    });
+
+    it('tem 7 checkboxes "Ativo" e 7 campos de "Hora inicial"/"Hora final" dentro da seção de horário', () => {
+      render(<Configuracao />);
+      const secaoHorario = screen
+        .getByText('Horário de funcionamento')
+        .closest('section');
+
+      expect(within(secaoHorario).getAllByLabelText('Ativo')).toHaveLength(7);
+      expect(
+        within(secaoHorario).getAllByLabelText('Hora inicial')
+      ).toHaveLength(7);
+      expect(within(secaoHorario).getAllByLabelText('Hora final')).toHaveLength(
+        7
+      );
+    });
   });
 
   describe('texto de apoio honesto (AC-001-002)', () => {
-    it('exibe as três afirmações do texto de duração da aula', () => {
+    it('a duração da aula tem as três afirmações como descrição acessível do próprio campo, dentro da seção "Aulas"', () => {
       render(<Configuracao />);
+      const secaoAulas = screen.getByText('Aulas').closest('section');
+      const campoDuracao =
+        within(secaoAulas).getByLabelText(/Duração da Aula/i);
 
-      expect(screen.getByText(/sugerir a hora final/i)).toBeInTheDocument();
-      expect(
-        screen.getByText(/não muda a duração de aulas, dias de aula/i)
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          /só vale para quem entrar no sistema depois da mudança/i
-        )
-      ).toBeInTheDocument();
+      expect(campoDuracao).toHaveAccessibleDescription(/sugerir a hora final/i);
+      expect(campoDuracao).toHaveAccessibleDescription(
+        /não muda a duração de aulas, dias de aula/i
+      );
+      expect(campoDuracao).toHaveAccessibleDescription(
+        /só vale para quem entrar no sistema depois da mudança/i
+      );
     });
 
-    it('exibe as duas afirmações do texto de tolerância', () => {
+    it('a tolerância tem as duas afirmações como descrição acessível do próprio campo, dentro da seção "Aulas"', () => {
       render(<Configuracao />);
+      const secaoAulas = screen.getByText('Aulas').closest('section');
+      const campoTolerancia =
+        within(secaoAulas).getByLabelText(/Tolerância de Atraso/i);
 
-      expect(screen.getByText(/armazenado/i)).toBeInTheDocument();
-      expect(
-        screen.getByText(/não é aplicado automaticamente/i)
-      ).toBeInTheDocument();
+      expect(campoTolerancia).toHaveAccessibleDescription(/armazenado/i);
+      expect(campoTolerancia).toHaveAccessibleDescription(
+        /não é aplicado automaticamente/i
+      );
     });
 
-    it('exibe as duas afirmações do texto de horário de funcionamento', () => {
+    it('o horário de funcionamento tem as duas afirmações dentro da própria seção', () => {
       render(<Configuracao />);
+      const secaoHorario = screen
+        .getByText('Horário de funcionamento')
+        .closest('section');
 
-      expect(screen.getByText(/registrado/i)).toBeInTheDocument();
+      expect(within(secaoHorario).getByText(/registrado/i)).toBeInTheDocument();
       expect(
-        screen.getByText(/não restringe o lançamento de aulas/i)
+        within(secaoHorario).getByText(/não restringe o lançamento de aulas/i)
       ).toBeInTheDocument();
     });
   });
@@ -203,5 +236,45 @@ describe('Configuracao Page', () => {
       .map(elemento => elemento.textContent);
 
     expect(titulosDosDias).toEqual(ORDEM_CANONICA_LABELS);
+  });
+
+  it('o cabeçalho de cada dia usa text-base (menor que o text-lg do SectionTitle da seção)', () => {
+    render(<Configuracao />);
+
+    screen.getAllByRole('heading', { level: 4 }).forEach(titulo => {
+      expect(titulo).toHaveClass(
+        'text-base',
+        'font-semibold',
+        'text-main',
+        'mb-2'
+      );
+      expect(titulo).not.toHaveClass('text-xl');
+    });
+  });
+
+  describe('valores por dia não vazam entre dias (AC-001-008)', () => {
+    it('cada um dos 7 dias exibe o próprio ativo/horaInicial/horaFinal, nunca o de outro dia', () => {
+      const { container } = render(<Configuracao />);
+
+      DIAS_DE_FUNCIONAMENTO_EMBARALHADOS.forEach(
+        ({ diaSemana, ativo, horaInicial, horaFinal }) => {
+          const inputAtivo = container.querySelector(
+            `input[name="${diaSemana}.ativo"]`
+          );
+          const inputHoraInicial = container.querySelector(
+            `input[name="${diaSemana}.horaInicial"]`
+          );
+          const inputHoraFinal = container.querySelector(
+            `input[name="${diaSemana}.horaFinal"]`
+          );
+
+          expect(inputAtivo.checked).toBe(ativo);
+          expect(inputHoraInicial.disabled).toBe(!ativo);
+          expect(inputHoraFinal.disabled).toBe(!ativo);
+          expect(inputHoraInicial.value).toBe(horaInicial);
+          expect(inputHoraFinal.value).toBe(horaFinal);
+        }
+      );
+    });
   });
 });
