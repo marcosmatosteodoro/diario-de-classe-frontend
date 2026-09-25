@@ -332,4 +332,187 @@ describe('Configuracao Page', () => {
       expect(clearGuard).toHaveBeenCalledTimes(2);
     });
   });
+
+  describe('erro junto ao campo/dia (TASK-002-006)', () => {
+    const errosValidacaoVazio = {
+      duracaoAula: undefined,
+      tolerancia: undefined,
+      diasDeFuncionamento: {},
+    };
+
+    it('exibe a mensagem de erro de validação junto ao campo duracaoAula, sem afetar tolerancia (AC-001-006)', () => {
+      useConfiguracaoForm.mockReturnValue({
+        formData: {
+          duracaoAula: '',
+          tolerancia: 10,
+          diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
+        },
+        isDirty: true,
+        errosValidacao: {
+          ...errosValidacaoVazio,
+          duracaoAula: 'Campo obrigatório',
+        },
+        handleChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        handleDiasDeFuncionamentoChange: jest.fn(),
+      });
+
+      render(<Configuracao />);
+
+      expect(
+        screen.getByLabelText(/Duração da Aula/i)
+      ).toHaveAccessibleDescription(/Campo obrigatório/);
+      expect(
+        screen.getByLabelText(/Tolerância de Atraso/i)
+      ).not.toHaveAccessibleDescription(/Campo obrigatório/);
+    });
+
+    it('exibe a mensagem de erro junto ao dia específico, sem indicar outro dia (AC-001-007)', () => {
+      useConfiguracaoForm.mockReturnValue({
+        formData: {
+          duracaoAula: 40,
+          tolerancia: 10,
+          diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
+        },
+        isDirty: true,
+        errosValidacao: {
+          ...errosValidacaoVazio,
+          diasDeFuncionamento: {
+            TERCA: {
+              horaInicial: undefined,
+              horaFinal: 'A hora final deve ser maior que a hora inicial.',
+            },
+          },
+        },
+        handleChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        handleDiasDeFuncionamentoChange: jest.fn(),
+      });
+
+      const { container } = render(<Configuracao />);
+
+      const horaFinalTerca = container.querySelector(
+        'input[name="TERCA.horaFinal"]'
+      );
+      expect(horaFinalTerca).toHaveAccessibleDescription(
+        /A hora final deve ser maior que a hora inicial/
+      );
+
+      // sem indicar outro dia: nenhum outro dos 7 dias recebe a mensagem
+      DIAS_DE_FUNCIONAMENTO_EMBARALHADOS.filter(
+        ({ diaSemana }) => diaSemana !== 'TERCA'
+      ).forEach(({ diaSemana }) => {
+        const horaInicial = container.querySelector(
+          `input[name="${diaSemana}.horaInicial"]`
+        );
+        const horaFinal = container.querySelector(
+          `input[name="${diaSemana}.horaFinal"]`
+        );
+        expect(horaInicial).not.toHaveAccessibleDescription(
+          /A hora final deve ser maior que a hora inicial/
+        );
+        expect(horaFinal).not.toHaveAccessibleDescription(
+          /A hora final deve ser maior que a hora inicial/
+        );
+      });
+    });
+
+    it('exibe a orientação de ativar o dia quando a inconsistência ocorre num dia inativo (FR-001-017)', () => {
+      useConfiguracaoForm.mockReturnValue({
+        formData: {
+          duracaoAula: 40,
+          tolerancia: 10,
+          diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
+        },
+        isDirty: true,
+        errosValidacao: {
+          ...errosValidacaoVazio,
+          diasDeFuncionamento: {
+            DOMINGO: {
+              horaInicial: undefined,
+              horaFinal: 'Ative o dia para corrigir as horas.',
+            },
+          },
+        },
+        handleChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        handleDiasDeFuncionamentoChange: jest.fn(),
+      });
+
+      const { container } = render(<Configuracao />);
+
+      const horaFinalDomingo = container.querySelector(
+        'input[name="DOMINGO.horaFinal"]'
+      );
+      expect(horaFinalDomingo).toHaveAccessibleDescription(
+        /Ative o dia para corrigir as horas/
+      );
+    });
+
+    it('mapeia erro do servidor (duracaoAula: mensagem) para o campo quando não há erro de validação client-side', () => {
+      useConfiguracao.mockReturnValue({
+        configuracao: { id: 1, diasTrabalho: 5 },
+        isLoading: false,
+        isNotFound: false,
+        message: 'Erro de validação',
+        errors: ['duracaoAula: Deve ser um número positivo'],
+      });
+      useConfiguracaoForm.mockReturnValue({
+        formData: {
+          duracaoAula: -5,
+          tolerancia: 10,
+          diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
+        },
+        isDirty: true,
+        errosValidacao: errosValidacaoVazio,
+        handleChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        handleDiasDeFuncionamentoChange: jest.fn(),
+      });
+
+      render(<Configuracao />);
+
+      expect(
+        screen.getByLabelText(/Duração da Aula/i)
+      ).toHaveAccessibleDescription(/Deve ser um número positivo/);
+    });
+
+    it('erro de diasDeFuncionamento do servidor sem indicação de dia permanece só no FormError genérico (regressão)', () => {
+      useConfiguracao.mockReturnValue({
+        configuracao: { id: 1, diasTrabalho: 5 },
+        isLoading: false,
+        isNotFound: false,
+        message: 'Erro de validação',
+        errors: ['diasDeFuncionamento: Contém horaInicial inválido'],
+      });
+      useConfiguracaoForm.mockReturnValue({
+        formData: {
+          duracaoAula: 40,
+          tolerancia: 10,
+          diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
+        },
+        isDirty: true,
+        errosValidacao: errosValidacaoVazio,
+        handleChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        handleDiasDeFuncionamentoChange: jest.fn(),
+      });
+
+      render(<Configuracao />);
+
+      // continua aparecendo no FormError genérico (topo)
+      expect(screen.getByTestId('form-error')).toHaveTextContent(
+        'Contém horaInicial inválido'
+      );
+      // nenhum campo/dia específico recebe essa mensagem
+      DIAS_DE_FUNCIONAMENTO_EMBARALHADOS.forEach(({ diaSemana }) => {
+        const horaInicial = document.querySelector(
+          `input[name="${diaSemana}.horaInicial"]`
+        );
+        expect(horaInicial).not.toHaveAccessibleDescription(
+          /Contém horaInicial inválido/
+        );
+      });
+    });
+  });
 });

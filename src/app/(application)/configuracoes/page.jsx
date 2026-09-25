@@ -6,6 +6,7 @@ import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useUnsavedChangesGuard } from '@/providers/UnsavedChangesGuardProvider';
 import { useConfiguracao } from '@/hooks/configuracoes/useConfiguracao';
 import { useConfiguracaoForm } from '@/hooks/configuracoes/useConfiguracaoForm';
+import { mapearErroServidorPorCampo } from '@/hooks/configuracoes/validarConfiguracao';
 import {
   ButtonsFields,
   CheckboxField,
@@ -34,6 +35,11 @@ export default function Configuracao() {
   const {
     formData,
     isDirty,
+    errosValidacao = {
+      duracaoAula: undefined,
+      tolerancia: undefined,
+      diasDeFuncionamento: {},
+    },
     handleChange,
     handleSubmit,
     handleDiasDeFuncionamentoChange,
@@ -42,6 +48,7 @@ export default function Configuracao() {
     configuracao,
   });
   const { setGuard, clearGuard } = useUnsavedChangesGuard();
+  const errosServidorPorCampo = mapearErroServidorPorCampo(errors);
 
   useEffect(() => {
     setGuard(() => isDirty);
@@ -83,6 +90,10 @@ export default function Configuracao() {
                 onChange={handleChange}
                 value={formData.duracaoAula}
                 hint={HINT_DURACAO_AULA}
+                error={
+                  errosValidacao.duracaoAula ||
+                  errosServidorPorCampo.duracaoAula
+                }
               />
               <InputField
                 required
@@ -93,6 +104,9 @@ export default function Configuracao() {
                 onChange={handleChange}
                 value={formData.tolerancia}
                 hint={HINT_TOLERANCIA}
+                error={
+                  errosValidacao.tolerancia || errosServidorPorCampo.tolerancia
+                }
               />
             </FormGroup>
           </Section>
@@ -103,40 +117,49 @@ export default function Configuracao() {
               {HINT_HORARIO_FUNCIONAMENTO}
             </p>
             <FormGroup>
-              {diasDeFuncionamentoOrdenados.map(funcionamento => (
-                <div key={funcionamento.diaSemana} className="mb-4">
-                  <div className="flex gap-5">
-                    <h4 className="text-base font-semibold text-main mb-2">
-                      {DIAS_LABEL[funcionamento.diaSemana]}
-                    </h4>
-                    <CheckboxField
-                      htmlFor={`${funcionamento.diaSemana}.ativo`}
-                      label="Ativo"
-                      checked={funcionamento.ativo || false}
-                      onChange={handleDiasDeFuncionamentoChange}
-                    />
-                  </div>
-                  <FormGroup cols={1}>
-                    <InputField
-                      disabled={!funcionamento.ativo}
-                      htmlFor={`${funcionamento.diaSemana}.horaInicial`}
-                      label="Hora inicial"
-                      type="time"
-                      onChange={handleDiasDeFuncionamentoChange}
-                      value={funcionamento.horaInicial}
-                    />
+              {diasDeFuncionamentoOrdenados.map(funcionamento => {
+                const errosDia =
+                  errosValidacao.diasDeFuncionamento?.[
+                    funcionamento.diaSemana
+                  ] || {};
 
-                    <InputField
-                      disabled={!funcionamento.ativo}
-                      htmlFor={`${funcionamento.diaSemana}.horaFinal`}
-                      label="Hora final"
-                      type="time"
-                      onChange={handleDiasDeFuncionamentoChange}
-                      value={funcionamento.horaFinal}
-                    />
-                  </FormGroup>
-                </div>
-              ))}
+                return (
+                  <div key={funcionamento.diaSemana} className="mb-4">
+                    <div className="flex gap-5">
+                      <h4 className="text-base font-semibold text-main mb-2">
+                        {DIAS_LABEL[funcionamento.diaSemana]}
+                      </h4>
+                      <CheckboxField
+                        htmlFor={`${funcionamento.diaSemana}.ativo`}
+                        label="Ativo"
+                        checked={funcionamento.ativo || false}
+                        onChange={handleDiasDeFuncionamentoChange}
+                      />
+                    </div>
+                    <FormGroup cols={1}>
+                      <InputField
+                        disabled={!funcionamento.ativo}
+                        htmlFor={`${funcionamento.diaSemana}.horaInicial`}
+                        label="Hora inicial"
+                        type="time"
+                        onChange={handleDiasDeFuncionamentoChange}
+                        value={funcionamento.horaInicial}
+                        error={errosDia.horaInicial}
+                      />
+
+                      <InputField
+                        disabled={!funcionamento.ativo}
+                        htmlFor={`${funcionamento.diaSemana}.horaFinal`}
+                        label="Hora final"
+                        type="time"
+                        onChange={handleDiasDeFuncionamentoChange}
+                        value={funcionamento.horaFinal}
+                        error={errosDia.horaFinal}
+                      />
+                    </FormGroup>
+                  </div>
+                );
+              })}
             </FormGroup>
           </Section>
         </div>

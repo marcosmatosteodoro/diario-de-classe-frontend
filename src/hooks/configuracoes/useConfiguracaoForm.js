@@ -1,6 +1,28 @@
 import { useEffect, useMemo, useState } from 'react';
+import { validarConfiguracao } from './validarConfiguracao';
 
 const CAMPOS_DIA_COMPARADOS = ['ativo', 'horaInicial', 'horaFinal'];
+
+const ERROS_VALIDACAO_VAZIO = {
+  duracaoAula: undefined,
+  tolerancia: undefined,
+  diasDeFuncionamento: {},
+};
+
+/**
+ * `true` quando `resultadoValidacao` (retorno de `validarConfiguracao`) tem alguma
+ * mensagem de erro — em `duracaoAula`/`tolerancia` ou em algum dia de
+ * `diasDeFuncionamento` (horaInicial ou horaFinal).
+ */
+function temErroDeValidacao(resultadoValidacao) {
+  if (resultadoValidacao.duracaoAula || resultadoValidacao.tolerancia) {
+    return true;
+  }
+
+  return Object.values(resultadoValidacao.diasDeFuncionamento).some(
+    erroDia => erroDia.horaInicial || erroDia.horaFinal
+  );
+}
 
 /**
  * Normaliza um valor de campo para comparação: o input HTML sempre entrega string
@@ -55,6 +77,7 @@ export function useConfiguracaoForm({ submit, configuracao = null }) {
     confirmacao: false,
   });
   const [ultimaLeitura, setUltimaLeitura] = useState(null);
+  const [errosValidacao, setErrosValidacao] = useState(ERROS_VALIDACAO_VAZIO);
 
   const handleChange = e => {
     const { name, value } = e.target;
@@ -88,6 +111,14 @@ export function useConfiguracaoForm({ submit, configuracao = null }) {
 
   const handleSubmit = async e => {
     e.preventDefault();
+    const resultadoValidacao = validarConfiguracao(formData);
+
+    if (temErroDeValidacao(resultadoValidacao)) {
+      setErrosValidacao(resultadoValidacao);
+      return;
+    }
+
+    setErrosValidacao(ERROS_VALIDACAO_VAZIO);
     const dataToSend = formData;
     submit(dataToSend);
   };
@@ -113,6 +144,7 @@ export function useConfiguracaoForm({ submit, configuracao = null }) {
   return {
     formData,
     isDirty,
+    errosValidacao,
     restaurarUltimaLeitura,
     handleSubmit,
     handleChange,

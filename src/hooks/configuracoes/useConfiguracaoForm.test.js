@@ -12,7 +12,12 @@ describe('useConfiguracaoForm', () => {
         horaInicial: '08:00',
         horaFinal: '18:00',
       },
-      { diaSemana: 'TER', ativo: false, horaInicial: '', horaFinal: '' },
+      {
+        diaSemana: 'TER',
+        ativo: false,
+        horaInicial: '08:00',
+        horaFinal: '18:00',
+      },
     ],
   };
 
@@ -71,9 +76,8 @@ describe('useConfiguracaoForm', () => {
     act(() => {
       result.current.handleSubmit(fakeEvent);
     });
-    // O submit está comentado no hook, então não será chamado. Se descomentar, ative este teste:
-    // expect(submitMock).toHaveBeenCalledWith(result.current.formData);
     expect(fakeEvent.preventDefault).toHaveBeenCalled();
+    expect(submitMock).toHaveBeenCalledWith(result.current.formData);
   });
 });
 
@@ -300,5 +304,122 @@ describe('useConfiguracaoForm - isDirty (rastreamento de alteração pendente)',
       });
     });
     expect(result.current.isDirty).toBe(true);
+  });
+});
+
+describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-002-006)', () => {
+  const diasValidos = [
+    {
+      diaSemana: 'SEGUNDA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+    {
+      diaSemana: 'TERCA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+  ];
+
+  const configValida = {
+    duracaoAula: 50,
+    tolerancia: 10,
+    diasDeFuncionamento: diasValidos,
+  };
+
+  const fakeEvent = () => ({ preventDefault: jest.fn() });
+
+  it('com duracaoAula inválida (vazia), handleSubmit não chama submit() e popula errosValidacao.duracaoAula', () => {
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({ submit: submitMock, configuracao: configValida })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '' },
+      });
+    });
+
+    act(() => {
+      result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(submitMock).not.toHaveBeenCalled();
+    expect(result.current.errosValidacao.duracaoAula).toBe('Campo obrigatório');
+  });
+
+  it('com um dia com horaFinal <= horaInicial, handleSubmit não chama submit() e popula errosValidacao.diasDeFuncionamento nesse dia', () => {
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({ submit: submitMock, configuracao: configValida })
+    );
+
+    act(() => {
+      result.current.handleDiasDeFuncionamentoChange({
+        target: { name: 'TERCA.horaFinal', value: '07:00' },
+      });
+    });
+
+    act(() => {
+      result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(submitMock).not.toHaveBeenCalled();
+    expect(
+      result.current.errosValidacao.diasDeFuncionamento.TERCA.horaFinal
+    ).toBe('A hora final deve ser maior que a hora inicial.');
+    // sem indicar outro dia (AC-001-007)
+    expect(result.current.errosValidacao.diasDeFuncionamento.SEGUNDA).toEqual({
+      horaInicial: undefined,
+      horaFinal: undefined,
+    });
+  });
+
+  it('com todos os dados válidos, handleSubmit chama submit(formData) e não popula erros', () => {
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({ submit: submitMock, configuracao: configValida })
+    );
+
+    act(() => {
+      result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(submitMock).toHaveBeenCalledWith(result.current.formData);
+    expect(result.current.errosValidacao.duracaoAula).toBeUndefined();
+    expect(result.current.errosValidacao.tolerancia).toBeUndefined();
+  });
+
+  it('corrigir o erro e submeter de novo limpa errosValidacao e chama submit()', () => {
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({ submit: submitMock, configuracao: configValida })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'tolerancia', value: '0' },
+      });
+    });
+    act(() => {
+      result.current.handleSubmit(fakeEvent());
+    });
+    expect(submitMock).not.toHaveBeenCalled();
+    expect(result.current.errosValidacao.tolerancia).toBe('Não pode ser zero');
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'tolerancia', value: '10' },
+      });
+    });
+    act(() => {
+      result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(submitMock).toHaveBeenCalledTimes(1);
+    expect(result.current.errosValidacao.tolerancia).toBeUndefined();
   });
 });
