@@ -204,9 +204,7 @@ describe('AlunoForm', () => {
     expect(screen.getByLabelText('Material')).toBeInTheDocument();
   });
 
-  // AC-001-002 (FR-001-002, FR-001-003): seções "Informações pessoais" e
-  // "Material" nesta ordem para administrador; "Material" ausente para
-  // não-administrador.
+  // AC-001-002, AC-001-013
   it('renders "Informações pessoais" and "Material" sections in this order for an administrator', () => {
     jest.resetModules();
     jest.doMock('@/providers/UserAuthProvider', () => ({

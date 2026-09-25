@@ -29,7 +29,6 @@ export const AlunoForm = ({
       <div className="grid gap-6">
         <FormSection title="Informações pessoais">
           <FormGroup dataTestId="aluno-form-group">
-            {/* Nome */}
             <InputField
               required
               htmlFor="nome"
@@ -41,7 +40,6 @@ export const AlunoForm = ({
               value={formData.nome}
             />
 
-            {/* Sobrenome */}
             <InputField
               required
               htmlFor="sobrenome"
@@ -53,7 +51,6 @@ export const AlunoForm = ({
               value={formData.sobrenome}
             />
 
-            {/* Email */}
             <InputField
               required
               htmlFor="email"
@@ -65,7 +62,6 @@ export const AlunoForm = ({
               value={formData.email}
             />
 
-            {/* Telefone */}
             <InputField
               htmlFor="telefone"
               label="Telefone"

@@ -53,6 +53,16 @@ describe('FormSection component', () => {
     expect(screen.getByTestId('form-section')).toBeInTheDocument();
   });
 
+  it('does not render a nested Section surface (no data-testid="section")', () => {
+    render(
+      <FormSection title="Acesso">
+        <div>child</div>
+      </FormSection>
+    );
+
+    expect(screen.queryByTestId('section')).not.toBeInTheDocument();
+  });
+
   it('exposes an accessible group name derived from the legend', () => {
     render(
       <FormSection title="Material">
