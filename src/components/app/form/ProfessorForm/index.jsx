@@ -42,16 +42,16 @@ export const ProfessorForm = ({
 
   const senhaFieldRef = useRef(null);
   const alterarSenhaButtonRef = useRef(null);
-  const isFirstAlterarSenhaRenderRef = useRef(true);
+  const alterarSenhaAtivoAnteriorRef = useRef(alterarSenhaAtivo);
 
   // Foco segue a revelação/ocultação dos campos de senha (NFR-001-002): ao
   // acionar "Alterar senha", vai ao campo Senha; ao cancelar, volta ao botão
   // "Alterar senha". A montagem inicial (criação ou edição) não move foco.
   useEffect(() => {
-    if (isFirstAlterarSenhaRenderRef.current) {
-      isFirstAlterarSenhaRenderRef.current = false;
+    if (alterarSenhaAtivoAnteriorRef.current === alterarSenhaAtivo) {
       return;
     }
+    alterarSenhaAtivoAnteriorRef.current = alterarSenhaAtivo;
     if (alterarSenhaAtivo) {
       senhaFieldRef.current?.focus();
     } else {

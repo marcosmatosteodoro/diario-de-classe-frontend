@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ProfessorForm } from '.';
 import { useUserAuth } from '@/providers/UserAuthProvider';
@@ -521,9 +522,7 @@ describe('ProfessorForm', () => {
   });
 
   // Foco segue a revelação/ocultação dos campos de senha (AC-001-007/
-  // FR-001-011, NFR-001-002); a montagem inicial não move foco. Mutante:
-  // remover o efeito de foco → os dois testes de transição abaixo ficam
-  // vermelhos.
+  // FR-001-011, NFR-001-002); a montagem inicial não move foco.
   describe('foco ao alternar "Alterar senha" (NFR-001-002)', () => {
     beforeEach(() => {
       useUserAuth.mockReturnValue({
@@ -539,11 +538,13 @@ describe('ProfessorForm', () => {
 
     it('a montagem inicial em edição não move o foco', () => {
       render(
-        <ProfessorForm
-          {...defaultProps}
-          isEdit
-          formData={{ ...defaultProps.formData, id: 2 }}
-        />
+        <StrictMode>
+          <ProfessorForm
+            {...defaultProps}
+            isEdit
+            formData={{ ...defaultProps.formData, id: 2 }}
+          />
+        </StrictMode>
       );
       expect(document.activeElement).toBe(document.body);
     });
@@ -598,8 +599,7 @@ describe('ProfessorForm', () => {
 
   // `podeAlterarSenha` (FR-001-010) nega quando `currentUser?.id` é
   // nulo/indefinido — a comparação simples (`undefined === undefined`)
-  // liberaria o botão indevidamente. Mutante: voltar à comparação simples
-  // → este teste fica vermelho.
+  // liberaria o botão indevidamente.
   it('does not show "Alterar senha" when currentUser and formData.id are both undefined and the user is not admin', () => {
     useUserAuth.mockReturnValue({
       currentUser: undefined,
