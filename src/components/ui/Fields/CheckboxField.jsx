@@ -1,4 +1,9 @@
-import { LabelField, InputGroupField, describedByIds } from './base';
+import {
+  LabelField,
+  InputGroupField,
+  describedByIds,
+  FieldMessages,
+} from './base';
 
 export const CheckboxField = ({
   htmlFor,
@@ -26,7 +31,7 @@ export const CheckboxField = ({
     }
   };
 
-  return (
+  const row = (
     <InputGroupField className={containerClassName}>
       <input
         type="checkbox"
@@ -45,12 +50,19 @@ export const CheckboxField = ({
       <LabelField htmlFor={htmlFor} className={labelTextClassName}>
         {required ? `${label} *` : label}
       </LabelField>
-      {hint && <p id={`${htmlFor}-hint`}>{hint}</p>}
-      {error && (
-        <p id={`${htmlFor}-error`} role="alert">
-          {error}
-        </p>
-      )}
     </InputGroupField>
+  );
+
+  if (!hint && !error) {
+    return row;
+  }
+
+  return (
+    <div>
+      {row}
+      <div className="pl-6">
+        <FieldMessages htmlFor={htmlFor} hint={hint} error={error} />
+      </div>
+    </div>
   );
 };

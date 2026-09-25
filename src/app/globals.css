@@ -101,6 +101,9 @@
   .text-muted {
     @apply text-gray-600;
   }
+  .text-error {
+    @apply text-red-700;
+  }
   .primary-color {
     @apply text-blue-600;
   }
@@ -139,6 +142,9 @@
     }
     .text-muted {
       @apply text-slate-400;
+    }
+    .text-error {
+      @apply text-red-400;
     }
     .primary-color {
       @apply text-blue-400;
@@ -244,6 +250,9 @@
       }
       .text-muted {
         @apply text-slate-400;
+      }
+      .text-error {
+        @apply text-red-400;
       }
       .primary-color {
         @apply text-blue-400;

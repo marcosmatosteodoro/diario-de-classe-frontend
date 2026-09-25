@@ -35,14 +35,34 @@ export const OptionField = ({ value, label }) => {
   );
 };
 
+const hintId = htmlFor => `${htmlFor}-hint`;
+const errorId = htmlFor => `${htmlFor}-error`;
+
 // Único ponto de cálculo dos ids referenciados por aria-describedby: reflete a
 // presença real de hint/error, nunca um estado de validação isolado.
 export const describedByIds = (htmlFor, { hint, error } = {}) => {
   const ids = [];
-  if (hint) ids.push(`${htmlFor}-hint`);
-  if (error) ids.push(`${htmlFor}-error`);
+  if (hint) ids.push(hintId(htmlFor));
+  if (error) ids.push(errorId(htmlFor));
   return ids.length ? ids.join(' ') : undefined;
 };
+
+// Nós de hint/error compartilhados entre BaseField e CheckboxField — ids vêm
+// das mesmas funções que describedByIds usa para calcular aria-describedby.
+export const FieldMessages = ({ htmlFor, hint, error }) => (
+  <>
+    {hint && (
+      <p id={hintId(htmlFor)} className="mt-1 text-sm text-muted">
+        {hint}
+      </p>
+    )}
+    {error && (
+      <p id={errorId(htmlFor)} role="alert" className="mt-1 text-sm text-error">
+        {error}
+      </p>
+    )}
+  </>
+);
 
 export const BaseField = ({
   htmlFor,
@@ -63,12 +83,7 @@ export const BaseField = ({
 
       {children}
 
-      {hint && <p id={`${htmlFor}-hint`}>{hint}</p>}
-      {error && (
-        <p id={`${htmlFor}-error`} role="alert">
-          {error}
-        </p>
-      )}
+      <FieldMessages htmlFor={htmlFor} hint={hint} error={error} />
     </InputGroupField>
   );
 };

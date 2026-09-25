@@ -201,6 +201,18 @@ describe('Fields Base Components', () => {
       expect(hint).toHaveAttribute('id', 'campo-hint');
     });
 
+    it('renders the hint paragraph with the typographic and semantic-color classes', () => {
+      render(
+        <BaseField htmlFor="campo" label="Campo" hint="Texto de apoio">
+          <input type="text" id="campo" />
+        </BaseField>
+      );
+      const hint = screen.getByText('Texto de apoio');
+      expect(hint).toHaveClass('mt-1');
+      expect(hint).toHaveClass('text-sm');
+      expect(hint).toHaveClass('text-muted');
+    });
+
     it('does not render the hint paragraph when hint is absent (default preserved)', () => {
       const { container } = render(
         <BaseField htmlFor="campo" label="Campo">
@@ -219,6 +231,18 @@ describe('Fields Base Components', () => {
       const error = screen.getByRole('alert');
       expect(error).toHaveTextContent('Valor inválido');
       expect(error).toHaveAttribute('id', 'campo-error');
+    });
+
+    it('renders the error paragraph with the typographic and semantic-color classes', () => {
+      render(
+        <BaseField htmlFor="campo" label="Campo" error="Valor inválido">
+          <input type="text" id="campo" />
+        </BaseField>
+      );
+      const error = screen.getByRole('alert');
+      expect(error).toHaveClass('mt-1');
+      expect(error).toHaveClass('text-sm');
+      expect(error).toHaveClass('text-error');
     });
 
     it('does not render the error paragraph when error is absent (default preserved)', () => {

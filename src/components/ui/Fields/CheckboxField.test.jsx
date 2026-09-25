@@ -521,6 +521,44 @@ describe('CheckboxField', () => {
       expect(checkbox).toHaveAttribute('aria-describedby', 'ativo-hint');
     });
 
+    it('renders the hint paragraph with the typographic and semantic-color classes', () => {
+      const handleChange = jest.fn();
+      render(
+        <CheckboxField
+          htmlFor="ativo"
+          label="Ativo"
+          checked={false}
+          onChange={handleChange}
+          hint="Ainda não restringe o lançamento de aulas"
+        />
+      );
+      const hint = screen.getByText(
+        'Ainda não restringe o lançamento de aulas'
+      );
+      expect(hint).toHaveClass('mt-1');
+      expect(hint).toHaveClass('text-sm');
+      expect(hint).toHaveClass('text-muted');
+    });
+
+    it('places the hint paragraph below the checkbox+label row, not as its child', () => {
+      const handleChange = jest.fn();
+      const { container } = render(
+        <CheckboxField
+          htmlFor="ativo"
+          label="Ativo"
+          checked={false}
+          onChange={handleChange}
+          hint="Ainda não restringe o lançamento de aulas"
+        />
+      );
+      const row = container.querySelector('.flex.items-center');
+      const hint = screen.getByText(
+        'Ainda não restringe o lançamento de aulas'
+      );
+      expect(row.contains(hint)).toBe(false);
+      expect(hint.closest('.pl-6')).not.toBeNull();
+    });
+
     it('renders no hint node and no aria-describedby when hint is absent (default preserved)', () => {
       const handleChange = jest.fn();
       const { container } = render(
@@ -555,6 +593,40 @@ describe('CheckboxField', () => {
       expect(error).toHaveAttribute('id', 'ativo-error');
       expect(checkbox).toHaveAttribute('aria-invalid', 'true');
       expect(checkbox).toHaveAttribute('aria-describedby', 'ativo-error');
+    });
+
+    it('renders the error paragraph with the typographic and semantic-color classes', () => {
+      const handleChange = jest.fn();
+      render(
+        <CheckboxField
+          htmlFor="ativo"
+          label="Ativo"
+          checked={false}
+          onChange={handleChange}
+          error="Corrija o horário para ativar o dia"
+        />
+      );
+      const error = screen.getByRole('alert');
+      expect(error).toHaveClass('mt-1');
+      expect(error).toHaveClass('text-sm');
+      expect(error).toHaveClass('text-error');
+    });
+
+    it('places the error paragraph below the checkbox+label row, not as its child', () => {
+      const handleChange = jest.fn();
+      const { container } = render(
+        <CheckboxField
+          htmlFor="ativo"
+          label="Ativo"
+          checked={false}
+          onChange={handleChange}
+          error="Corrija o horário para ativar o dia"
+        />
+      );
+      const row = container.querySelector('.flex.items-center');
+      const error = screen.getByRole('alert');
+      expect(row.contains(error)).toBe(false);
+      expect(error.closest('.pl-6')).not.toBeNull();
     });
 
     it('renders no error node and no aria-invalid when error is absent (default preserved)', () => {
