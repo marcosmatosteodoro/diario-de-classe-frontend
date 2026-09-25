@@ -117,12 +117,11 @@ export const PainelFiltrosColapsavel = ({
   // de montado, os dois passam a refletir o valor real, sem flash visual — o
   // visual já deriva do atributo `data-panel-state`, não deste estado.
   const [hidratado, setHidratado] = useState(false);
-  // Achado do product-designer (TASK-002-004, severidade alta): o
-  // `overflow-hidden` abaixo (necessário para a transição de
-  // `grid-template-rows` ter efeito, per o comentário do outro `<div>`) corta
-  // a lista aberta de um combobox filho a poucos pixels de altura — só é
-  // seguro liberar (`overflow-visible`) quando o painel está aberto E PARADO;
-  // fechado ou em transição, o overflow continua obrigatório.
+  // Overflow só é liberado (`overflow-visible`) quando o painel está aberto
+  // E PARADO — fechado ou em transição, continua obrigatório (necessário
+  // para a transição de `grid-template-rows` ter efeito, per o comentário do
+  // outro `<div>`; sem isso, a lista aberta de um combobox filho corta a
+  // poucos pixels de altura).
   //
   // "Derivar estado durante o render" (padrão documentado do React, não um
   // efeito): comparar a prop `isOpen` contra o valor da renderização anterior
@@ -288,16 +287,14 @@ export const PainelFiltrosColapsavel = ({
         onTransitionEnd={handleTransitionEndConteudo}
         className="grid grid-rows-[1fr] visible transition-[grid-template-rows,visibility] duration-200 ease-in-out motion-reduce:transition-none group-data-[panel-state=recolhido]:grid-rows-[0fr] group-data-[panel-state=recolhido]:invisible"
       >
-        {/* `overflow-hidden` condicionado por CSS (variantes `group-data`,
-            nunca por classe computada em JS a partir de `isOpen` direto):
-            liberar via classe JS reintroduziria a MESMA divergência de
-            hidratação que `data-panel-state`/`aria-expanded` já resolvem —
-            `isOpen` pode divergir do default do servidor na primeira
-            renderização do cliente (localStorage lido sincronamente pelo
-            hook), enquanto os dois atributos de dado na raiz (`data-panel-
-            state`, `data-panel-transition`) concordam por construção nos
-            dois realms (o primeiro é corrigido pelo script anti-flash antes
-            da hidratação; o segundo nasce sempre `false`/ausente em ambos). */}
+        {/* `overflow-hidden` condicionado por CSS (variantes `group-data`),
+            nunca por classe computada em JS a partir de `isOpen` direto —
+            isso reintroduziria a mesma divergência de hidratação que os
+            atributos de dado na raiz (`data-panel-state`,
+            `data-panel-transition`) já resolvem: eles concordam por
+            construção nos dois realms, enquanto `isOpen` pode divergir do
+            default do servidor na primeira renderização do cliente
+            (localStorage lido sincronamente pelo hook). */}
         <div
           data-testid="painel-filtros-conteudo-overflow"
           className="group-data-[panel-state=recolhido]:overflow-hidden group-data-[panel-transition=ativa]:overflow-hidden"

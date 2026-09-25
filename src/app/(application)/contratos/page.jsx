@@ -9,10 +9,10 @@ import { ListPage } from '@/components';
 import { useAlunos } from '@/hooks/alunos/useAlunos';
 import { FILTER_PANEL_STORAGE_KEYS, STATUS } from '@/constants';
 
-// Mensagem fixa em pt-BR (nunca o `message` cru do slice, per achado do
-// product-designer, TASK-002-004): `alunosSlice.status` é compartilhado
-// entre ações (getAlunos, getAluno, createAluno, ...) — por isso o erro só é
-// afirmado quando a ação em curso é realmente `getAlunos`.
+// Mensagem fixa em pt-BR (nunca o `message` cru do slice):
+// `alunosSlice.status` é compartilhado entre ações (getAlunos, getAluno,
+// createAluno, ...) — por isso o erro só é afirmado quando a ação em curso
+// é realmente `getAlunos`.
 const ERRO_CARREGAR_ALUNOS =
   'Não foi possível carregar os alunos. Tente novamente.';
 

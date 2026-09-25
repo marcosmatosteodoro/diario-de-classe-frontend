@@ -1287,7 +1287,7 @@ describe('PainelFiltrosColapsavel', () => {
       });
     });
 
-    describe('TASK-002-004 (achado do product-designer): overflow liberado só quando aberto E parado', () => {
+    describe('overflow liberado só quando aberto E parado', () => {
       // As classes `group-data-[...]:overflow-hidden` são tokens ESTÁTICOS,
       // sempre presentes no markup (nos dois realms) — o que varia é só o
       // ATRIBUTO na raiz que a variante casa contra. Por isso a prova

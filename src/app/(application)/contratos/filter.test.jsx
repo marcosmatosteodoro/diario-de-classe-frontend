@@ -57,11 +57,10 @@ jest.mock('@/components', () => ({
   // label, options, onChange no formato { target: { name, value } }), mas
   // sem <select>/<option> nativos — reflete o widget combobox real
   // (SearchableSelectField exibe o rótulo resolvido, não o id bruto).
-  // Contrato espelhado do componente real (achado do code-reviewer,
-  // TASK-002-004): `onChange` só dispara ao selecionar uma opção ou ao
-  // limpar — nunca ao digitar no campo de busca (o input de busca do
-  // componente real só atualiza `query`, estado interno, em
-  // `handleInputChange`) — e a comparação `value`↔`option.value` usa
+  // Contrato espelhado do componente real: `onChange` só dispara ao
+  // selecionar uma opção ou ao limpar — nunca ao digitar no campo de busca
+  // (o input de busca do componente real só atualiza `query`, estado
+  // interno, em `handleInputChange`) — e a comparação `value`↔`option.value` usa
   // igualdade estrita, sem coerção (`Aluno.id` é `String @default(cuid())`
   // no schema Prisma: o domínio já entrega string dos dois lados).
   SearchableSelectField: ({
@@ -148,10 +147,7 @@ describe('Filter Component', () => {
     idioma: '',
     idAluno: '',
   };
-  // `Aluno.id` é `String @default(cuid())` no schema Prisma — fixture usa o
-  // tipo real do domínio, nunca id numérico (achado do code-reviewer,
-  // TASK-002-004: a comparação `value`↔`option.value` do estande usa
-  // igualdade estrita, sem coerção).
+  // Aluno.id é String @default(cuid()) — fixture usa o tipo real
   const mockAlunos = [
     { id: 'cuid-aluno-1', nome: 'João Silva', email: 'joao@email.com' },
     { id: 'cuid-aluno-2', nome: 'Maria Santos', email: 'maria@email.com' },
@@ -408,7 +404,7 @@ describe('Filter Component', () => {
       });
     });
 
-    it('digitar no campo de busca NUNCA chama handleChange — só a seleção de uma opção ou o botão de limpar disparam (achado do code-reviewer, TASK-002-004)', () => {
+    it('digitar no campo de busca NUNCA chama handleChange — só a seleção de uma opção ou o botão de limpar disparam', () => {
       render(
         <Filter
           handleSubmit={mockHandleSubmit}
@@ -539,7 +535,7 @@ describe('Filter Component', () => {
     });
   });
 
-  describe('isLoading/errorMessage wiring (achado do product-designer, TASK-002-004)', () => {
+  describe('isLoading/errorMessage wiring', () => {
     it('com isLoadingAlunos=true, o SearchableSelectField recebe isLoading (indicador de carregamento, não "nenhum resultado")', () => {
       render(
         <Filter

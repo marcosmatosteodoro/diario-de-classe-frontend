@@ -98,7 +98,7 @@ describe('Contratos — fiação real do painel colapsável (AC-001-012/021)', (
   });
 });
 
-describe('Contratos — isLoading/errorMessage de useAlunos() chegam ao SearchableSelectField real (achado do product-designer, TASK-002-004)', () => {
+describe('Contratos — isLoading/errorMessage de useAlunos() chegam ao SearchableSelectField real', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
