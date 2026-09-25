@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import Configuracao from './page';
 import { useUserAuth } from '@/providers/UserAuthProvider';
+import { useUnsavedChangesGuard } from '@/providers/UnsavedChangesGuardProvider';
 import { useConfiguracao } from '@/hooks/configuracoes/useConfiguracao';
 import { useConfiguracaoForm } from '@/hooks/configuracoes/useConfiguracaoForm';
 
@@ -8,6 +9,7 @@ jest.mock('next/navigation', () => ({
   notFound: jest.fn(),
 }));
 jest.mock('@/providers/UserAuthProvider');
+jest.mock('@/providers/UnsavedChangesGuardProvider');
 jest.mock('@/hooks/configuracoes/useConfiguracao');
 jest.mock('@/hooks/configuracoes/useConfiguracaoForm');
 
@@ -66,6 +68,9 @@ const ORDEM_CANONICA_LABELS = [
 ];
 
 describe('Configuracao Page', () => {
+  let setGuard;
+  let clearGuard;
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -86,10 +91,19 @@ describe('Configuracao Page', () => {
         tolerancia: 10,
         diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
       },
+      isDirty: false,
       handleChange: jest.fn(),
       handleSubmit: jest.fn(),
       handleDiasDeFuncionamentoChange: jest.fn(),
       isLoading: false,
+    });
+
+    setGuard = jest.fn();
+    clearGuard = jest.fn();
+    useUnsavedChangesGuard.mockReturnValue({
+      setGuard,
+      clearGuard,
+      confirmNavigation: () => true,
     });
   });
 
@@ -275,6 +289,43 @@ describe('Configuracao Page', () => {
           expect(inputHoraFinal.value).toBe(horaFinal);
         }
       );
+    });
+  });
+
+  describe('AC-001-005: guard de navegação registrado a partir de isDirty', () => {
+    const mockUseConfiguracaoForm = isDirty => ({
+      formData: {
+        duracaoAula: 40,
+        tolerancia: 10,
+        diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
+      },
+      isDirty,
+      handleChange: jest.fn(),
+      handleSubmit: jest.fn(),
+      handleDiasDeFuncionamentoChange: jest.fn(),
+      isLoading: false,
+    });
+
+    it('registra o guard refletindo isDirty a cada mudança, e limpa no cleanup do efeito e no unmount', () => {
+      useConfiguracaoForm.mockReturnValue(mockUseConfiguracaoForm(false));
+
+      const { rerender, unmount } = render(<Configuracao />);
+
+      expect(setGuard).toHaveBeenCalledTimes(1);
+      expect(setGuard.mock.calls[0][0]()).toBe(false);
+      expect(clearGuard).not.toHaveBeenCalled();
+
+      useConfiguracaoForm.mockReturnValue(mockUseConfiguracaoForm(true));
+      rerender(<Configuracao />);
+
+      // Cleanup do efeito anterior roda antes de registrar o novo guard —
+      // nunca deixa o guard antigo (isDirty obsoleto) apontado.
+      expect(clearGuard).toHaveBeenCalledTimes(1);
+      expect(setGuard).toHaveBeenCalledTimes(2);
+      expect(setGuard.mock.calls[1][0]()).toBe(true);
+
+      unmount();
+      expect(clearGuard).toHaveBeenCalledTimes(2);
     });
   });
 });

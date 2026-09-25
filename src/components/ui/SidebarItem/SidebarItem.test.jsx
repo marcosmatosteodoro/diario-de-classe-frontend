@@ -1,6 +1,11 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
 import { SidebarItem } from './index';
+
+jest.mock('next/navigation', () => ({ useRouter: jest.fn() }));
+jest.mock('@/providers/UnsavedChangesGuardProvider', () => ({
+  useUnsavedChangesGuard: jest.fn(),
+}));
 
 // Mock básico do componente
 const defaultProps = {
@@ -12,6 +17,14 @@ const defaultProps = {
 };
 
 describe('SidebarItem', () => {
+  beforeEach(() => {
+    require('next/navigation').useRouter.mockReturnValue({ push: jest.fn() });
+    // Default: sem guard registrado — regressão, navega direto.
+    require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
+      { confirmNavigation: () => true }
+    );
+  });
+
   it('should render label and icon', () => {
     const { getByText, getByTestId } = render(
       <SidebarItem {...defaultProps} />
@@ -86,5 +99,78 @@ describe('SidebarItem', () => {
     );
     fireEvent.click(getByRole('link'));
     expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  describe('AC-001-005: guard de alteração não salva na navegação', () => {
+    it('sem guard registrado, navega direto sem interceptar o clique (regressão)', () => {
+      const pushMock = jest.fn();
+      require('next/navigation').useRouter.mockReturnValue({ push: pushMock });
+
+      const { getByRole } = render(<SidebarItem {...defaultProps} />);
+      const evento = fireEvent.click(getByRole('link'));
+
+      // `fireEvent` devolve `false` quando algum handler chamou
+      // `preventDefault` — sem guard, a navegação nativa do <Link> segue,
+      // então o evento não é prevenido e a navegação programática não roda.
+      expect(evento).toBe(true);
+      expect(pushMock).not.toHaveBeenCalled();
+    });
+
+    it('com guard e alteração pendente, impede a navegação nativa e só navega programaticamente após confirmar', async () => {
+      let resolveConfirmacao;
+      const confirmNavigation = jest.fn(
+        () =>
+          new Promise(resolve => {
+            resolveConfirmacao = resolve;
+          })
+      );
+      require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
+        { confirmNavigation }
+      );
+      const pushMock = jest.fn();
+      require('next/navigation').useRouter.mockReturnValue({ push: pushMock });
+
+      const { getByRole } = render(
+        <SidebarItem {...defaultProps} href="/alunos" />
+      );
+      const evento = fireEvent.click(getByRole('link'));
+
+      expect(evento).toBe(false);
+      expect(pushMock).not.toHaveBeenCalled();
+
+      await act(async () => {
+        resolveConfirmacao(true);
+        await Promise.resolve();
+      });
+
+      expect(pushMock).toHaveBeenCalledWith('/alunos');
+    });
+
+    it('com guard e alteração pendente, cancelar a confirmação mantém o administrador na tela (sem navegar)', async () => {
+      let resolveConfirmacao;
+      const confirmNavigation = jest.fn(
+        () =>
+          new Promise(resolve => {
+            resolveConfirmacao = resolve;
+          })
+      );
+      require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
+        { confirmNavigation }
+      );
+      const pushMock = jest.fn();
+      require('next/navigation').useRouter.mockReturnValue({ push: pushMock });
+
+      const { getByRole } = render(
+        <SidebarItem {...defaultProps} href="/alunos" />
+      );
+      fireEvent.click(getByRole('link'));
+
+      await act(async () => {
+        resolveConfirmacao(false);
+        await Promise.resolve();
+      });
+
+      expect(pushMock).not.toHaveBeenCalled();
+    });
   });
 });

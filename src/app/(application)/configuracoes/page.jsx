@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
 import { notFound } from 'next/navigation';
 import { useUserAuth } from '@/providers/UserAuthProvider';
+import { useUnsavedChangesGuard } from '@/providers/UnsavedChangesGuardProvider';
 import { useConfiguracao } from '@/hooks/configuracoes/useConfiguracao';
 import { useConfiguracaoForm } from '@/hooks/configuracoes/useConfiguracaoForm';
 import {
@@ -31,6 +33,7 @@ export default function Configuracao() {
     useConfiguracao();
   const {
     formData,
+    isDirty,
     handleChange,
     handleSubmit,
     handleDiasDeFuncionamentoChange,
@@ -38,6 +41,16 @@ export default function Configuracao() {
     submit,
     configuracao,
   });
+  const { setGuard, clearGuard } = useUnsavedChangesGuard();
+
+  // Mantém o guard de navegação sempre refletindo o `isDirty` atual — a
+  // limpeza (cleanup) roda tanto antes de cada reexecução do efeito quanto no
+  // unmount do componente, cobrindo os dois pontos exigidos pelos critérios
+  // de pronto com um único efeito.
+  useEffect(() => {
+    setGuard(() => isDirty);
+    return () => clearGuard();
+  }, [isDirty, setGuard, clearGuard]);
 
   if (currentUser && !isAdmin()) {
     return notFound();

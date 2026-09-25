@@ -1,4 +1,4 @@
-import { render, fireEvent, screen } from '@testing-library/react';
+import { render, fireEvent, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Header } from './index';
 import { ThemeProvider } from '@/providers/ThemeProvider';
@@ -10,6 +10,9 @@ jest.mock('next/image', () => {
   return MockImage;
 });
 jest.mock('@/hooks/auth/useLogout', () => ({ useLogout: jest.fn() }));
+jest.mock('@/providers/UnsavedChangesGuardProvider', () => ({
+  useUnsavedChangesGuard: jest.fn(),
+}));
 
 describe('Header Component', () => {
   let logoutUserMock;
@@ -18,6 +21,10 @@ describe('Header Component', () => {
     require('@/hooks/auth/useLogout').useLogout.mockReturnValue({
       logoutUser: logoutUserMock,
     });
+    // Default: sem guard registrado — regressão, navega/desloga direto.
+    require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
+      { confirmNavigation: () => true }
+    );
     localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
   });
@@ -164,6 +171,75 @@ describe('Header Component', () => {
 
       await user.keyboard(' ');
       expect(toggleSidebar).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('AC-001-005: guard de alteração não salva no botão "Sair"', () => {
+    it('sem guard registrado, desloga direto sem aguardar nada (regressão)', () => {
+      render(
+        <ThemeProvider>
+          <Header />
+        </ThemeProvider>
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Sair' }));
+      expect(logoutUserMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('com guard e alteração pendente, aguarda a escolha do administrador antes de deslogar', async () => {
+      let resolveConfirmacao;
+      const confirmNavigation = jest.fn(
+        () =>
+          new Promise(resolve => {
+            resolveConfirmacao = resolve;
+          })
+      );
+      require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
+        { confirmNavigation }
+      );
+
+      render(
+        <ThemeProvider>
+          <Header />
+        </ThemeProvider>
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Sair' }));
+
+      expect(confirmNavigation).toHaveBeenCalled();
+      expect(logoutUserMock).not.toHaveBeenCalled();
+
+      await act(async () => {
+        resolveConfirmacao(true);
+        await Promise.resolve();
+      });
+
+      expect(logoutUserMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('com guard e alteração pendente, cancelar a confirmação mantém o administrador logado', async () => {
+      let resolveConfirmacao;
+      const confirmNavigation = jest.fn(
+        () =>
+          new Promise(resolve => {
+            resolveConfirmacao = resolve;
+          })
+      );
+      require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
+        { confirmNavigation }
+      );
+
+      render(
+        <ThemeProvider>
+          <Header />
+        </ThemeProvider>
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Sair' }));
+
+      await act(async () => {
+        resolveConfirmacao(false);
+        await Promise.resolve();
+      });
+
+      expect(logoutUserMock).not.toHaveBeenCalled();
     });
   });
 });

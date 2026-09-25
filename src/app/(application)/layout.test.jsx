@@ -32,6 +32,15 @@ jest.mock('@/components', () => ({
   Loading: () => <div data-testid="loading" />,
 }));
 
+// Sem este mock, `jest.resetModules()` (usado abaixo) força um segundo
+// `require('react')` ao reexigir `./layout`, e o provider real (que usa
+// hooks) acaba rodando sob uma instância de React diferente da já montada —
+// "Invalid hook call". O provider em si é coberto por
+// `UnsavedChangesGuardProvider.test.jsx`; aqui basta a passagem de children.
+jest.mock('@/providers/UnsavedChangesGuardProvider', () => ({
+  UnsavedChangesGuardProvider: ({ children }) => children,
+}));
+
 describe('ApplicationLayout', () => {
   it('renderiza todos os componentes principais', () => {
     render(
