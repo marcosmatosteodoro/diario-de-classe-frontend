@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import EditarPerfil from './page';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 import { ProfessorForm } from '@/components';
+import { IDIOMA } from '@/constants';
 
 jest.mock('@/providers/UserAuthProvider');
 jest.mock('@/hooks/professores/useEditarProfessor');
@@ -14,6 +15,8 @@ const {
 const { useProfessorForm } = require('@/hooks/professores/useProfessorForm');
 
 describe('Editar Perfil Page', () => {
+  const mockSetFormData = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -29,7 +32,7 @@ describe('Editar Perfil Page', () => {
       message: null,
       errors: null,
       isLoading: false,
-      current: { id: 1, nome: 'Professor' },
+      current: { id: 1, nome: 'Professor', idiomas: [IDIOMA.INGLES] },
       statusError: null,
       submit: jest.fn(),
     });
@@ -39,7 +42,7 @@ describe('Editar Perfil Page', () => {
       isSenhaError: false,
       handleChange: jest.fn(),
       handleSubmit: jest.fn(),
-      setFormData: jest.fn(),
+      setFormData: mockSetFormData,
       alterarSenhaAtivo: false,
       handleAlterarSenha: jest.fn(),
       handleCancelarAlteracaoSenha: jest.fn(),
@@ -103,5 +106,51 @@ describe('Editar Perfil Page', () => {
     expect(props.handleCancelarAlteracaoSenha).toBe(
       mockHandleCancelarAlteracaoSenha
     );
+  });
+
+  // Convergência de fecho (gap 2, FR-001-006/AC-001-004): deriva idioma/idiomas
+  // de current.idiomas exatamente como professores/[id]/editar/page.jsx.
+  it('derives idioma and idiomas from current.idiomas', async () => {
+    useEditarProfessor.mockReturnValue({
+      message: null,
+      errors: null,
+      isLoading: false,
+      current: { id: 1, nome: 'Professor', idiomas: [IDIOMA.ESPANHOL] },
+      statusError: null,
+      submit: jest.fn(),
+    });
+
+    render(<EditarPerfil />);
+
+    await waitFor(() => {
+      expect(mockSetFormData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          idioma: IDIOMA.ESPANHOL,
+          idiomas: [IDIOMA.ESPANHOL],
+        })
+      );
+    });
+  });
+
+  it('defaults idioma to IDIOMA.INGLES when current has no idiomas', async () => {
+    useEditarProfessor.mockReturnValue({
+      message: null,
+      errors: null,
+      isLoading: false,
+      current: { id: 1, nome: 'Professor', idiomas: [] },
+      statusError: null,
+      submit: jest.fn(),
+    });
+
+    render(<EditarPerfil />);
+
+    await waitFor(() => {
+      expect(mockSetFormData).toHaveBeenCalledWith(
+        expect.objectContaining({
+          idioma: IDIOMA.INGLES,
+          idiomas: [IDIOMA.INGLES],
+        })
+      );
+    });
   });
 });

@@ -7,6 +7,7 @@ import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useEditarProfessor } from '@/hooks/professores/useEditarProfessor';
 import { useProfessorForm } from '@/hooks/professores/useProfessorForm';
 import { STATUS_ERROR } from '@/constants/statusError';
+import { IDIOMA } from '@/constants';
 import {
   ButtonGroup,
   PageContent,
@@ -37,6 +38,8 @@ export default function EditarProfessor() {
         ...current,
         senha: '',
         repetirSenha: '',
+        idioma: current?.idiomas.length ? current.idiomas[0] : IDIOMA.INGLES,
+        idiomas: current?.idiomas.length ? current.idiomas : [IDIOMA.INGLES],
       });
     }
   }, [current, setFormData]);
