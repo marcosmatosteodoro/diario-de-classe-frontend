@@ -35,11 +35,7 @@ export default function Configuracao() {
   const {
     formData,
     isDirty,
-    errosValidacao = {
-      duracaoAula: undefined,
-      tolerancia: undefined,
-      diasDeFuncionamento: {},
-    },
+    errosValidacao,
     handleChange,
     handleSubmit,
     handleDiasDeFuncionamentoChange,

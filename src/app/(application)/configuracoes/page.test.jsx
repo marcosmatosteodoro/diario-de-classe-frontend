@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent } from '@testing-library/react';
 import Configuracao from './page';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useUnsavedChangesGuard } from '@/providers/UnsavedChangesGuardProvider';
@@ -11,7 +11,17 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/providers/UserAuthProvider');
 jest.mock('@/providers/UnsavedChangesGuardProvider');
 jest.mock('@/hooks/configuracoes/useConfiguracao');
-jest.mock('@/hooks/configuracoes/useConfiguracaoForm');
+// O mock ENVOLVE a implementação real (`jest.requireActual`), nunca a reimplementa —
+// lição `[Testes] Mock que copia a chamada, e não o contrato, fica verde sobre o bug`.
+// Testes que precisam da lógica real (validação/foco/derivação de erro do formData
+// atual) não chamam `mockReturnValue` e usam a implementação real por baixo; os demais
+// continuam sobrescrevendo com `mockReturnValue` como antes.
+jest.mock('@/hooks/configuracoes/useConfiguracaoForm', () => {
+  const real = jest.requireActual('@/hooks/configuracoes/useConfiguracaoForm');
+  return {
+    useConfiguracaoForm: jest.fn(real.useConfiguracaoForm),
+  };
+});
 
 const { notFound } = require('next/navigation');
 
@@ -57,6 +67,12 @@ const DIAS_DE_FUNCIONAMENTO_EMBARALHADOS = [
   },
 ];
 
+const ERROS_VALIDACAO_VAZIO = {
+  duracaoAula: undefined,
+  tolerancia: undefined,
+  diasDeFuncionamento: {},
+};
+
 const ORDEM_CANONICA_LABELS = [
   'Segunda-feira',
   'Terça-feira',
@@ -92,6 +108,7 @@ describe('Configuracao Page', () => {
         diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
       },
       isDirty: false,
+      errosValidacao: ERROS_VALIDACAO_VAZIO,
       handleChange: jest.fn(),
       handleSubmit: jest.fn(),
       handleDiasDeFuncionamentoChange: jest.fn(),
@@ -300,6 +317,7 @@ describe('Configuracao Page', () => {
         diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
       },
       isDirty,
+      errosValidacao: ERROS_VALIDACAO_VAZIO,
       handleChange: jest.fn(),
       handleSubmit: jest.fn(),
       handleDiasDeFuncionamentoChange: jest.fn(),
@@ -334,11 +352,7 @@ describe('Configuracao Page', () => {
   });
 
   describe('erro junto ao campo/dia (TASK-002-006)', () => {
-    const errosValidacaoVazio = {
-      duracaoAula: undefined,
-      tolerancia: undefined,
-      diasDeFuncionamento: {},
-    };
+    const errosValidacaoVazio = ERROS_VALIDACAO_VAZIO;
 
     it('exibe a mensagem de erro de validação junto ao campo duracaoAula, sem afetar tolerancia (AC-001-006)', () => {
       useConfiguracaoForm.mockReturnValue({
@@ -514,5 +528,276 @@ describe('Configuracao Page', () => {
         );
       });
     });
+
+    it('erro de horaInicial de um dia aparece na descrição acessível do próprio input, sem aparecer na horaFinal do mesmo dia (retry wave 4, mata M1)', () => {
+      useConfiguracaoForm.mockReturnValue({
+        formData: {
+          duracaoAula: 40,
+          tolerancia: 10,
+          diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
+        },
+        isDirty: true,
+        errosValidacao: {
+          ...errosValidacaoVazio,
+          diasDeFuncionamento: {
+            SEGUNDA: {
+              horaInicial: 'Informe um horário no formato HH:MM.',
+              horaFinal: undefined,
+            },
+          },
+        },
+        handleChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        handleDiasDeFuncionamentoChange: jest.fn(),
+      });
+
+      const { container } = render(<Configuracao />);
+
+      const horaInicialSegunda = container.querySelector(
+        'input[name="SEGUNDA.horaInicial"]'
+      );
+      const horaFinalSegunda = container.querySelector(
+        'input[name="SEGUNDA.horaFinal"]'
+      );
+      expect(horaInicialSegunda).toHaveAccessibleDescription(
+        /Informe um horário no formato HH:MM/
+      );
+      expect(horaFinalSegunda).not.toHaveAccessibleDescription(
+        /Informe um horário no formato HH:MM/
+      );
+    });
+
+    it('erro client-side de tolerância aparece na tolerância, sem aparecer na duração (retry wave 4, mata M2)', () => {
+      useConfiguracaoForm.mockReturnValue({
+        formData: {
+          duracaoAula: 40,
+          tolerancia: '',
+          diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
+        },
+        isDirty: true,
+        errosValidacao: {
+          ...errosValidacaoVazio,
+          tolerancia: 'Campo obrigatório',
+        },
+        handleChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        handleDiasDeFuncionamentoChange: jest.fn(),
+      });
+
+      render(<Configuracao />);
+
+      expect(
+        screen.getByLabelText(/Tolerância de Atraso/i)
+      ).toHaveAccessibleDescription(/Campo obrigatório/);
+      expect(
+        screen.getByLabelText(/Duração da Aula/i)
+      ).not.toHaveAccessibleDescription(/Campo obrigatório/);
+    });
+
+    it('erro client e servidor no mesmo campo: a mensagem client prevalece (carona M3)', () => {
+      useConfiguracao.mockReturnValue({
+        configuracao: { id: 1, diasTrabalho: 5 },
+        isLoading: false,
+        isNotFound: false,
+        message: 'Erro de validação',
+        errors: ['duracaoAula: mensagem do servidor'],
+      });
+      useConfiguracaoForm.mockReturnValue({
+        formData: {
+          duracaoAula: '',
+          tolerancia: 10,
+          diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
+        },
+        isDirty: true,
+        errosValidacao: {
+          ...errosValidacaoVazio,
+          duracaoAula: 'Campo obrigatório',
+        },
+        handleChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        handleDiasDeFuncionamentoChange: jest.fn(),
+      });
+
+      render(<Configuracao />);
+
+      expect(
+        screen.getByLabelText(/Duração da Aula/i)
+      ).toHaveAccessibleDescription(/Campo obrigatório/);
+      expect(
+        screen.getByLabelText(/Duração da Aula/i)
+      ).not.toHaveAccessibleDescription(/mensagem do servidor/);
+    });
+
+    it('erro de servidor em tolerância (sem erro client) aparece na tolerância (carona M4)', () => {
+      useConfiguracao.mockReturnValue({
+        configuracao: { id: 1, diasTrabalho: 5 },
+        isLoading: false,
+        isNotFound: false,
+        message: 'Erro de validação',
+        errors: ['tolerancia: Não pode ser zero'],
+      });
+      useConfiguracaoForm.mockReturnValue({
+        formData: {
+          duracaoAula: 40,
+          tolerancia: 0,
+          diasDeFuncionamento: DIAS_DE_FUNCIONAMENTO_EMBARALHADOS,
+        },
+        isDirty: true,
+        errosValidacao: errosValidacaoVazio,
+        handleChange: jest.fn(),
+        handleSubmit: jest.fn(),
+        handleDiasDeFuncionamentoChange: jest.fn(),
+      });
+
+      render(<Configuracao />);
+
+      expect(
+        screen.getByLabelText(/Tolerância de Atraso/i)
+      ).toHaveAccessibleDescription(/Não pode ser zero/);
+    });
+  });
+});
+
+describe('Configuracao Page — erros refletem o formData atual, nunca uma foto do submit (retry wave 4, gate 11)', () => {
+  // Todos os dias válidos, exceto DOMINGO: inativo, com horaFinal <= horaInicial
+  // (estado residual plausível — dia foi desativado sem limpar o horário).
+  const diasComDomingoInvalido = [
+    {
+      diaSemana: 'SEGUNDA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+    {
+      diaSemana: 'TERCA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+    {
+      diaSemana: 'QUARTA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+    {
+      diaSemana: 'QUINTA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+    {
+      diaSemana: 'SEXTA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+    {
+      diaSemana: 'SABADO',
+      ativo: false,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+    {
+      diaSemana: 'DOMINGO',
+      ativo: false,
+      horaInicial: '10:00',
+      horaFinal: '09:00',
+    },
+  ];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    // Testes anteriores fixam useConfiguracaoForm.mockReturnValue(...); clearAllMocks()
+    // não desfaz a implementação mockada (só limpa calls/results) — força de volta a
+    // implementação real para este describe, que depende dela.
+    useConfiguracaoForm.mockImplementation(
+      jest.requireActual('@/hooks/configuracoes/useConfiguracaoForm')
+        .useConfiguracaoForm
+    );
+
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, nome: 'Professor' },
+      isAdmin: () => true,
+    });
+
+    useUnsavedChangesGuard.mockReturnValue({
+      setGuard: jest.fn(),
+      clearGuard: jest.fn(),
+      confirmNavigation: () => true,
+    });
+  });
+
+  it('dia inativo com hora inválida → "Ative o dia…"; marcar Ativo → vira formato/ordem; corrigir → some', () => {
+    const submitMock = jest.fn();
+    useConfiguracao.mockReturnValue({
+      configuracao: {
+        id: 1,
+        duracaoAula: 50,
+        tolerancia: 10,
+        diasDeFuncionamento: diasComDomingoInvalido,
+      },
+      isLoading: false,
+      isNotFound: false,
+      submit: submitMock,
+    });
+
+    const { container } = render(<Configuracao />);
+
+    // 1ª tentativa de salvar: dia inativo com hora inválida → orientação de ativar
+    fireEvent.submit(container.querySelector('form'));
+
+    const horaFinalDomingo = container.querySelector(
+      'input[name="DOMINGO.horaFinal"]'
+    );
+    expect(horaFinalDomingo).toHaveAccessibleDescription(
+      /Ative o dia para corrigir as horas/
+    );
+    expect(submitMock).not.toHaveBeenCalled();
+
+    // Marca o dia como Ativo (sem submeter de novo): a mensagem é derivada do
+    // formData atual, não uma foto do submit anterior — "Ative o dia" some e vira
+    // a mensagem de formato/ordem (as horas continuam com horaFinal <= horaInicial)
+    fireEvent.click(container.querySelector('input[name="DOMINGO.ativo"]'));
+
+    expect(horaFinalDomingo).not.toHaveAccessibleDescription(
+      /Ative o dia para corrigir as horas/
+    );
+    expect(horaFinalDomingo).toHaveAccessibleDescription(
+      /A hora final deve ser maior que a hora inicial/
+    );
+
+    // Corrige a hora final: o erro some
+    fireEvent.change(horaFinalDomingo, { target: { value: '11:00' } });
+
+    expect(horaFinalDomingo).not.toHaveAccessibleDescription(
+      /A hora final deve ser maior que a hora inicial/
+    );
+    expect(horaFinalDomingo).not.toHaveAttribute('aria-invalid', 'true');
+  });
+
+  it('antes do 1º Salvar, digitar um valor inválido não mostra erro (lado legítimo)', () => {
+    useConfiguracao.mockReturnValue({
+      configuracao: {
+        id: 1,
+        duracaoAula: 50,
+        tolerancia: 10,
+        diasDeFuncionamento: diasComDomingoInvalido,
+      },
+      isLoading: false,
+      isNotFound: false,
+      submit: jest.fn(),
+    });
+
+    render(<Configuracao />);
+
+    fireEvent.change(screen.getByLabelText(/Duração da Aula/i), {
+      target: { value: '' },
+    });
+
+    expect(
+      screen.getByLabelText(/Duração da Aula/i)
+    ).not.toHaveAccessibleDescription(/Campo obrigatório/);
   });
 });

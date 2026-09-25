@@ -1,7 +1,6 @@
 // Espelha (client-side) as regras de
 // diario-de-classe-backend/src/middlewares/configuracao/validateUpdateConfiguracao.js:14-90
-// (DEC-002-001: backend intocado). O molde foi lido do arquivo real do backend, não da
-// prosa do PLAN/SPEC:
+// (DEC-002-001: backend intocado):
 // - duracaoAula/tolerancia: ValidateData.require().isNumber().isPositive().notZero() —
 //   literais em `validateData.js` (isNumber:56-67, isPositive:283-297, notZero:312-326).
 // - diasDeFuncionamento: regex `^([01]\d|2[0-3]):([0-5]\d)$` (horaInicialIsValid:50,
@@ -122,14 +121,21 @@ export function validarConfiguracao(formData) {
  * o middleware valida o array inteiro, sem indicar o dia, RISK-001-002) não é mapeado:
  * permanece no `FormError` genérico, sem mudança (FR-001-020).
  *
+ * `errors` fora do contrato (não-array, ou item que não é string) é tolerado: item
+ * inválido é ignorado, `errors` não-array devolve mapa vazio — nunca lança.
+ *
  * @param {string[]} errors
  * @returns {{ duracaoAula?: string, tolerancia?: string }}
  */
 export function mapearErroServidorPorCampo(errors = []) {
+  if (!Array.isArray(errors)) return {};
+
   const CAMPOS_MAPEAVEIS = ['duracaoAula', 'tolerancia'];
   const mapa = {};
 
   errors.forEach(erro => {
+    if (typeof erro !== 'string') return;
+
     const indiceSeparador = erro.indexOf(': ');
     if (indiceSeparador === -1) return;
 

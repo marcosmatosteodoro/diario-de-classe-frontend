@@ -77,7 +77,12 @@ describe('useConfiguracaoForm', () => {
       result.current.handleSubmit(fakeEvent);
     });
     expect(fakeEvent.preventDefault).toHaveBeenCalled();
-    expect(submitMock).toHaveBeenCalledWith(result.current.formData);
+    // duracaoAula/tolerancia convertidos para number no payload (contrato Prisma Int)
+    expect(submitMock).toHaveBeenCalledWith({
+      ...result.current.formData,
+      duracaoAula: 50,
+      tolerancia: 10,
+    });
   });
 });
 
@@ -421,5 +426,170 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
 
     expect(submitMock).toHaveBeenCalledTimes(1);
     expect(result.current.errosValidacao.tolerancia).toBeUndefined();
+  });
+
+  it.each([
+    [
+      'só horaInicial inválida',
+      { target: { name: 'TERCA.horaInicial', value: '8:00' } },
+    ],
+    [
+      'só horaFinal inválida',
+      { target: { name: 'TERCA.horaFinal', value: '25:00' } },
+    ],
+  ])(
+    'com %s em um dia, handleSubmit não chama submit() (retry wave 4, gate M5)',
+    (_descricao, evento) => {
+      const submitMock = jest.fn();
+      const { result } = renderHook(() =>
+        useConfiguracaoForm({ submit: submitMock, configuracao: configValida })
+      );
+
+      act(() => {
+        result.current.handleDiasDeFuncionamentoChange(evento);
+      });
+      act(() => {
+        result.current.handleSubmit(fakeEvent());
+      });
+
+      expect(submitMock).not.toHaveBeenCalled();
+    }
+  );
+
+  it('converte duracaoAula/tolerancia para number no payload de submit, mantendo o resto do formData igual (retry wave 4, decisão Tech Lead)', () => {
+    const submitMock = jest.fn();
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({ submit: submitMock, configuracao: configValida })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '55' },
+      });
+    });
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'tolerancia', value: '20' },
+      });
+    });
+    act(() => {
+      result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(submitMock).toHaveBeenCalledWith({
+      ...result.current.formData,
+      duracaoAula: 55,
+      tolerancia: 20,
+    });
+    expect(typeof submitMock.mock.calls[0][0].duracaoAula).toBe('number');
+    expect(typeof submitMock.mock.calls[0][0].tolerancia).toBe('number');
+  });
+});
+
+describe('useConfiguracaoForm — foco no primeiro campo inválido (retry wave 4, gate 11)', () => {
+  const diasCompletosParaFoco = [
+    {
+      diaSemana: 'SEGUNDA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+    {
+      diaSemana: 'TERCA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+    {
+      diaSemana: 'QUARTA',
+      ativo: false,
+      horaInicial: '10:00',
+      horaFinal: '09:00',
+    },
+    {
+      diaSemana: 'QUINTA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+    {
+      diaSemana: 'SEXTA',
+      ativo: true,
+      horaInicial: '08:00',
+      horaFinal: '18:00',
+    },
+    { diaSemana: 'SABADO', ativo: false, horaInicial: '', horaFinal: '' },
+    { diaSemana: 'DOMINGO', ativo: false, horaInicial: '', horaFinal: '' },
+  ];
+
+  const configComFoco = {
+    duracaoAula: 50,
+    tolerancia: 10,
+    diasDeFuncionamento: diasCompletosParaFoco,
+  };
+
+  const fakeEvent = () => ({ preventDefault: jest.fn() });
+
+  function montarInputsNoDom() {
+    document.body.innerHTML = `
+      <input id="duracaoAula" />
+      <input id="tolerancia" />
+      <input id="QUARTA.ativo" type="checkbox" />
+      <input id="TERCA.horaFinal" />
+    `;
+  }
+
+  beforeEach(() => {
+    montarInputsNoDom();
+  });
+
+  it('duracaoAula inválida move o foco para #duracaoAula', () => {
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({ submit: jest.fn(), configuracao: configComFoco })
+    );
+
+    act(() => {
+      result.current.handleChange({
+        target: { name: 'duracaoAula', value: '' },
+      });
+    });
+    act(() => {
+      result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(document.activeElement).toBe(document.getElementById('duracaoAula'));
+  });
+
+  it('hora inválida de um dia ativo move o foco para o input de hora desse dia', () => {
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({ submit: jest.fn(), configuracao: configComFoco })
+    );
+
+    act(() => {
+      result.current.handleDiasDeFuncionamentoChange({
+        target: { name: 'TERCA.horaFinal', value: '07:00' },
+      });
+    });
+    act(() => {
+      result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(document.activeElement).toBe(
+      document.getElementById('TERCA.horaFinal')
+    );
+  });
+
+  it('hora inválida de um dia inativo move o foco para o checkbox "ativo" desse dia', () => {
+    const { result } = renderHook(() =>
+      useConfiguracaoForm({ submit: jest.fn(), configuracao: configComFoco })
+    );
+
+    act(() => {
+      result.current.handleSubmit(fakeEvent());
+    });
+
+    expect(document.activeElement).toBe(
+      document.getElementById('QUARTA.ativo')
+    );
   });
 });

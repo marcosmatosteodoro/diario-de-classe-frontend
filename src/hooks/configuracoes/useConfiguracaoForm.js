@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { validarConfiguracao } from './validarConfiguracao';
+import { DIAS_ARRAY } from '@/constants';
 
 const CAMPOS_DIA_COMPARADOS = ['ativo', 'horaInicial', 'horaFinal'];
 
@@ -9,11 +10,6 @@ const ERROS_VALIDACAO_VAZIO = {
   diasDeFuncionamento: {},
 };
 
-/**
- * `true` quando `resultadoValidacao` (retorno de `validarConfiguracao`) tem alguma
- * mensagem de erro — em `duracaoAula`/`tolerancia` ou em algum dia de
- * `diasDeFuncionamento` (horaInicial ou horaFinal).
- */
 function temErroDeValidacao(resultadoValidacao) {
   if (resultadoValidacao.duracaoAula || resultadoValidacao.tolerancia) {
     return true;
@@ -22,6 +18,39 @@ function temErroDeValidacao(resultadoValidacao) {
   return Object.values(resultadoValidacao.diasDeFuncionamento).some(
     erroDia => erroDia.horaInicial || erroDia.horaFinal
   );
+}
+
+/**
+ * Move o foco para o primeiro campo inválido, na ordem visual da tela: duração →
+ * tolerância → os 7 dias em `DIAS_ARRAY`, horaInicial antes de horaFinal. Num dia
+ * inativo o input de hora fica `disabled` (não pode receber foco) — o alvo passa a ser
+ * o checkbox `${diaSemana}.ativo`, que é o campo que o usuário precisa acionar primeiro.
+ */
+function focarPrimeiroCampoInvalido(resultadoValidacao, diasDeFuncionamento) {
+  if (resultadoValidacao.duracaoAula) {
+    document.getElementById('duracaoAula')?.focus();
+    return;
+  }
+
+  if (resultadoValidacao.tolerancia) {
+    document.getElementById('tolerancia')?.focus();
+    return;
+  }
+
+  for (const diaSemana of DIAS_ARRAY) {
+    const erroDia = resultadoValidacao.diasDeFuncionamento[diaSemana];
+    if (!erroDia || (!erroDia.horaInicial && !erroDia.horaFinal)) continue;
+
+    const dia = diasDeFuncionamento.find(d => d.diaSemana === diaSemana);
+    if (dia && !dia.ativo) {
+      document.getElementById(`${diaSemana}.ativo`)?.focus();
+      return;
+    }
+
+    const campo = erroDia.horaInicial ? 'horaInicial' : 'horaFinal';
+    document.getElementById(`${diaSemana}.${campo}`)?.focus();
+    return;
+  }
 }
 
 /**
@@ -77,7 +106,7 @@ export function useConfiguracaoForm({ submit, configuracao = null }) {
     confirmacao: false,
   });
   const [ultimaLeitura, setUltimaLeitura] = useState(null);
-  const [errosValidacao, setErrosValidacao] = useState(ERROS_VALIDACAO_VAZIO);
+  const [tentouSalvar, setTentouSalvar] = useState(false);
 
   const handleChange = e => {
     const { name, value } = e.target;
@@ -111,21 +140,28 @@ export function useConfiguracaoForm({ submit, configuracao = null }) {
 
   const handleSubmit = async e => {
     e.preventDefault();
+    setTentouSalvar(true);
     const resultadoValidacao = validarConfiguracao(formData);
 
     if (temErroDeValidacao(resultadoValidacao)) {
-      setErrosValidacao(resultadoValidacao);
+      focarPrimeiroCampoInvalido(
+        resultadoValidacao,
+        formData.diasDeFuncionamento
+      );
       return;
     }
 
-    setErrosValidacao(ERROS_VALIDACAO_VAZIO);
-    const dataToSend = formData;
-    submit(dataToSend);
+    submit({
+      ...formData,
+      duracaoAula: Number(formData.duracaoAula),
+      tolerancia: Number(formData.tolerancia),
+    });
   };
 
   const restaurarUltimaLeitura = () => {
     if (!ultimaLeitura) return;
     setFormData({ ...ultimaLeitura, confirmacao: false });
+    setTentouSalvar(false);
   };
 
   useEffect(() => {
@@ -133,12 +169,22 @@ export function useConfiguracaoForm({ submit, configuracao = null }) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData({ ...configuracao, confirmacao: false });
       setUltimaLeitura(configuracao);
+      setTentouSalvar(false);
     }
   }, [configuracao]);
 
   const isDirty = useMemo(
     () => !formDataIgualUltimaLeitura(formData, ultimaLeitura),
     [formData, ultimaLeitura]
+  );
+
+  // Erros derivados do formData atual, não uma foto do momento do submit: editar um
+  // campo depois de uma tentativa recusada (ex.: ativar o dia, corrigir a hora) atualiza
+  // a mensagem exibida a cada render, sem exigir novo Salvar.
+  const errosValidacao = useMemo(
+    () =>
+      tentouSalvar ? validarConfiguracao(formData) : ERROS_VALIDACAO_VAZIO,
+    [tentouSalvar, formData]
   );
 
   return {

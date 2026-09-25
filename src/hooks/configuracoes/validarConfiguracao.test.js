@@ -207,4 +207,24 @@ describe('mapearErroServidorPorCampo', () => {
   it('array vazio devolve objeto vazio', () => {
     expect(mapearErroServidorPorCampo([])).toEqual({});
   });
+
+  describe('errors fora do contrato — tolerado, nunca lança (retry wave 4, carona gate 8)', () => {
+    it('errors como string (não-array) devolve objeto vazio', () => {
+      expect(
+        mapearErroServidorPorCampo('duracaoAula: Campo obrigatório')
+      ).toEqual({});
+    });
+
+    it('errors como objeto (não-array) devolve objeto vazio', () => {
+      expect(
+        mapearErroServidorPorCampo({ duracaoAula: 'Campo obrigatório' })
+      ).toEqual({});
+    });
+
+    it('item não-string dentro do array é ignorado, os demais itens válidos continuam mapeados', () => {
+      expect(
+        mapearErroServidorPorCampo([42, 'duracaoAula: Campo obrigatório'])
+      ).toEqual({ duracaoAula: 'Campo obrigatório' });
+    });
+  });
 });
