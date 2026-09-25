@@ -115,15 +115,13 @@ export const AulaForm = ({
     handleChange(e);
   };
 
-  // `useContratos()` zera `list` para `[]` tanto em `pending` quanto em
-  // `rejected` (`contratosSlice.js`) — sem checar
+  // `list` chega `[]` tanto em `pending` quanto em `rejected`
+  // (`contratosSlice.js`: `pending` zera `list`; `rejected` não mexe nela, só
+  // herda o `[]` que o `pending` já deixou) — sem checar
   // `isLoadingContratos`/`statusContratos`, "Nenhum contrato disponível"
   // seria afirmado também enquanto a lista ainda carrega ou depois de uma
   // falha de rede, quando na verdade não se sabe (ou não se conseguiu saber)
-  // se há Contrato elegível. `statusContratos` é compartilhado entre ações
-  // do slice de Contratos — `actionContratos` garante que o erro só é
-  // afirmado quando a ação em curso é a de listagem consumida aqui (mesmo
-  // guard de `aulas/page.jsx`).
+  // se há Contrato elegível.
   const erroCarregarContratos =
     statusContratos === STATUS.FAILED && actionContratos === 'getContratos'
       ? ERRO_CARREGAR_CONTRATOS
