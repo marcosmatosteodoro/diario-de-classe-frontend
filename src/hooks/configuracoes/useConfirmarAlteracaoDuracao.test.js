@@ -24,8 +24,11 @@ describe('useConfirmarAlteracaoDuracao', () => {
     });
 
     expect(showConfirmMock).toHaveBeenCalledWith({
+      title: 'Alterar a duração da aula?',
       text: TEXTO_CONFIRMACAO_DURACAO,
+      confirmButtonText: 'Salvar',
     });
+    expect(showConfirmMock.mock.calls[0][0]).not.toHaveProperty('html');
     expect(onConfirmar).toHaveBeenCalledTimes(1);
   });
 

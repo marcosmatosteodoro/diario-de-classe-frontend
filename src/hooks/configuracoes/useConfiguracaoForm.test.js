@@ -348,7 +348,7 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
 
   const fakeEvent = () => ({ preventDefault: jest.fn() });
 
-  it('com duracaoAula inválida (vazia), handleSubmit não chama submit() e popula errosValidacao.duracaoAula', () => {
+  it('com duracaoAula inválida (vazia) e alterada, handleSubmit não chama submit() e popula errosValidacao.duracaoAula', async () => {
     const submitMock = jest.fn();
     const { result } = renderHook(() =>
       useConfiguracaoForm({ submit: submitMock, configuracao: configValida })
@@ -360,8 +360,12 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
       });
     });
 
-    act(() => {
-      result.current.handleSubmit(fakeEvent());
+    // duracaoAula mudou (50 -> ''): aguarda o fluxo assíncrono da confirmação do
+    // COMP-002-007 (que não deve ser alcançada, porque a validação vem antes) — sem o
+    // await, um mutante que removesse a validação só chamaria submit() depois que a
+    // asserção já tivesse rodado, e o teste passaria mesmo com o defeito presente.
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent());
     });
 
     expect(submitMock).not.toHaveBeenCalled();
@@ -440,7 +444,7 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
     expect(result.current.errosValidacao.tolerancia).toBeUndefined();
   });
 
-  it('restaurarUltimaLeitura() zera tentouSalvar: sem erro após restaurar, e digitar valor inválido não reaparece antes do próximo Salvar (TASK-002-007)', () => {
+  it('restaurarUltimaLeitura() zera tentouSalvar: sem erro após restaurar, e digitar valor inválido não reaparece antes do próximo Salvar (TASK-002-007)', async () => {
     const submitMock = jest.fn();
     const { result } = renderHook(() =>
       useConfiguracaoForm({ submit: submitMock, configuracao: configValida })
@@ -451,8 +455,12 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
         target: { name: 'duracaoAula', value: '' },
       });
     });
-    act(() => {
-      result.current.handleSubmit(fakeEvent());
+    // duracaoAula mudou (50 -> ''): aguarda o fluxo assíncrono da confirmação do
+    // COMP-002-007 (não deve ser alcançada, porque a validação vem antes) — sem o await, um
+    // mutante que removesse a validação só chamaria submit() depois da asserção já ter
+    // rodado, e o teste passaria mesmo com o defeito presente.
+    await act(async () => {
+      await result.current.handleSubmit(fakeEvent());
     });
     expect(submitMock).not.toHaveBeenCalled();
     expect(result.current.errosValidacao.duracaoAula).toBe('Campo obrigatório');
@@ -517,8 +525,9 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
         target: { name: 'tolerancia', value: '20' },
       });
     });
-    // duracaoAula mudou (50 -> 55): passa pela confirmação do COMP-002-007 (mock
-    // padrão do describe confirma) antes de gravar — por isso o submit é assíncrono.
+    // duracaoAula mudou (50 -> 55): passa pela confirmação do COMP-002-007 (beforeEach de
+    // nível de arquivo, linhas 10-14, confirma) antes de gravar — por isso o submit é
+    // assíncrono.
     await act(async () => {
       await result.current.handleSubmit(fakeEvent());
     });
@@ -690,8 +699,11 @@ describe('useConfiguracaoForm — confirmação de alteração de duração (TAS
     });
 
     expect(showConfirmMock).toHaveBeenCalledWith({
+      title: 'Alterar a duração da aula?',
       text: TEXTO_CONFIRMACAO_DURACAO,
+      confirmButtonText: 'Salvar',
     });
+    expect(showConfirmMock.mock.calls[0][0]).not.toHaveProperty('html');
   });
 
   it('confirmado: submit() é chamado com o payload já convertido, gravando a alteração', async () => {

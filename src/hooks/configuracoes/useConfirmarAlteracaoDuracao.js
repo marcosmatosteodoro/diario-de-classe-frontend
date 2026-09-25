@@ -23,7 +23,11 @@ export function useConfirmarAlteracaoDuracao({ duracaoMudou, onConfirmar }) {
       return;
     }
 
-    const resultado = await showConfirm({ text: TEXTO_CONFIRMACAO_DURACAO });
+    const resultado = await showConfirm({
+      title: 'Alterar a duração da aula?',
+      text: TEXTO_CONFIRMACAO_DURACAO,
+      confirmButtonText: 'Salvar',
+    });
     if (resultado.isConfirmed) {
       onConfirmar();
     }
