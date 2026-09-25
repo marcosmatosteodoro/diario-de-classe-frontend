@@ -36,23 +36,37 @@ jest.mock('@/components', () => ({
 // `require('react')` ao reexigir `./layout`, e o provider real (que usa
 // hooks) acaba rodando sob uma instância de React diferente da já montada —
 // "Invalid hook call". O provider em si é coberto por
-// `UnsavedChangesGuardProvider.test.jsx`; aqui basta a passagem de children.
+// `UnsavedChangesGuardProvider.test.jsx`; aqui o mock é um marcador
+// (`data-testid="guard-provider"`), para provar que o layout de fato monta
+// o provider envolvendo Header, Sidebar e o conteúdo — não apenas repassa
+// `children`.
 jest.mock('@/providers/UnsavedChangesGuardProvider', () => ({
-  UnsavedChangesGuardProvider: ({ children }) => children,
+  UnsavedChangesGuardProvider: ({ children }) => (
+    <div data-testid="guard-provider">{children}</div>
+  ),
 }));
 
 describe('ApplicationLayout', () => {
-  it('renderiza todos os componentes principais', () => {
+  it('renderiza todos os componentes principais, todos dentro do UnsavedChangesGuardProvider', () => {
     render(
       <ApplicationLayout>
         {' '}
         <div data-testid="conteudo" />{' '}
       </ApplicationLayout>
     );
-    expect(screen.getByTestId('header')).toBeInTheDocument();
-    expect(screen.getByTestId('sidebar')).toBeInTheDocument();
-    expect(screen.getByTestId('footer')).toBeInTheDocument();
-    expect(screen.getByTestId('conteudo')).toBeInTheDocument();
+    const header = screen.getByTestId('header');
+    const sidebar = screen.getByTestId('sidebar');
+    const footer = screen.getByTestId('footer');
+    const conteudo = screen.getByTestId('conteudo');
+    expect(header).toBeInTheDocument();
+    expect(sidebar).toBeInTheDocument();
+    expect(footer).toBeInTheDocument();
+    expect(conteudo).toBeInTheDocument();
+
+    const guardProvider = screen.getByTestId('guard-provider');
+    expect(guardProvider).toContainElement(header);
+    expect(guardProvider).toContainElement(sidebar);
+    expect(guardProvider).toContainElement(conteudo);
   });
 
   it('mostra o loading quando isLoading é true', () => {

@@ -10,7 +10,9 @@ export const Header = ({ isExpanded, toggleSidebar }) => {
   const { confirmNavigation } = useUnsavedChangesGuard();
 
   const handleLogoutClick = () => {
-    const resultado = confirmNavigation();
+    // `liberarSeFalhar`: sessão encerrada vence rascunho — se o diálogo
+    // falhar ao ser exibido, desloga mesmo assim.
+    const resultado = confirmNavigation({ liberarSeFalhar: true });
     if (resultado === true) {
       logoutUser();
       return;

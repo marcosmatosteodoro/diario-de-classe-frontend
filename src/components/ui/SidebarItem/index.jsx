@@ -27,6 +27,13 @@ export const SidebarItem = ({
   };
 
   const handleClick = e => {
+    // Ctrl/Cmd/Shift/Alt ou botão diferente do esquerdo: o navegador segue o
+    // <Link> nativo (abrir em nova aba, etc.) — não consulta o guard nem
+    // intercepta o clique.
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+      return;
+    }
+
     const resultado = confirmNavigation();
     if (resultado === true) {
       fecharDrawerSeMobile();

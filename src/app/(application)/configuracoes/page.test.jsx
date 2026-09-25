@@ -318,11 +318,15 @@ describe('Configuracao Page', () => {
       useConfiguracaoForm.mockReturnValue(mockUseConfiguracaoForm(true));
       rerender(<Configuracao />);
 
-      // Cleanup do efeito anterior roda antes de registrar o novo guard —
-      // nunca deixa o guard antigo (isDirty obsoleto) apontado.
       expect(clearGuard).toHaveBeenCalledTimes(1);
       expect(setGuard).toHaveBeenCalledTimes(2);
       expect(setGuard.mock.calls[1][0]()).toBe(true);
+      // Prova a ordem (não só a contagem): o cleanup do efeito anterior roda
+      // antes do novo `setGuard` — nunca deixa o guard antigo (isDirty
+      // obsoleto) apontado.
+      expect(clearGuard.mock.invocationCallOrder[0]).toBeLessThan(
+        setGuard.mock.invocationCallOrder[1]
+      );
 
       unmount();
       expect(clearGuard).toHaveBeenCalledTimes(2);

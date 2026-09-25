@@ -173,4 +173,37 @@ describe('SidebarItem', () => {
       expect(pushMock).not.toHaveBeenCalled();
     });
   });
+
+  describe('carona gate 11: clique com modificador segue o <Link> nativo', () => {
+    it('Ctrl+clique com alteração pendente: não consulta o guard, nem previne o clique (abrir em nova aba não perde dados)', () => {
+      const confirmNavigation = jest.fn(() => new Promise(() => {}));
+      require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
+        { confirmNavigation }
+      );
+
+      const { getByRole } = render(
+        <SidebarItem {...defaultProps} href="/alunos" />
+      );
+      const evento = fireEvent.click(getByRole('link'), { ctrlKey: true });
+
+      expect(confirmNavigation).not.toHaveBeenCalled();
+      // `fireEvent` devolve `true` quando nenhum handler chamou
+      // `preventDefault` — o <Link> nativo segue o clique.
+      expect(evento).toBe(true);
+    });
+
+    it('clique simples (sem modificador) com alteração pendente: consulta o guard normalmente (exibe o diálogo)', () => {
+      const confirmNavigation = jest.fn(() => new Promise(() => {}));
+      require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
+        { confirmNavigation }
+      );
+
+      const { getByRole } = render(
+        <SidebarItem {...defaultProps} href="/alunos" />
+      );
+      fireEvent.click(getByRole('link'));
+
+      expect(confirmNavigation).toHaveBeenCalledTimes(1);
+    });
+  });
 });

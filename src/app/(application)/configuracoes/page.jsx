@@ -43,10 +43,6 @@ export default function Configuracao() {
   });
   const { setGuard, clearGuard } = useUnsavedChangesGuard();
 
-  // Mantém o guard de navegação sempre refletindo o `isDirty` atual — a
-  // limpeza (cleanup) roda tanto antes de cada reexecução do efeito quanto no
-  // unmount do componente, cobrindo os dois pontos exigidos pelos critérios
-  // de pronto com um único efeito.
   useEffect(() => {
     setGuard(() => isDirty);
     return () => clearGuard();

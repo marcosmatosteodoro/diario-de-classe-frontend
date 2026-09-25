@@ -204,9 +204,41 @@ describe('Header Component', () => {
       );
       fireEvent.click(screen.getByRole('button', { name: 'Sair' }));
 
-      expect(confirmNavigation).toHaveBeenCalled();
+      expect(confirmNavigation).toHaveBeenCalledWith({ liberarSeFalhar: true });
       expect(logoutUserMock).not.toHaveBeenCalled();
 
+      await act(async () => {
+        resolveConfirmacao(true);
+        await Promise.resolve();
+      });
+
+      expect(logoutUserMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('carona gate 8: chama confirmNavigation com liberarSeFalhar — falha do diálogo desloga mesmo assim (sessão encerrada vence rascunho)', async () => {
+      let resolveConfirmacao;
+      const confirmNavigation = jest.fn(
+        () =>
+          new Promise(resolve => {
+            resolveConfirmacao = resolve;
+          })
+      );
+      require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
+        { confirmNavigation }
+      );
+
+      render(
+        <ThemeProvider>
+          <Header />
+        </ThemeProvider>
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Sair' }));
+
+      expect(confirmNavigation).toHaveBeenCalledWith({ liberarSeFalhar: true });
+
+      // O provider (`UnsavedChangesGuardProvider.test.jsx`) prova que, com
+      // `liberarSeFalhar: true`, a rejeição do diálogo resolve `true`; aqui
+      // simula esse resultado para provar que o Header desloga em cima dele.
       await act(async () => {
         resolveConfirmacao(true);
         await Promise.resolve();

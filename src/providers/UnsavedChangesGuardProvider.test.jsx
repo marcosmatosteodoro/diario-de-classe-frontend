@@ -98,8 +98,38 @@ describe('UnsavedChangesGuardProvider', () => {
     await expect(guardRef.current.confirmNavigation()).resolves.toBe(false);
   });
 
+  it('quando o diálogo rejeita (falha ao exibir), confirmNavigation() resolve false por padrão — navegação negada', async () => {
+    showConfirmMock.mockRejectedValue(new Error('falha ao exibir o diálogo'));
+    const guardRef = { current: null };
+    render(
+      <UnsavedChangesGuardProvider>
+        <ExpoeGuard guardRef={guardRef}>
+          <ConsumidorComGuard dirty={true} />
+        </ExpoeGuard>
+      </UnsavedChangesGuardProvider>
+    );
+
+    await expect(guardRef.current.confirmNavigation()).resolves.toBe(false);
+  });
+
+  it('quando o diálogo rejeita e confirmNavigation é chamado com liberarSeFalhar, resolve true (carona gate 8: logout — sessão encerrada vence rascunho)', async () => {
+    showConfirmMock.mockRejectedValue(new Error('falha ao exibir o diálogo'));
+    const guardRef = { current: null };
+    render(
+      <UnsavedChangesGuardProvider>
+        <ExpoeGuard guardRef={guardRef}>
+          <ConsumidorComGuard dirty={true} />
+        </ExpoeGuard>
+      </UnsavedChangesGuardProvider>
+    );
+
+    await expect(
+      guardRef.current.confirmNavigation({ liberarSeFalhar: true })
+    ).resolves.toBe(true);
+  });
+
   describe('beforeunload', () => {
-    it('com isDirty=true, o listener intercepta o fechamento (controle positivo de preventDefault/returnValue)', () => {
+    it('com isDirty=true, o listener chama preventDefault() e atribui returnValue, cada um provado por um spy independente', () => {
       render(
         <UnsavedChangesGuardProvider>
           <ConsumidorComGuard dirty={true} />
@@ -107,16 +137,21 @@ describe('UnsavedChangesGuardProvider', () => {
       );
 
       const evento = new Event('beforeunload', { cancelable: true });
+      const preventDefaultSpy = jest.spyOn(evento, 'preventDefault');
+      const returnValueSetter = jest.fn();
+      Object.defineProperty(evento, 'returnValue', {
+        get: () => '',
+        set: returnValueSetter,
+        configurable: true,
+      });
+
       act(() => {
         window.dispatchEvent(evento);
       });
 
+      expect(preventDefaultSpy).toHaveBeenCalledTimes(1);
+      expect(returnValueSetter).toHaveBeenCalledTimes(1);
       expect(evento.defaultPrevented).toBe(true);
-      // jsdom implementa `returnValue` como alias legado de
-      // `defaultPrevented` (getter devolve booleano, nunca a string
-      // atribuída) — atribuir `''` (falsy) é o que efetivamente cancela o
-      // evento; por isso o controle positivo aqui é o mesmo booleano.
-      expect(evento.returnValue).toBe(false);
     });
 
     it('sem isDirty, o listener não é registrado — beforeunload segue sem interceptar', () => {
@@ -162,7 +197,35 @@ describe('UnsavedChangesGuardProvider', () => {
       expect(evento.defaultPrevented).toBe(false);
     });
 
-    it('é removido no unmount do componente', () => {
+    it('com o provider continuando montado, só a tela com o guard desmontando (clearGuard roda sozinho, sem um setGuard seguinte para corrigir o estado)', () => {
+      const { rerender } = render(
+        <UnsavedChangesGuardProvider>
+          <ConsumidorComGuard dirty={true} />
+        </UnsavedChangesGuardProvider>
+      );
+
+      let evento = new Event('beforeunload', { cancelable: true });
+      act(() => {
+        window.dispatchEvent(evento);
+      });
+      expect(evento.defaultPrevented).toBe(true);
+
+      act(() => {
+        rerender(
+          <UnsavedChangesGuardProvider>
+            <div data-testid="tela-sem-guard" />
+          </UnsavedChangesGuardProvider>
+        );
+      });
+
+      evento = new Event('beforeunload', { cancelable: true });
+      act(() => {
+        window.dispatchEvent(evento);
+      });
+      expect(evento.defaultPrevented).toBe(false);
+    });
+
+    it('é removido quando o provider inteiro desmonta (unmount)', () => {
       const { unmount } = render(
         <UnsavedChangesGuardProvider>
           <ConsumidorComGuard dirty={true} />
