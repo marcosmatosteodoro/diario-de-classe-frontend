@@ -103,7 +103,7 @@ describe('Aulas — fiação real do painel colapsável (AC-001-012/021)', () =>
   });
 });
 
-describe('Aulas — isLoading/errorMessage de useAlunos()/useProfessores() chegam ao SearchableSelectField real (TASK-002-005)', () => {
+describe('Aulas — isLoading/errorMessage de useAlunos()/useProfessores() chegam ao SearchableSelectField real', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
@@ -212,6 +212,23 @@ describe('Aulas — isLoading/errorMessage de useAlunos()/useProfessores() chega
 
     render(<Aulas />);
     fireEvent.click(screen.getByRole('combobox', { name: /^professor$/i }));
+
+    expect(
+      screen.queryByTestId('searchable-select-field-error')
+    ).not.toBeInTheDocument();
+  });
+
+  it('useAlunos() com status FAILED de outra ação do slice (ex.: updateAluno): o combobox real NÃO mostra erro — status é compartilhado entre ações do slice', () => {
+    useAlunos.mockReturnValue({
+      alunos: [],
+      isLoading: false,
+      status: STATUS.FAILED,
+      action: 'updateAluno',
+    });
+    useProfessores.mockReturnValue({ professores: [] });
+
+    render(<Aulas />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^aluno$/i }));
 
     expect(
       screen.queryByTestId('searchable-select-field-error')

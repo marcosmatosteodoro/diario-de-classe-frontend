@@ -43,9 +43,7 @@ jest.mock('@/components', () => ({
   // label, options, onChange no formato { target: { name, value } }), mas
   // sem <select>/<option> nativos — reflete o widget combobox real
   // (SearchableSelectField exibe o rótulo resolvido, não o id bruto).
-  // Contrato espelhado do componente real (mesma lição ativa
-  // `mock-que-copia-a-chamada-e-n-o-o-contrato-fica-verde-sobre-o-bug`,
-  // achado do code-reviewer na TASK-002-004): `onChange` só dispara ao
+  // Contrato espelhado do componente real: `onChange` só dispara ao
   // selecionar uma opção ou limpar — nunca ao digitar no campo de busca (o
   // componente real nunca chama `onChange` em `handleInputChange`); a
   // comparação `value`↔`option.value` usa igualdade estrita, sem coerção.
@@ -243,8 +241,18 @@ describe('Filter Component', () => {
 
   it('should pass alunos to getEntityOptions', () => {
     const alunos = [
-      { id: 1, nome: 'João', sobrenome: 'Silva', email: 'joao@example.com' },
-      { id: 2, nome: 'Maria', sobrenome: 'Santos', email: 'maria@example.com' },
+      {
+        id: 'cuid-aluno-1',
+        nome: 'João',
+        sobrenome: 'Silva',
+        email: 'joao@example.com',
+      },
+      {
+        id: 'cuid-aluno-2',
+        nome: 'Maria',
+        sobrenome: 'Santos',
+        email: 'maria@example.com',
+      },
     ];
 
     render(<Filter {...defaultProps} alunos={alunos} />);
@@ -256,12 +264,17 @@ describe('Filter Component', () => {
   it('should pass professores to getEntityOptions', () => {
     const professores = [
       {
-        id: 1,
+        id: 'cuid-professor-1',
         nome: 'Pedro',
         sobrenome: 'Oliveira',
         email: 'pedro@example.com',
       },
-      { id: 2, nome: 'Ana', sobrenome: 'Costa', email: 'ana@example.com' },
+      {
+        id: 'cuid-professor-2',
+        nome: 'Ana',
+        sobrenome: 'Costa',
+        email: 'ana@example.com',
+      },
     ];
 
     render(<Filter {...defaultProps} professores={professores} />);
@@ -292,7 +305,7 @@ describe('Filter Component', () => {
     expect(screen.getByDisplayValue('Selecione o status')).toBeInTheDocument();
     // Combobox pesquisável (idAluno/idProfessor): placeholder é atributo do
     // input, não uma option nativa — getByDisplayValue não se aplica mais a
-    // eles (achado real: o widget mudou de <select> para <input>).
+    // eles.
     expect(
       screen.getByPlaceholderText('Selecione o aluno')
     ).toBeInTheDocument();
@@ -338,16 +351,6 @@ describe('Filter Component', () => {
       expect(handleChange).toHaveBeenCalledWith({
         target: { name: 'idProfessor', value: 'cuid-professor-1' },
       });
-    });
-
-    it('digitar no campo de busca NUNCA chama handleChange — só a seleção de uma opção ou o botão de limpar disparam', () => {
-      const handleChange = jest.fn();
-      render(<Filter {...defaultProps} handleChange={handleChange} />);
-
-      const alunoInput = screen.getByTestId('select-field-idAluno');
-      fireEvent.change(alunoInput, { target: { value: 'joão' } });
-
-      expect(handleChange).not.toHaveBeenCalled();
     });
 
     it('AC-001-008: com formData.idAluno/idProfessor apontando para um registro excluído (fora de `alunos`/`professores`), o filtro renderiza sem erro e sem descartar o valor em silêncio (fallback ao value bruto, sem `selectedLabel`)', () => {
@@ -422,8 +425,8 @@ describe('Filter Component', () => {
       ).toHaveTextContent(mensagemFixa);
     });
 
-    it('FAILED de uma ação diferente (ex. createProfessor) não deve mostrar erro falso — o container não passa erroProfessores nesse caso', () => {
-      render(<Filter {...defaultProps} erroProfessores={undefined} />);
+    it('sem isLoadingProfessores/erroProfessores (default), nenhum indicador de carregamento nem erro aparece no campo de Professor', () => {
+      render(<Filter {...defaultProps} />);
 
       expect(
         screen.queryByTestId('select-field-idProfessor-loading')

@@ -455,7 +455,7 @@ describe('Home — fiação real do painel colapsável (AC-001-015/018/021, acha
   });
 });
 
-describe('Home — isLoading/errorMessage de useAlunos()/useProfessores() chegam ao SearchableSelectField real (TASK-002-005)', () => {
+describe('Home — isLoading/errorMessage de useAlunos()/useProfessores() chegam ao SearchableSelectField real', () => {
   const defaultMocks = {
     currentUser: { id: 1, nome: 'Professor Test', email: 'test@example.com' },
     isAdmin: () => true,
@@ -577,6 +577,78 @@ describe('Home — isLoading/errorMessage de useAlunos()/useProfessores() chegam
 
     expect(
       screen.queryByTestId('searchable-select-field-error')
+    ).not.toBeInTheDocument();
+  });
+
+  it('useAlunos() com status FAILED de outra ação do slice (ex.: updateAluno): o combobox real NÃO mostra erro — status é compartilhado entre ações do slice', () => {
+    useAlunos.mockReturnValue({
+      alunoOptions: [],
+      isLoading: false,
+      status: STATUS.FAILED,
+      action: 'updateAluno',
+    });
+    useProfessores.mockReturnValue({ professorOptions: [] });
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^aluno$/i }));
+
+    expect(
+      screen.queryByTestId('searchable-select-field-error')
+    ).not.toBeInTheDocument();
+  });
+
+  it('selecionar uma opção de Aluno chama handleChange com { target: { name: "alunoId", value } }', () => {
+    const handleChange = jest.fn();
+    useDashboard.mockReturnValue({ ...defaultDashboardData, handleChange });
+    useAlunos.mockReturnValue({
+      alunoOptions: [{ label: 'João Silva', value: 'cuid-aluno-1' }],
+    });
+    useProfessores.mockReturnValue({ professorOptions: [] });
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^aluno$/i }));
+    fireEvent.click(screen.getByRole('option', { name: 'João Silva' }));
+
+    expect(handleChange).toHaveBeenCalledWith({
+      target: { name: 'alunoId', value: 'cuid-aluno-1' },
+    });
+  });
+
+  it('selecionar uma opção de Professor chama handleChange com { target: { name: "professorId", value } }', () => {
+    const handleChange = jest.fn();
+    useDashboard.mockReturnValue({ ...defaultDashboardData, handleChange });
+    useAlunos.mockReturnValue({ alunoOptions: [] });
+    useProfessores.mockReturnValue({
+      professorOptions: [
+        { label: 'Pedro Oliveira', value: 'cuid-professor-1' },
+      ],
+    });
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole('combobox', { name: /^professor/i }));
+    fireEvent.click(screen.getByRole('option', { name: 'Pedro Oliveira' }));
+
+    expect(handleChange).toHaveBeenCalledWith({
+      target: { name: 'professorId', value: 'cuid-professor-1' },
+    });
+  });
+
+  it('isAdmin()=true e formData.minhasAulas=true: o campo Professor não é renderizado (mesma condição do form, ramo ainda não coberto)', () => {
+    useUserAuth.mockReturnValue({
+      currentUser: { id: 1, nome: 'Admin Teste' },
+      isAdmin: () => true,
+    });
+    useDashboard.mockReturnValue({
+      ...defaultDashboardData,
+      formData: { ...defaultDashboardData.formData, minhasAulas: true },
+    });
+    useAlunos.mockReturnValue({ alunoOptions: [] });
+    useProfessores.mockReturnValue({ professorOptions: [] });
+
+    render(<Home />);
+
+    expect(
+      screen.queryByRole('combobox', { name: /^professor/i })
     ).not.toBeInTheDocument();
   });
 

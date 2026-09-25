@@ -31,8 +31,7 @@ import {
 
 // Mensagens fixas em pt-BR (nunca o `message` cru do slice): `status` é
 // compartilhado entre ações do slice, por isso o erro só é afirmado quando a
-// ação em curso é realmente a de listagem consumida aqui (mesma classe de
-// achado da TASK-002-004, aplicada aos dois hooks desta tela).
+// ação em curso é realmente a de listagem consumida aqui.
 const ERRO_CARREGAR_ALUNOS =
   'Não foi possível carregar os alunos. Tente novamente.';
 const ERRO_CARREGAR_PROFESSORES =

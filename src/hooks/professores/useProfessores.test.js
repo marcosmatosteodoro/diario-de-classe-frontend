@@ -233,10 +233,6 @@ describe('useProfessores', () => {
     );
   });
 
-  // Campo novo (TASK-002-005, aditivo — mesmo padrão de useAlunos.js): dois
-  // testes no mesmo commit (valor passado + default), per lição
-  // `prop-nova-em-componente-compartilhado-nasce-com-dois-testes` — sem eles,
-  // remover `action` do retorno do hook não deixaria nenhuma suíte vermelha.
   describe('campo action', () => {
     it('expõe o valor de action lido do slice quando o store o fornece', () => {
       const initialState = {
