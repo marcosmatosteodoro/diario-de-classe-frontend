@@ -30,6 +30,7 @@ jest.mock('react-redux', () => ({
 jest.mock('@/store/slices/authSlice', () => ({
   logout: jest.fn(() => ({ type: 'auth/logout' })),
 }));
+jest.mock('@/utils/appCache', () => ({ clearAppCache: jest.fn() }));
 
 describe('useApplicationLayout', () => {
   let routerMock,
@@ -130,6 +131,24 @@ describe('useApplicationLayout', () => {
       'Sua sessão expirou. Entre novamente para continuar.'
     );
     expect(routerMock.push).toHaveBeenCalledWith('/login');
+  });
+
+  it('deve purgar o cache do aplicativo na expiração por 401 (AC-001-010)', () => {
+    const { logout } = require('@/store/slices/authSlice');
+    const { clearAppCache } = require('@/utils/appCache');
+    useSelectorMock.mockImplementation(fn =>
+      fn({
+        professores: {},
+        alunos: { statusError: '401' },
+        aulas: {},
+        contratos: {},
+        configuracao: {},
+      })
+    );
+    renderHook(() => useApplicationLayout());
+    expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
+    expect(clearAppCache).toHaveBeenCalled();
+    expect(removeAuthenticateMock).toHaveBeenCalled();
   });
 
   it('deve chamar dispatch(logout), removeAuthenticate, error e router.push se statusError de alunos for 401', () => {
@@ -266,6 +285,7 @@ describe('useApplicationLayout', () => {
 
   it('não deve chamar logout se statusError não for 401', () => {
     const { logout } = require('@/store/slices/authSlice');
+    const { clearAppCache } = require('@/utils/appCache');
     useSelectorMock.mockImplementation(fn =>
       fn({
         professores: { statusError: '404' },
@@ -282,6 +302,7 @@ describe('useApplicationLayout', () => {
     );
     expect(logoutCalls).toHaveLength(0);
     expect(removeAuthenticateMock).not.toHaveBeenCalled();
+    expect(clearAppCache).not.toHaveBeenCalled();
   });
 
   it('deve monitorar mudanças nos estados de professores e alunos', async () => {

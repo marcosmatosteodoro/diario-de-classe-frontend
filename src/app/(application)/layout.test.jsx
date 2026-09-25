@@ -30,6 +30,7 @@ jest.mock('@/components', () => ({
   ),
   Footer: () => <footer data-testid="footer" />,
   Loading: () => <div data-testid="loading" />,
+  InstallPrompt: () => <div data-testid="install-prompt-mock" />,
 }));
 
 // Sem este mock, `jest.resetModules()` (usado abaixo) força um segundo
@@ -62,6 +63,9 @@ describe('ApplicationLayout', () => {
     expect(sidebar).toBeInTheDocument();
     expect(footer).toBeInTheDocument();
     expect(conteudo).toBeInTheDocument();
+    // O convite de instalação monta dentro da árvore autenticada — nunca em
+    // `(auth)/layout.jsx` (AC-001-018).
+    expect(screen.getByTestId('install-prompt-mock')).toBeInTheDocument();
 
     const guardProvider = screen.getByTestId('guard-provider');
     expect(guardProvider).toContainElement(header);
@@ -88,6 +92,29 @@ describe('ApplicationLayout', () => {
       </ApplicationLayoutReloaded>
     );
     expect(screen.getByTestId('loading')).toBeInTheDocument();
+    expect(screen.queryByTestId('install-prompt-mock')).not.toBeInTheDocument();
+  });
+
+  it('não monta o convite de instalação enquanto isUnauthorized é true', () => {
+    jest.resetModules();
+    jest.doMock('./useApplicationLayout', () => ({
+      useApplicationLayout: () => ({
+        isLoading: false,
+        isUnauthorized: true,
+        sidebarExpanded: {
+          isExpanded: true,
+        },
+        toggleSidebar: jest.fn(),
+      }),
+    }));
+    const { default: ApplicationLayoutReloaded } = require('./layout');
+    render(
+      <ApplicationLayoutReloaded>
+        {' '}
+        <div data-testid="conteudo" />{' '}
+      </ApplicationLayoutReloaded>
+    );
+    expect(screen.queryByTestId('install-prompt-mock')).not.toBeInTheDocument();
   });
 
   it('passa isExpanded/toggleSidebar corretos para Sidebar e Header, e permite toggle', async () => {

@@ -42,6 +42,19 @@ export function useContratoForm({
     aulasGenereted: [],
     confirm: null,
   });
+  // DEC-002-006: mapa local por campo, distinto do `errors` do servidor
+  // (exibido no `FormError` de topo) — SearchableSelectField não é elemento
+  // de formulário nativo, então `required` não o valida de graça.
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  const clearFieldError = field => {
+    setFieldErrors(prev => {
+      if (!prev[field]) return prev;
+      const rest = { ...prev };
+      delete rest[field];
+      return rest;
+    });
+  };
 
   // Sets
   const setAluno = aluno => {
@@ -126,6 +139,27 @@ export function useContratoForm({
   };
   const handleSubmit = e => {
     e.preventDefault();
+    const newFieldErrors = {};
+    if (!formData.alunoId) {
+      newFieldErrors.alunoId = 'Selecione um aluno.';
+    }
+    if (!formData.professorId) {
+      newFieldErrors.professorId = 'Selecione um professor principal.';
+    }
+    if (Object.keys(newFieldErrors).length > 0) {
+      setFieldErrors(newFieldErrors);
+      // O <select required> nativo que este widget substituiu levava foco e
+      // rolagem ao primeiro campo inválido de graça; SearchableSelectField
+      // não é elemento de formulário nativo, então repomos isso aqui — só no
+      // bloqueio do submit (nunca no ponto que limpa um erro), para não
+      // reabrir o foco a cada correção do usuário.
+      const primeiroCampoComErro = newFieldErrors.alunoId
+        ? 'alunoId'
+        : 'professorId';
+      document.getElementById(primeiroCampoComErro)?.focus();
+      return;
+    }
+    setFieldErrors({});
     const dataToSend = {
       idAluno: formData.alunoId,
       idProfessor: formData.professorId,
@@ -157,10 +191,12 @@ export function useContratoForm({
   const handleAlunoChange = e => {
     const { value } = e.target;
     handleChange(e);
-    setInitialDiasAulas;
     setAluno(
       alunos.find(aluno => aluno.id.toString() === value.toString()) || null
     );
+    if (value) {
+      clearFieldError('alunoId');
+    }
   };
   const handleProfessorChange = e => {
     const { value } = e.target;
@@ -170,6 +206,9 @@ export function useContratoForm({
         professor => professor.id.toString() === value.toString()
       ) || null
     );
+    if (value) {
+      clearFieldError('professorId');
+    }
   };
   const handleAtivoChange = e => {
     const { name, checked } = e.target;
@@ -435,6 +474,7 @@ export function useContratoForm({
     setFormData,
     setInitialDiasAulas,
     getNewStepByFormData,
+    fieldErrors,
     handleChange,
     handleSubmit,
     handleAlunoChange,

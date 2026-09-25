@@ -11,6 +11,7 @@ import { clearErrors as clearAlunosErrors } from '@/store/slices/alunosSlice';
 import { clearErrors as clearAulasErrors } from '@/store/slices/aulasSlice';
 import { clearErrors as clearContratoErrors } from '@/store/slices/contratosSlice';
 import { clearErrors as clearConfiguracaoErrors } from '@/store/slices/configuracaoSlice';
+import { clearAppCache } from '@/utils/appCache';
 
 export function useApplicationLayout() {
   const router = useRouter();
@@ -96,6 +97,7 @@ export function useApplicationLayout() {
       setIsUnauthorized(true);
       dispatch(logout(refreshToken));
       removeAuthenticate();
+      clearAppCache();
       error('Sua sessão expirou. Entre novamente para continuar.');
       router.push('/login');
     }

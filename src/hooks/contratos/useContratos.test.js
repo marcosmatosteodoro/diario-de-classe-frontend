@@ -96,6 +96,21 @@ describe('useContratos', () => {
     expect(mockDispatch).toHaveBeenCalledTimes(1);
   });
 
+  it('expõe action do state, no mesmo contrato de useAlunos/useProfessores (achado convergente de code-reviewer/product-designer, TASK-002-007)', () => {
+    const store = createMockStore({
+      list: [],
+      status: STATUS.FAILED,
+      action: 'getContratos',
+    });
+    store.dispatch = mockDispatch;
+
+    const { result } = renderHook(() => useContratos(), {
+      wrapper: createWrapper(store),
+    });
+
+    expect(result.current.action).toBe('getContratos');
+  });
+
   it('should return contratos list when available', () => {
     const mockContratos = [
       { id: 1, nomeAluno: 'João Silva' },

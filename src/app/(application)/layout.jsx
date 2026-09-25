@@ -1,7 +1,7 @@
 'use client';
 
 import { useApplicationLayout } from './useApplicationLayout';
-import { Header, Sidebar, Footer, Loading } from '@/components';
+import { Header, Sidebar, Footer, Loading, InstallPrompt } from '@/components';
 import { UnsavedChangesGuardProvider } from '@/providers/UnsavedChangesGuardProvider';
 
 export default function ApplicationLayout({ children }) {
@@ -33,6 +33,7 @@ export default function ApplicationLayout({ children }) {
           </main>
         </div>
         <Footer />
+        {!isLoading && !isUnauthorized && <InstallPrompt />}
       </div>
     </UnsavedChangesGuardProvider>
   );
