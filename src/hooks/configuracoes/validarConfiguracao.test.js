@@ -208,7 +208,7 @@ describe('mapearErroServidorPorCampo', () => {
     expect(mapearErroServidorPorCampo([])).toEqual({});
   });
 
-  describe('errors fora do contrato — tolerado, nunca lança (retry wave 4, carona gate 8)', () => {
+  describe('errors fora do contrato — tolerado, nunca lança', () => {
     it('errors como string (não-array) devolve objeto vazio', () => {
       expect(
         mapearErroServidorPorCampo('duracaoAula: Campo obrigatório')

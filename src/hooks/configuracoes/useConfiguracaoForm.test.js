@@ -438,7 +438,7 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
       { target: { name: 'TERCA.horaFinal', value: '25:00' } },
     ],
   ])(
-    'com %s em um dia, handleSubmit não chama submit() (retry wave 4, gate M5)',
+    'com %s em um dia, handleSubmit não chama submit()',
     (_descricao, evento) => {
       const submitMock = jest.fn();
       const { result } = renderHook(() =>
@@ -456,7 +456,7 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
     }
   );
 
-  it('converte duracaoAula/tolerancia para number no payload de submit, mantendo o resto do formData igual (retry wave 4, decisão Tech Lead)', () => {
+  it('converte duracaoAula/tolerancia para number no payload de submit, mantendo o resto do formData igual', () => {
     const submitMock = jest.fn();
     const { result } = renderHook(() =>
       useConfiguracaoForm({ submit: submitMock, configuracao: configValida })
@@ -486,7 +486,7 @@ describe('useConfiguracaoForm — validação client-side no handleSubmit (TASK-
   });
 });
 
-describe('useConfiguracaoForm — foco no primeiro campo inválido (retry wave 4, gate 11)', () => {
+describe('useConfiguracaoForm — foco no primeiro campo inválido', () => {
   const diasCompletosParaFoco = [
     {
       diaSemana: 'SEGUNDA',

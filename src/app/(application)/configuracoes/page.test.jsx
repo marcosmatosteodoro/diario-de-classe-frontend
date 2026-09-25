@@ -11,8 +11,7 @@ jest.mock('next/navigation', () => ({
 jest.mock('@/providers/UserAuthProvider');
 jest.mock('@/providers/UnsavedChangesGuardProvider');
 jest.mock('@/hooks/configuracoes/useConfiguracao');
-// O mock ENVOLVE a implementação real (`jest.requireActual`), nunca a reimplementa —
-// lição `[Testes] Mock que copia a chamada, e não o contrato, fica verde sobre o bug`.
+// O mock envolve a implementação real, e quem depende dela a reaplica.
 // Testes que precisam da lógica real (validação/foco/derivação de erro do formData
 // atual) não chamam `mockReturnValue` e usam a implementação real por baixo; os demais
 // continuam sobrescrevendo com `mockReturnValue` como antes.
@@ -529,7 +528,7 @@ describe('Configuracao Page', () => {
       });
     });
 
-    it('erro de horaInicial de um dia aparece na descrição acessível do próprio input, sem aparecer na horaFinal do mesmo dia (retry wave 4, mata M1)', () => {
+    it('erro de horaInicial de um dia aparece na descrição acessível do próprio input, sem aparecer na horaFinal do mesmo dia', () => {
       useConfiguracaoForm.mockReturnValue({
         formData: {
           duracaoAula: 40,
@@ -567,7 +566,7 @@ describe('Configuracao Page', () => {
       );
     });
 
-    it('erro client-side de tolerância aparece na tolerância, sem aparecer na duração (retry wave 4, mata M2)', () => {
+    it('erro client-side de tolerância aparece na tolerância, sem aparecer na duração', () => {
       useConfiguracaoForm.mockReturnValue({
         formData: {
           duracaoAula: 40,
@@ -594,7 +593,7 @@ describe('Configuracao Page', () => {
       ).not.toHaveAccessibleDescription(/Campo obrigatório/);
     });
 
-    it('erro client e servidor no mesmo campo: a mensagem client prevalece (carona M3)', () => {
+    it('erro client e servidor no mesmo campo: a mensagem client prevalece', () => {
       useConfiguracao.mockReturnValue({
         configuracao: { id: 1, diasTrabalho: 5 },
         isLoading: false,
@@ -628,7 +627,7 @@ describe('Configuracao Page', () => {
       ).not.toHaveAccessibleDescription(/mensagem do servidor/);
     });
 
-    it('erro de servidor em tolerância (sem erro client) aparece na tolerância (carona M4)', () => {
+    it('erro de servidor em tolerância (sem erro client) aparece na tolerância', () => {
       useConfiguracao.mockReturnValue({
         configuracao: { id: 1, diasTrabalho: 5 },
         isLoading: false,
@@ -658,7 +657,7 @@ describe('Configuracao Page', () => {
   });
 });
 
-describe('Configuracao Page — erros refletem o formData atual, nunca uma foto do submit (retry wave 4, gate 11)', () => {
+describe('Configuracao Page — erros refletem o formData atual, nunca uma foto do submit', () => {
   // Todos os dias válidos, exceto DOMINGO: inativo, com horaFinal <= horaInicial
   // (estado residual plausível — dia foi desativado sem limpar o horário).
   const diasComDomingoInvalido = [
