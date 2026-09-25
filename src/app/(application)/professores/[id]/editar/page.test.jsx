@@ -39,7 +39,7 @@ jest.mock('@/components', () => ({
   Loading: () => <div data-testid="loading">Carregando...</div>,
   // `jest.fn(...)` envolvendo o componente: renderiza a marcação que os
   // demais testes já liam por testid, e também expõe `.mock.calls` para as
-  // asserções estritas de identidade (sem `Boolean()`/`typeof`) abaixo.
+  // asserções estritas de identidade abaixo.
   ProfessorForm: jest.fn(
     ({
       handleSubmit,
@@ -403,8 +403,7 @@ describe('EditarProfessor Page', () => {
 
   // Cobertura reversa (AC-001-004, hook mockado): fixture
   // `alterarSenhaAtivo: true` com asserção estrita (sem `Boolean()`) e
-  // handlers por identidade (`toBe`). Mutantes: tirar o prop da página, e
-  // trocar os dois handlers entre si → vermelho.
+  // handlers por identidade (`toBe`).
   it('passes alterarSenhaAtivo=true and the exact hook handlers to ProfessorForm', () => {
     const {
       useProfessorForm,

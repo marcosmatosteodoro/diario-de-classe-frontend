@@ -403,9 +403,7 @@ describe('useProfessorForm', () => {
     });
 
     // Controle de detecção: a ausência não é vácua — se algo logasse a senha,
-    // a captura a detectaria. Loga um `Error` (não uma string simples) para
-    // que o mutante que troca a serialização por `JSON.stringify` (Error
-    // vira '{}') derrube este teste sem tocar nele.
+    // a captura a detectaria. Loga um `Error` (não uma string simples).
     test('controle de detecção: argumento logado contendo a senha faz o texto capturado conter a senha', () => {
       console.log(new Error(`valor logado de exemplo: ${SENHA}`));
       expect(capturedLogText()).toContain(SENHA);

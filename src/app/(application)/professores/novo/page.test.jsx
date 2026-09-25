@@ -64,8 +64,7 @@ describe('Novo Professor Page', () => {
 
   // Cobertura reversa (AC-001-004, hook real): chama o `handleAlterarSenha`
   // recebido dentro de `act` e confere `alterarSenhaAtivo` `true` na última
-  // chamada do `ProfessorForm` (e o de cancelar volta a `false`). Mutantes:
-  // tirar o prop da página, e trocar os dois handlers entre si → vermelho.
+  // chamada do `ProfessorForm` (e o de cancelar volta a `false`).
   it('reflects the real useProfessorForm state through alterarSenhaAtivo when its handlers are exercised', () => {
     render(<NovoProfessor />);
 

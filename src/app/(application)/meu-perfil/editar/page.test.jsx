@@ -79,8 +79,7 @@ describe('Editar Perfil Page', () => {
 
   // Cobertura reversa (AC-001-004, hook mockado): fixture
   // `alterarSenhaAtivo: true` com asserção estrita (sem `Boolean()`) e
-  // handlers por identidade (`toBe`). Mutantes: tirar o prop da página, e
-  // trocar os dois handlers entre si → vermelho.
+  // handlers por identidade (`toBe`).
   it('passes alterarSenhaAtivo=true and the exact hook handlers to ProfessorForm', () => {
     const mockHandleAlterarSenha = jest.fn();
     const mockHandleCancelarAlteracaoSenha = jest.fn();
