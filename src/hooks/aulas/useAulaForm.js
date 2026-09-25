@@ -72,11 +72,11 @@ export function useAulaForm({ id = null, submit }) {
     }
     if (Object.keys(newFieldErrors).length > 0) {
       setFieldErrors(newFieldErrors);
-      // O <select required> nativo que este widget substituiu levava foco e
-      // rolagem ao primeiro campo inválido de graça; SearchableSelectField
-      // não é elemento de formulário nativo, então repomos isso aqui — só no
-      // bloqueio do submit (nunca no ponto que limpa um erro), para não
-      // reabrir o foco a cada correção do usuário.
+      // SearchableSelectField não é elemento de formulário nativo — sem
+      // `required` HTML nativo, o navegador não move foco/rolagem ao primeiro
+      // campo inválido sozinho; por isso movemos aqui, só no bloqueio do
+      // submit (nunca no ponto que limpa um erro), para não reabrir o foco a
+      // cada correção do usuário.
       const primeiroCampoComErro = newFieldErrors.idAluno
         ? 'idAluno'
         : newFieldErrors.idProfessor

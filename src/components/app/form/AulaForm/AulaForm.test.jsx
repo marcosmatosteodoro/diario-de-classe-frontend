@@ -2,6 +2,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { AulaForm } from '.';
 import { useAlunos } from '@/hooks/alunos/useAlunos';
 import { useContratos } from '@/hooks/contratos/useContratos';
+import { useProfessores } from '@/hooks/professores/useProfessores';
+import { useUserAuth } from '@/providers/UserAuthProvider';
 
 // Mock dos componentes
 jest.mock('@/components', () => ({
@@ -199,10 +201,10 @@ jest.mock('@/components', () => ({
 }));
 
 // Mock dos hooks
-// `useAlunos`/`useContratos` viram `jest.fn()` (não factory fixa) para as
-// suítes de AC-001-007/008 abaixo sobrescreverem a lista por teste (2º Aluno,
-// Contrato de outro Aluno, Contrato PENDENTE) sem afetar o default usado
-// pelos testes pré-existentes deste arquivo.
+// `useAlunos`/`useContratos` são `jest.fn()` para que as suítes de
+// AC-001-007/008 abaixo sobrescrevam a lista por teste (2º Aluno, Contrato de
+// outro Aluno, Contrato PENDENTE) sem afetar o default usado pelos demais
+// testes deste arquivo.
 jest.mock('@/hooks/alunos/useAlunos', () => ({
   useAlunos: jest.fn(),
 }));
@@ -211,12 +213,11 @@ jest.mock('@/hooks/contratos/useContratos', () => ({
   useContratos: jest.fn(),
 }));
 
+// `jest.fn()` (não factory fixa): a suíte de NFR-001-003 abaixo sobrescreve
+// a lista de professores por teste, sem afetar o default usado pelos demais
+// testes deste arquivo.
 jest.mock('@/hooks/professores/useProfessores', () => ({
-  useProfessores: () => ({
-    professores: [
-      { id: 1, nome: 'Maria', sobrenome: 'Santos', email: 'maria@example.com' },
-    ],
-  }),
+  useProfessores: jest.fn(),
 }));
 
 jest.mock('@/hooks/useFormater', () => ({
@@ -229,16 +230,11 @@ jest.mock('@/hooks/useFormater', () => ({
   }),
 }));
 
+// `jest.fn()` (não factory fixa): a suíte de NFR-001-003 abaixo sobrescreve
+// `isAdmin`/`currentUser` por teste, sem afetar o default usado pelos demais
+// testes deste arquivo.
 jest.mock('@/providers/UserAuthProvider', () => ({
-  useUserAuth: () => ({
-    isAdmin: () => true,
-    currentUser: {
-      id: 1,
-      nome: 'Maria',
-      sobrenome: 'Santos',
-      email: 'maria@example.com',
-    },
-  }),
+  useUserAuth: jest.fn(),
 }));
 
 jest.mock('@/utils/getEntityOptions', () => ({
@@ -253,9 +249,10 @@ jest.mock('@/utils/getEntityOptions', () => ({
   },
 }));
 
-// Default de `useAlunos`/`useContratos` — mesmos dados que a factory fixa
-// tinha antes (aluno 1 "João Silva", contrato 1 ATIVO do aluno 1); só as
-// suítes de AC-001-007/008 sobrescrevem por teste.
+// Default de `useAlunos`/`useContratos`/`useProfessores`/`useUserAuth`
+// (aluno 1 "João Silva", contrato 1 ATIVO do aluno 1, professor 1 "Maria
+// Santos" também admin); as suítes de AC-001-007/008/NFR-001-003
+// sobrescrevem por teste.
 beforeEach(() => {
   useAlunos.mockReturnValue({
     alunos: [
@@ -272,6 +269,20 @@ beforeEach(() => {
         dataTermino: '2024-12-31',
       },
     ],
+  });
+  useProfessores.mockReturnValue({
+    professores: [
+      { id: 1, nome: 'Maria', sobrenome: 'Santos', email: 'maria@example.com' },
+    ],
+  });
+  useUserAuth.mockReturnValue({
+    isAdmin: () => true,
+    currentUser: {
+      id: 1,
+      nome: 'Maria',
+      sobrenome: 'Santos',
+      email: 'maria@example.com',
+    },
   });
 });
 
@@ -1225,6 +1236,61 @@ describe('AulaForm — Contrato: disabledReason/errorMessage (AC-001-007)', () =
       screen.queryByTestId('select-field-idContrato-disabled-reason')
     ).not.toBeInTheDocument();
   });
+
+  it('com Aluno selecionado e useContratos() ainda carregando, não afirma "Nenhum contrato disponível" antes de saber o resultado', () => {
+    useContratos.mockReturnValue({
+      contratos: [],
+      isLoading: true,
+      status: 'loading',
+      action: 'getContratos',
+    });
+
+    render(
+      <AulaForm
+        handleSubmit={mockHandleSubmit}
+        message=""
+        errors={null}
+        handleChange={mockHandleChange}
+        formData={{ ...mockFormData, idAluno: 1, idContrato: '' }}
+        isLoading={false}
+        isEdit={false}
+      />
+    );
+
+    expect(
+      screen.queryByTestId('select-field-idContrato-error')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('select-field-idContrato-loading')
+    ).toBeInTheDocument();
+  });
+
+  it('com Aluno selecionado e useContratos() falho (rede/5xx), mostra erro de carregamento, não "Nenhum contrato disponível"', () => {
+    useContratos.mockReturnValue({
+      contratos: [],
+      isLoading: false,
+      status: 'failed',
+      action: 'getContratos',
+    });
+
+    render(
+      <AulaForm
+        handleSubmit={mockHandleSubmit}
+        message=""
+        errors={null}
+        handleChange={mockHandleChange}
+        formData={{ ...mockFormData, idAluno: 1, idContrato: '' }}
+        isLoading={false}
+        isEdit={false}
+      />
+    );
+
+    expect(
+      screen.getByTestId('select-field-idContrato-error')
+    ).toHaveTextContent(
+      'Não foi possível carregar os contratos. Tente novamente.'
+    );
+  });
 });
 
 describe('AulaForm — FR-001-008: troca de Aluno limpa Contrato quando não pertence ao novo Aluno (AC-001-007)', () => {
@@ -1293,7 +1359,7 @@ describe('AulaForm — FR-001-008: troca de Aluno limpa Contrato quando não per
     });
   });
 
-  it('controle positivo: o Contrato selecionado já pertence ao Aluno recém-selecionado — não é limpo', () => {
+  it('controle positivo: trocar para um Aluno diferente que já é dono do Contrato selecionado — não é limpo', () => {
     const handleChange = jest.fn();
     render(
       <AulaForm
@@ -1301,17 +1367,17 @@ describe('AulaForm — FR-001-008: troca de Aluno limpa Contrato quando não per
         message=""
         errors={null}
         handleChange={handleChange}
-        formData={{ ...mockFormData, idAluno: 1, idContrato: 1 }}
+        formData={{ ...mockFormData, idAluno: 1, idContrato: 2 }}
         isLoading={false}
         isEdit={false}
       />
     );
 
-    fireEvent.click(screen.getByText('João Silva (joao@example.com)'));
+    fireEvent.click(screen.getByText('Ana Souza (ana@example.com)'));
 
     expect(handleChange).toHaveBeenCalledTimes(1);
     expect(handleChange).toHaveBeenCalledWith({
-      target: { name: 'idAluno', value: 1 },
+      target: { name: 'idAluno', value: 2 },
     });
   });
 });
@@ -1364,21 +1430,67 @@ describe('AulaForm — FR-001-010/AC-001-008: rótulo do Contrato fora de contra
     expect(contratoInput.value).toContain('PENDENTE');
     expect(contratoInput.value).not.toBe('');
   });
+});
 
-  it('contrato dentro de contratoOptions ignora o cálculo de selectedLabel — usa o rótulo real da opção', () => {
+describe('AulaForm — NFR-001-003: Professor não-admin só vê o próprio usuário (não-regressão pós-troca de widget)', () => {
+  const mockFormData = {
+    idAluno: 1,
+    idProfessor: 2,
+    idContrato: 1,
+    tipo: 'PADRAO',
+    dataAula: '2024-03-11',
+    horaInicial: '10:00',
+    horaFinal: '11:00',
+    observacao: 'Test observation',
+    status: 'REALIZADA',
+  };
+  const mockHandleChange = jest.fn();
+  const mockHandleSubmit = jest.fn(e => e.preventDefault());
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useProfessores.mockReturnValue({
+      professores: [
+        {
+          id: 1,
+          nome: 'Maria',
+          sobrenome: 'Santos',
+          email: 'maria@example.com',
+        },
+        {
+          id: 2,
+          nome: 'Carlos',
+          sobrenome: 'Lima',
+          email: 'carlos@example.com',
+        },
+      ],
+    });
+    useUserAuth.mockReturnValue({
+      isAdmin: () => false,
+      currentUser: {
+        id: 2,
+        nome: 'Carlos',
+        sobrenome: 'Lima',
+        email: 'carlos@example.com',
+      },
+    });
+  });
+
+  it('com isAdmin() false, o combobox Professor só oferece o próprio usuário — não a lista completa de professores', () => {
     render(
       <AulaForm
         handleSubmit={mockHandleSubmit}
         message=""
         errors={null}
         handleChange={mockHandleChange}
-        formData={{ ...mockFormData, idAluno: 1, idContrato: 1 }}
+        formData={mockFormData}
         isLoading={false}
         isEdit={false}
       />
     );
 
-    const contratoInput = screen.getByTestId('select-idContrato');
-    expect(contratoInput.value).toContain('ATIVO');
+    const options = screen.getAllByTestId('select-field-idProfessor-option');
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Carlos Lima (carlos@example.com)');
   });
 });

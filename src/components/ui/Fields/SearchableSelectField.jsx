@@ -283,6 +283,7 @@ export const SearchableSelectField = ({
               <>
                 {showError && (
                   <p
+                    role="status"
                     className="px-3 py-2 text-sm text-danger"
                     data-testid="searchable-select-field-error"
                   >

@@ -3,6 +3,7 @@ import {
   DURACAO_AULA,
   DURACAO_AULA_ARRAY,
   DURACAO_AULA_LABEL,
+  STATUS,
   STATUS_AULA,
   STATUS_AULA_LABEL,
   TIPO_AULA,
@@ -25,6 +26,13 @@ import { useFormater } from '@/hooks/useFormater';
 import { getEntityOptions } from '@/utils/getEntityOptions';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 
+// Mensagem fixa em pt-BR (nunca o `message` cru do slice) — `status` é
+// compartilhado entre ações do slice de Contratos, por isso o erro só é
+// afirmado quando a ação em curso é realmente a de listagem consumida aqui
+// (mesmo padrão de `aulas/page.jsx`).
+const ERRO_CARREGAR_CONTRATOS =
+  'Não foi possível carregar os contratos. Tente novamente.';
+
 export const AulaForm = ({
   handleSubmit,
   message,
@@ -37,7 +45,12 @@ export const AulaForm = ({
 }) => {
   const { alunos } = useAlunos();
   const { professores } = useProfessores();
-  const { contratos } = useContratos();
+  const {
+    contratos,
+    isLoading: isLoadingContratos,
+    status: statusContratos,
+    action: actionContratos,
+  } = useContratos();
   const { dataFormatter } = useFormater();
   const { isAdmin, currentUser } = useUserAuth();
   const professorOptions = isAdmin() ? professores : [currentUser];
@@ -63,7 +76,7 @@ export const AulaForm = ({
   }, [contratos, dataFormatter, formData.idAluno]);
 
   // FR-001-010/DEC-002-007: `contratoOptions` já exclui PENDENTE/outro Aluno
-  // — resolve o rótulo a partir da lista completa (`contratos`, linha 38)
+  // — resolve o rótulo a partir da lista completa (`contratos`, acima)
   // quando `formData.idContrato` não está mais em `contratoOptions` (ex.:
   // virou PENDENTE, ou pertence a um Aluno diferente após edição), para não
   // descartar o valor em silêncio (TRISK-002-003).
@@ -101,6 +114,25 @@ export const AulaForm = ({
     }
     handleChange(e);
   };
+
+  // `useContratos()` zera `list` para `[]` tanto em `pending` quanto em
+  // `rejected` (`contratosSlice.js`) — sem checar
+  // `isLoadingContratos`/`statusContratos`, "Nenhum contrato disponível"
+  // seria afirmado também enquanto a lista ainda carrega ou depois de uma
+  // falha de rede, quando na verdade não se sabe (ou não se conseguiu saber)
+  // se há Contrato elegível. `statusContratos` é compartilhado entre ações
+  // do slice de Contratos — `actionContratos` garante que o erro só é
+  // afirmado quando a ação em curso é a de listagem consumida aqui (mesmo
+  // guard de `aulas/page.jsx`).
+  const erroCarregarContratos =
+    statusContratos === STATUS.FAILED && actionContratos === 'getContratos'
+      ? ERRO_CARREGAR_CONTRATOS
+      : undefined;
+  const contratoErrorMessage = erroCarregarContratos
+    ? erroCarregarContratos
+    : !isLoadingContratos && formData.idAluno && contratoOptions.length === 0
+      ? 'Nenhum contrato disponível para este aluno.'
+      : undefined;
 
   return (
     <Form handleSubmit={handleSubmit} props={{ 'data-testid': 'aula-form' }}>
@@ -140,15 +172,12 @@ export const AulaForm = ({
             onChange={handleChange}
             value={formData.idContrato}
             requiredError={fieldErrors.idContrato}
+            isLoading={isLoadingContratos}
             disabledReason={
               !formData.idAluno ? 'Selecione um Aluno antes' : undefined
             }
             selectedLabel={contratoSelecionadoLabel}
-            errorMessage={
-              formData.idAluno && contratoOptions.length === 0
-                ? 'Nenhum contrato disponível para este aluno.'
-                : undefined
-            }
+            errorMessage={contratoErrorMessage}
           />
           <SelectField
             required

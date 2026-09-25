@@ -190,6 +190,7 @@ describe('SearchableSelectField', () => {
     await user.click(input);
     const errorText = screen.getByText('Erro ao buscar alunos');
     expect(errorText).toBeInTheDocument();
+    expect(errorText).toHaveAttribute('role', 'status');
     expect(errorText.classList.contains('text-danger')).toBe(true);
     expect(screen.getAllByRole('option')).toHaveLength(OPTIONS.length);
     expect(input).not.toBeDisabled();

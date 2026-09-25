@@ -100,9 +100,13 @@ describe('Editar Aula — fieldErrors de useAulaForm() chega ao SearchableSelect
     });
   });
 
-  it('submit com Contrato limpo pelo usuário: o requiredError chega ao campo Contrato, anunciado por role="alert"', () => {
+  it('submit com Contrato limpo pelo usuário: o requiredError chega só ao campo Contrato, ligado via aria-describedby (não uma mensagem genérica)', () => {
     render(<EditarAula />);
 
+    const alunoCombobox = screen.getByRole('combobox', { name: /^aluno/i });
+    const professorCombobox = screen.getByRole('combobox', {
+      name: /^professor/i,
+    });
     const contratoInput = screen.getByRole('combobox', {
       name: /^contrato/i,
     });
@@ -114,8 +118,9 @@ describe('Editar Aula — fieldErrors de useAulaForm() chega ao SearchableSelect
 
     fireEvent.submit(screen.getByTestId('aula-form'));
 
-    const errorEl = screen.getByRole('alert');
-    expect(errorEl).toHaveTextContent('Selecione um contrato.');
+    expect(contratoInput).toHaveAccessibleDescription('Selecione um contrato.');
+    expect(alunoCombobox).not.toHaveAttribute('aria-describedby');
+    expect(professorCombobox).not.toHaveAttribute('aria-describedby');
   });
 
   it('controle positivo: com os dados da aula existente já preenchidos, o submit não bloqueia e nenhum requiredError aparece', () => {

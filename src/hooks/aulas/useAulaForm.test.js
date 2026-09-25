@@ -466,6 +466,31 @@ describe('useAulaForm', () => {
       );
     });
 
+    it('com só Contrato vazio (Aluno e Professor preenchidos), o foco vai para o combobox Contrato', () => {
+      const submit = jest.fn();
+      render(
+        createElement(FormHarness, {
+          alunoOptions,
+          professorOptions,
+          contratoOptions,
+          submit,
+        })
+      );
+
+      fireEvent.click(screen.getByRole('combobox', { name: /^aluno/i }));
+      fireEvent.click(screen.getByText('Aluno 1'));
+
+      fireEvent.click(screen.getByRole('combobox', { name: /^professor/i }));
+      fireEvent.click(screen.getByText('Professor 1'));
+
+      fireEvent.submit(screen.getByTestId('harness-form'));
+
+      expect(submit).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(
+        screen.getByRole('combobox', { name: /^contrato/i })
+      );
+    });
+
     it('caso irmão: preencher o Aluno depois do bloqueio não move o foco para o Professor', () => {
       const submit = jest.fn();
       render(

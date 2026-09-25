@@ -75,16 +75,29 @@ describe('Nova Aula — fieldErrors de useAulaForm() chega ao SearchableSelectFi
     });
   });
 
-  it('submit com Aluno/Professor/Contrato vazios: o requiredError chega ao campo Aluno, anunciado por role="alert"', () => {
+  it('submit com Aluno/Professor/Contrato vazios: cada combobox recebe sua própria mensagem, ligada via aria-describedby (não uma genérica)', () => {
     render(<NovoAula />);
 
     fireEvent.submit(screen.getByTestId('aula-form'));
 
-    const errorEl = screen.getAllByRole('alert')[0];
-    expect(errorEl).toHaveTextContent('Selecione um aluno.');
+    const alunoCombobox = screen.getByRole('combobox', { name: /^aluno/i });
+    const professorCombobox = screen.getByRole('combobox', {
+      name: /^professor/i,
+    });
+    const contratoCombobox = screen.getByRole('combobox', {
+      name: /^contrato/i,
+    });
+
+    expect(alunoCombobox).toHaveAccessibleDescription('Selecione um aluno.');
+    expect(professorCombobox).toHaveAccessibleDescription(
+      'Selecione um professor.'
+    );
+    expect(contratoCombobox).toHaveAccessibleDescription(
+      'Selecione um contrato.'
+    );
   });
 
-  it('submit só com Contrato vazio (Aluno e Professor preenchidos): o requiredError chega ao campo Contrato, anunciado por role="alert"', () => {
+  it('submit só com Contrato vazio (Aluno e Professor preenchidos): o requiredError chega só ao campo Contrato, ligado via aria-describedby, e o foco vai para o combobox Contrato', () => {
     render(<NovoAula />);
 
     fireEvent.click(screen.getByRole('combobox', { name: /^aluno/i }));
@@ -95,8 +108,20 @@ describe('Nova Aula — fieldErrors de useAulaForm() chega ao SearchableSelectFi
 
     fireEvent.submit(screen.getByTestId('aula-form'));
 
-    const errorEl = screen.getByRole('alert');
-    expect(errorEl).toHaveTextContent('Selecione um contrato.');
+    const alunoCombobox = screen.getByRole('combobox', { name: /^aluno/i });
+    const professorCombobox = screen.getByRole('combobox', {
+      name: /^professor/i,
+    });
+    const contratoCombobox = screen.getByRole('combobox', {
+      name: /^contrato/i,
+    });
+
+    expect(contratoCombobox).toHaveAccessibleDescription(
+      'Selecione um contrato.'
+    );
+    expect(alunoCombobox).not.toHaveAttribute('aria-describedby');
+    expect(professorCombobox).not.toHaveAttribute('aria-describedby');
+    expect(document.activeElement).toBe(contratoCombobox);
   });
 
   it('controle positivo: com Aluno, Professor e Contrato preenchidos, o submit não bloqueia e nenhum requiredError aparece', () => {
