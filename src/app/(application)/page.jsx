@@ -48,7 +48,10 @@ const HomeCard = ({ title, value, color, isLoading }) => {
   return (
     <div className="bg-main p-6 rounded-lg shadow-md border border-main ">
       <h3 className="text-lg font-semibold text-main mb-2">{title}</h3>
-      <p className={`text-3xl font-bold ${textColorClass}`}>
+      <p
+        key={isLoading ? 'loading' : 'value'}
+        className={`text-3xl font-bold ${textColorClass} ${!isLoading ? 'animate-block-in' : ''}`}
+      >
         {isLoading ? '...' : value || 0}
       </p>
     </div>
@@ -319,7 +322,7 @@ export default function Home() {
           {formData.minhasAulas ? 'Minhas Aulas' : 'Todas as Aulas'}
         </h3>
 
-        <div className="space-y-4">
+        <div className={`space-y-4 ${!isLoading ? 'animate-block-in' : ''}`}>
           {isLoading && <Loading />}
           {!isLoading && aulas && aulas.length > 0 ? (
             aulas.map(aula => (

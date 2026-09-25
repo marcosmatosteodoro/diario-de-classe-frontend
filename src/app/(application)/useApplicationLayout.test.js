@@ -377,4 +377,21 @@ describe('useApplicationLayout', () => {
     expect(routerMock.push).toHaveBeenCalledTimes(1);
     expect(routerMock.push).toHaveBeenCalledWith('/login');
   });
+
+  it('trata rejeição de isAuthenticated() como não-autenticada', async () => {
+    isAuthenticatedMock.mockRejectedValue(new Error('network error'));
+    const { result } = renderHook(() => useApplicationLayout());
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(true);
+    });
+    await waitFor(() => {
+      expect(routerMock.push).toHaveBeenCalledWith('/login');
+    });
+
+    expect(errorMock).toHaveBeenCalledWith(
+      'Por favor, faça login para acessar o sistema.'
+    );
+    expect(result.current.isLoading).toBe(true);
+  });
 });

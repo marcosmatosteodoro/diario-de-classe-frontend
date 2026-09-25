@@ -1,7 +1,14 @@
 'use client';
 
 import { useApplicationLayout } from './useApplicationLayout';
-import { Header, Sidebar, Footer, Loading, InstallPrompt } from '@/components';
+import {
+  Header,
+  Sidebar,
+  Footer,
+  Loading,
+  InstallPrompt,
+  TransitionShell,
+} from '@/components';
 import { UnsavedChangesGuardProvider } from '@/providers/UnsavedChangesGuardProvider';
 
 export default function ApplicationLayout({ children }) {
@@ -10,7 +17,7 @@ export default function ApplicationLayout({ children }) {
 
   return (
     <UnsavedChangesGuardProvider>
-      <div className="min-h-screen bg-secondary">
+      <TransitionShell className="min-h-screen bg-secondary">
         <Header
           isExpanded={sidebarExpanded.isExpanded}
           toggleSidebar={toggleSidebar}
@@ -34,7 +41,7 @@ export default function ApplicationLayout({ children }) {
         </div>
         <Footer />
         {!isLoading && !isUnauthorized && <InstallPrompt />}
-      </div>
+      </TransitionShell>
     </UnsavedChangesGuardProvider>
   );
 }

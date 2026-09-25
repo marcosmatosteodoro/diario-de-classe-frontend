@@ -131,6 +131,70 @@ describe('Home Page - Dashboard', () => {
     });
   });
 
+  it('conclui a apresentação com o fallback já existente quando getDashboard rejeita, sem indicador preso (AC-002-004)', () => {
+    // Shape do estado pós-rejeição em `dashboardSlice.js`: STATUS.FAILED
+    // não preenche `data`, então `isLoading` fica `false` e `aulas`/valores
+    // dos cards ficam sem valor (`useDashboard.js`).
+    useDashboard.mockReturnValue({
+      ...defaultDashboardData,
+      aulas: null,
+      isLoading: false,
+      homeCardValues: [
+        { title: 'Alunos', value: undefined, color: 'blue' },
+        { title: 'Aulas', value: undefined, color: 'green' },
+        { title: 'Contratos', value: undefined, color: 'purple' },
+      ],
+    });
+
+    render(<Home />);
+
+    expect(screen.getByText('Nenhuma aula encontrada')).toBeInTheDocument();
+    expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+
+    // Cards sem valor (rejeição não preenche `data`): mostram "0", nunca o
+    // placeholder de carregamento "...".
+    expect(screen.queryByText('...')).not.toBeInTheDocument();
+    expect(screen.getAllByText('0')).toHaveLength(3);
+  });
+
+  it('aplica animate-block-in no valor de cada card (o nó que efetivamente troca) e na lista de aulas quando o carregamento conclui, mas nunca na moldura do grid, que persiste entre os dois estados (COMP-003-001, AC-002-001)', () => {
+    const { container } = render(<Home />);
+
+    // Seletor por substring de classe estável (nunca por classe exata): a
+    // classe alvo (`animate-block-in`) é composta condicionalmente e não pode
+    // fazer parte do próprio seletor sem esvaziar a prova.
+    const grid = container.querySelector('[class*="grid-cols-1"]');
+    const valores = grid.querySelectorAll('[class*="text-3xl"]');
+    const lista = container.querySelector('[class*="space-y-4"]');
+
+    // A moldura do grid (fundo, borda, sombra, título) é o mesmo nó DOM
+    // entre `isLoading: true` e `false` — se ganhasse a classe aqui, o
+    // keyframe `block-in` (que começa em opacity: 0) faria os 3 cards
+    // sumirem e reaparecerem por inteiro.
+    expect(grid).not.toHaveClass('animate-block-in');
+
+    expect(valores).toHaveLength(3);
+    valores.forEach(valor => expect(valor).toHaveClass('animate-block-in'));
+    expect(lista).toHaveClass('animate-block-in');
+  });
+
+  it('não aplica animate-block-in no valor dos cards nem na lista de aulas enquanto isLoading é true (COMP-003-001)', () => {
+    useDashboard.mockReturnValue({
+      ...defaultDashboardData,
+      isLoading: true,
+    });
+
+    const { container } = render(<Home />);
+
+    const grid = container.querySelector('[class*="grid-cols-1"]');
+    const valores = grid.querySelectorAll('[class*="text-3xl"]');
+    const lista = container.querySelector('[class*="space-y-4"]');
+
+    expect(valores).toHaveLength(3);
+    valores.forEach(valor => expect(valor).not.toHaveClass('animate-block-in'));
+    expect(lista).not.toHaveClass('animate-block-in');
+  });
+
   it('não deixa o texto da aula forçar a largura do row em telas estreitas (guarda de configuração — min-w-0/flex-1 no container; scrollWidth real não é medível em jsdom, ver gate 9/qa)', () => {
     makeFullNameLabel.mockReturnValue(
       'joaozinhodasilvaoliveiraferreiraresponsividade'

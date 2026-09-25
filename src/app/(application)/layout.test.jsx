@@ -30,6 +30,11 @@ jest.mock('@/components', () => ({
   ),
   Footer: () => <footer data-testid="footer" />,
   Loading: () => <div data-testid="loading" />,
+  TransitionShell: ({ children, className }) => (
+    <div data-testid="transition-shell" className={className}>
+      {children}
+    </div>
+  ),
   InstallPrompt: () => <div data-testid="install-prompt-mock" />,
 }));
 
