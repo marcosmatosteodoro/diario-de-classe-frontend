@@ -84,6 +84,52 @@ describe('UnsavedChangesGuardProvider', () => {
     await expect(resultado).resolves.toBe(true);
   });
 
+  it('sem sobreposição de texto, confirmNavigation() exibe o diálogo com o texto de navegação (menu lateral, logout)', async () => {
+    showConfirmMock.mockResolvedValue({ isConfirmed: true });
+    const guardRef = { current: null };
+    render(
+      <UnsavedChangesGuardProvider>
+        <ExpoeGuard guardRef={guardRef}>
+          <ConsumidorComGuard dirty={true} />
+        </ExpoeGuard>
+      </UnsavedChangesGuardProvider>
+    );
+
+    await guardRef.current.confirmNavigation();
+
+    expect(showConfirmMock).toHaveBeenCalledWith({
+      title: 'Sair sem salvar?',
+      text: 'Há alterações não salvas nesta tela. Se você sair agora, elas serão perdidas.',
+      confirmButtonText: 'Sair sem salvar',
+      cancelButtonText: 'Continuar editando',
+    });
+  });
+
+  it('com sobreposição de { title, text, confirmButtonText }, confirmNavigation() exibe o diálogo com o texto sobreposto, mantendo cancelButtonText)', async () => {
+    showConfirmMock.mockResolvedValue({ isConfirmed: true });
+    const guardRef = { current: null };
+    render(
+      <UnsavedChangesGuardProvider>
+        <ExpoeGuard guardRef={guardRef}>
+          <ConsumidorComGuard dirty={true} />
+        </ExpoeGuard>
+      </UnsavedChangesGuardProvider>
+    );
+
+    await guardRef.current.confirmNavigation({
+      title: 'Descartar alterações?',
+      text: 'Há alterações não salvas nesta tela. Se você cancelar, elas serão descartadas.',
+      confirmButtonText: 'Descartar alterações',
+    });
+
+    expect(showConfirmMock).toHaveBeenCalledWith({
+      title: 'Descartar alterações?',
+      text: 'Há alterações não salvas nesta tela. Se você cancelar, elas serão descartadas.',
+      confirmButtonText: 'Descartar alterações',
+      cancelButtonText: 'Continuar editando',
+    });
+  });
+
   it('com guard registrado e isDirty=true, confirmNavigation() resolve false quando o administrador cancela', async () => {
     showConfirmMock.mockResolvedValue({ isConfirmed: false });
     const guardRef = { current: null };

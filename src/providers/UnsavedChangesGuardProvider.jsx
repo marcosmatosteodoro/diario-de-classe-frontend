@@ -52,15 +52,25 @@ export const UnsavedChangesGuardProvider = ({ children }) => {
   // falha (rejeita): `false` nega a navegação (padrão, usado pelo menu
   // lateral); `true` libera mesmo assim (usado só pelo logout do Header —
   // sessão encerrada vence rascunho).
+  //
+  // `title`/`text`/`confirmButtonText` são uma sobreposição opcional: sem
+  // elas, o diálogo usa o texto de navegação (menu lateral, logout); quem
+  // chama com um efeito diferente (ex.: Cancelar da tela de configuração, que
+  // descarta em vez de sair) sobrepõe só o que precisa.
   const confirmNavigation = useCallback(
-    ({ liberarSeFalhar = false } = {}) => {
+    ({
+      liberarSeFalhar = false,
+      title = 'Sair sem salvar?',
+      text = 'Há alterações não salvas nesta tela. Se você sair agora, elas serão perdidas.',
+      confirmButtonText = 'Sair sem salvar',
+    } = {}) => {
       const isDirty = Boolean(guardRef.current?.());
       if (!isDirty) return true;
 
       return showConfirm({
-        title: 'Sair sem salvar?',
-        text: 'Há alterações não salvas nesta tela. Se você sair agora, elas serão perdidas.',
-        confirmButtonText: 'Sair sem salvar',
+        title,
+        text,
+        confirmButtonText,
         cancelButtonText: 'Continuar editando',
       })
         .then(result => Boolean(result.isConfirmed))

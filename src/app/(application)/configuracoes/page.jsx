@@ -19,7 +19,7 @@ import {
   Section,
   SectionTitle,
 } from '@/components';
-import { DIAS_ARRAY, DIAS_LABEL } from '@/constants';
+import { DIAS_ARRAY, DIAS_LABEL, STATUS } from '@/constants';
 
 const HINT_DURACAO_AULA =
   'Usada apenas para sugerir a hora final de um dia de aula no formulário de contrato quando a quantidade de aulas daquele dia é alterada. Não muda a duração de aulas, dias de aula nem contratos. O novo valor só vale para quem entrar no sistema depois da mudança.';
@@ -40,6 +40,7 @@ export default function Configuracao() {
     message,
     errors,
     action,
+    status,
     statusError,
   } = useConfiguracao();
   const {
@@ -57,12 +58,15 @@ export default function Configuracao() {
   const { setGuard, clearGuard, confirmNavigation } = useUnsavedChangesGuard();
   const errosServidorPorCampo = mapearErroServidorPorCampo(errors);
 
-  // Falha não-validação: a gravação (PUT) falhou sem erro de validação por campo (ex.:
-  // 500/rede) — soma a orientação de recarregar (RISK-001-003, gravação não atômica). A
-  // falha de validação (`errors` com item mapeável) já é suficiente por campo, sem essa
-  // frase somada por cima (FR-001-020). 401 fica só com o logout forçado do layout
-  // (`useApplicationLayout`) — a tela não soma a orientação de gravação parcial.
+  // Falha não-validação: a gravação (PUT) chegou a FAILED sem erro de validação por campo
+  // (ex.: 500/rede, com ou sem status HTTP) — soma a orientação de recarregar
+  // (RISK-001-003, gravação não atômica). A falha de validação (`errors` com item
+  // mapeável) já é suficiente por campo, sem essa frase somada por cima (FR-001-020). 401
+  // fica só com o logout forçado do layout (`useApplicationLayout`) — a tela não soma a
+  // orientação de gravação parcial. `status === STATUS.FAILED` evita acusar falha fora do
+  // ramo de erro (ex.: action/errors residuais de um render anterior).
   const falhaNaoValidacao =
+    status === STATUS.FAILED &&
     action === 'updateConfiguracao' &&
     Number(statusError) !== 401 &&
     (errors || []).length === 0;
@@ -71,7 +75,11 @@ export default function Configuracao() {
     : errors;
 
   const handleCancelar = () => {
-    const resultado = confirmNavigation();
+    const resultado = confirmNavigation({
+      title: 'Descartar alterações?',
+      text: 'Há alterações não salvas nesta tela. Se você cancelar, elas serão descartadas.',
+      confirmButtonText: 'Descartar alterações',
+    });
     if (resultado === true) {
       restaurarUltimaLeitura();
       return;

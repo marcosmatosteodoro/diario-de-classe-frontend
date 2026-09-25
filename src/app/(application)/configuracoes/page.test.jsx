@@ -4,18 +4,36 @@ import {
   within,
   fireEvent,
   waitFor,
+  act,
 } from '@testing-library/react';
 import Configuracao from './page';
 import { useUserAuth } from '@/providers/UserAuthProvider';
-import { useUnsavedChangesGuard } from '@/providers/UnsavedChangesGuardProvider';
+import {
+  useUnsavedChangesGuard,
+  UnsavedChangesGuardProvider,
+} from '@/providers/UnsavedChangesGuardProvider';
 import { useConfiguracao } from '@/hooks/configuracoes/useConfiguracao';
 import { useConfiguracaoForm } from '@/hooks/configuracoes/useConfiguracaoForm';
+import useSweetAlert from '@/hooks/useSweetAlert';
+import { STATUS } from '@/constants';
 
 jest.mock('next/navigation', () => ({
   notFound: jest.fn(),
 }));
 jest.mock('@/providers/UserAuthProvider');
-jest.mock('@/providers/UnsavedChangesGuardProvider');
+// `UnsavedChangesGuardProvider` (componente) fica real: o teste do padrão
+// "nega se o diálogo falhar" precisa do merge/`liberarSeFalhar`
+// reais, não de um duplo (mock) do próprio provider. `useUnsavedChangesGuard`
+// continua um jest.fn — default aponta pra implementação real, e os testes que
+// não chamam `mockReturnValue` a exercitam de verdade dentro do provider real.
+jest.mock('@/providers/UnsavedChangesGuardProvider', () => {
+  const real = jest.requireActual('@/providers/UnsavedChangesGuardProvider');
+  return {
+    ...real,
+    useUnsavedChangesGuard: jest.fn(real.useUnsavedChangesGuard),
+  };
+});
+jest.mock('@/hooks/useSweetAlert', () => jest.fn());
 jest.mock('@/hooks/configuracoes/useConfiguracao');
 // O mock envolve a implementação real, e quem depende dela a reaplica.
 // Testes que precisam da lógica real (validação/foco/derivação de erro do formData
@@ -745,6 +763,68 @@ describe('Configuracao Page', () => {
 
       expect(restaurarUltimaLeituraMock).not.toHaveBeenCalled();
     });
+
+    it('chama confirmNavigation com a sobreposição de texto do Cancelar ("Descartar alterações")', () => {
+      const confirmNavigationMock = jest.fn(() => true);
+      useUnsavedChangesGuard.mockReturnValue({
+        setGuard: jest.fn(),
+        clearGuard: jest.fn(),
+        confirmNavigation: confirmNavigationMock,
+      });
+      useConfiguracaoForm.mockReturnValue(
+        mockUseConfiguracaoFormComRestaurar(false, jest.fn())
+      );
+
+      render(<Configuracao />);
+      fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
+
+      expect(confirmNavigationMock).toHaveBeenCalledWith({
+        title: 'Descartar alterações?',
+        text: 'Há alterações não salvas nesta tela. Se você cancelar, elas serão descartadas.',
+        confirmButtonText: 'Descartar alterações',
+      });
+    });
+
+    it('depende do padrão "nega se o diálogo falhar" (liberarSeFalhar não truthy): com o provider real e o diálogo rejeitando, restaurarUltimaLeitura não é chamada', async () => {
+      // Sobrepõe o default do beforeEach (mock síncrono `() => true`): este teste precisa
+      // do merge real de `confirmNavigation` (UnsavedChangesGuardProvider) para provar que
+      // a página não passa `liberarSeFalhar: true`.
+      useUnsavedChangesGuard.mockImplementation(
+        jest.requireActual('@/providers/UnsavedChangesGuardProvider')
+          .useUnsavedChangesGuard
+      );
+      let rejeitarShowConfirm;
+      const showConfirmMock = jest.fn(
+        () =>
+          new Promise((_resolve, reject) => {
+            rejeitarShowConfirm = reject;
+          })
+      );
+      useSweetAlert.mockReturnValue({ showConfirm: showConfirmMock });
+      const restaurarUltimaLeituraMock = jest.fn();
+      useConfiguracaoForm.mockReturnValue(
+        mockUseConfiguracaoFormComRestaurar(true, restaurarUltimaLeituraMock)
+      );
+
+      render(
+        <UnsavedChangesGuardProvider>
+          <Configuracao />
+        </UnsavedChangesGuardProvider>
+      );
+      fireEvent.click(screen.getByRole('button', { name: /cancelar/i }));
+
+      await waitFor(() => expect(showConfirmMock).toHaveBeenCalledTimes(1));
+
+      await act(async () => {
+        rejeitarShowConfirm(new Error('falha ao exibir o diálogo'));
+        // flush o encadeamento .catch(() => liberarSeFalhar).then(confirmado => ...)
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+
+      expect(restaurarUltimaLeituraMock).not.toHaveBeenCalled();
+    });
   });
 
   describe('estados de salvar (TASK-002-007, AC-001-004)', () => {
@@ -778,6 +858,7 @@ describe('Configuracao Page', () => {
         message: 'Erro de validação',
         errors: ['duracaoAula: Deve ser um número positivo'],
         action: 'updateConfiguracao',
+        status: STATUS.FAILED,
         statusError: 400,
       });
 
@@ -788,20 +869,45 @@ describe('Configuracao Page', () => {
       );
     });
 
-    it('falha não-validação (sem mapeamento por campo, ex. 500): soma a orientação de recarregar', () => {
+    it.each([500, undefined])(
+      'falha não-validação com status FAILED e statusError=%s (500 ou sem resposta): soma a orientação de recarregar',
+      statusError => {
+        useConfiguracao.mockReturnValue({
+          configuracao: { id: 1, diasTrabalho: 5 },
+          isLoading: false,
+          isNotFound: false,
+          message: 'Erro ao atualizar configuração',
+          errors: [],
+          action: 'updateConfiguracao',
+          status: STATUS.FAILED,
+          statusError,
+        });
+
+        render(<Configuracao />);
+
+        expect(screen.getByTestId('form-error')).toHaveTextContent(
+          REGEX_ORIENTACAO_RECARREGAR
+        );
+      }
+    );
+
+    it('status ainda não FAILED (ex.: SUCCESS), mesmo com action/errors/statusError de uma falha: não soma a orientação', () => {
       useConfiguracao.mockReturnValue({
         configuracao: { id: 1, diasTrabalho: 5 },
         isLoading: false,
         isNotFound: false,
+        // `message` não-nulo: `FormError` só renderiza com `title` truthy — nulo esconderia
+        // a orientação por si só, sem exercitar de fato o gate `status === STATUS.FAILED`.
         message: 'Erro ao atualizar configuração',
         errors: [],
         action: 'updateConfiguracao',
+        status: STATUS.SUCCESS,
         statusError: 500,
       });
 
       render(<Configuracao />);
 
-      expect(screen.getByTestId('form-error')).toHaveTextContent(
+      expect(screen.getByTestId('form-error')).not.toHaveTextContent(
         REGEX_ORIENTACAO_RECARREGAR
       );
     });
@@ -814,6 +920,7 @@ describe('Configuracao Page', () => {
         message: 'Não autorizado',
         errors: [],
         action: 'updateConfiguracao',
+        status: STATUS.FAILED,
         statusError: 401,
       });
 
@@ -832,6 +939,7 @@ describe('Configuracao Page', () => {
         message: 'Erro ao buscar configuração',
         errors: [],
         action: 'getConfiguracao',
+        status: STATUS.FAILED,
         statusError: 500,
       });
 
@@ -850,6 +958,7 @@ describe('Configuracao Page', () => {
         message: 'Erro ao atualizar configuração',
         errors: [],
         action: 'updateConfiguracao',
+        status: STATUS.FAILED,
         statusError: 500,
       });
       useConfiguracaoForm.mockReturnValue({
