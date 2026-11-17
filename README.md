@@ -16,6 +16,8 @@ bun dev
 
 Open [http://localhost:3001](http://localhost:3001) with your browser to see the result. The app talks to the API at its own origin (`/api`); the Next `rewrites()` forwards it to the backend at `API_INTERNAL_URL` (server-only, backend origin without `/api`, default `http://localhost:3000` in dev, required in production at build and start).
 
+`npm run start:docker` builds the image with `--build-arg API_INTERNAL_URL=${API_INTERNAL_URL}` (no embedded default): export `API_INTERNAL_URL` in the shell first, or the production fail-fast aborts the build.
+
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
