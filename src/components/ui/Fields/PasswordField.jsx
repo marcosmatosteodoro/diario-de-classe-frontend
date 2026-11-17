@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { classNameDefault, BaseField } from './base';
+import { classNameDefault, BaseField, describedByIds } from './base';
 
 function usePasswordField() {
   const [type, setType] = useState('password');
@@ -22,6 +22,8 @@ export const PasswordField = ({
   inputGroupClass,
   labelClass,
   className,
+  hint,
+  error,
   ...props
 }) => {
   className ||= classNameDefault;
@@ -33,6 +35,8 @@ export const PasswordField = ({
       label={label}
       inputGroupClass={inputGroupClass}
       labelClass={labelClass}
+      hint={hint}
+      error={error}
     >
       <div className="relative">
         <input
@@ -45,6 +49,8 @@ export const PasswordField = ({
           className={`${className} pr-10`}
           placeholder={placeholder}
           data-testid="password-field"
+          aria-describedby={describedByIds(htmlFor, { hint, error })}
+          aria-invalid={error ? 'true' : undefined}
           {...props}
         />
         <button

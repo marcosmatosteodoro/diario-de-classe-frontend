@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import EditarProfessor from './page';
 import { STATUS_ERROR } from '@/constants/statusError';
 import { IDIOMA } from '@/constants';
+import { ProfessorForm } from '@/components';
 
 // Mock dos hooks
 jest.mock('@/hooks/professores/useEditarProfessor');
@@ -36,25 +37,29 @@ jest.mock('@/components', () => ({
   ),
   PageTitle: ({ children }) => <h1 data-testid="page-title">{children}</h1>,
   Loading: () => <div data-testid="loading">Carregando...</div>,
-  ProfessorForm: ({
-    handleSubmit,
-    handleChange,
-    formData,
-    isSenhaError,
-    isLoading,
-    message,
-    errors,
-    isEdit,
-  }) => (
-    <form data-testid="professor-form" onSubmit={handleSubmit}>
-      <div data-testid="form-data">{JSON.stringify(formData)}</div>
-      {isSenhaError && <div data-testid="senha-error">Erro na senha</div>}
-      {isLoading && <div data-testid="form-loading">Enviando...</div>}
-      {message && <div data-testid="message">{message}</div>}
-      {errors && <div data-testid="errors">{JSON.stringify(errors)}</div>}
-      {isEdit && <div data-testid="is-edit">Modo Edição</div>}
-      <button type="submit">Salvar</button>
-    </form>
+  // `jest.fn(...)` envolvendo o componente: renderiza a marcação que os
+  // demais testes já liam por testid, e também expõe `.mock.calls` para as
+  // asserções estritas de identidade abaixo.
+  ProfessorForm: jest.fn(
+    ({
+      handleSubmit,
+      formData,
+      isSenhaError,
+      isLoading,
+      message,
+      errors,
+      isEdit,
+    }) => (
+      <form data-testid="professor-form" onSubmit={handleSubmit}>
+        <div data-testid="form-data">{JSON.stringify(formData)}</div>
+        {isSenhaError && <div data-testid="senha-error">Erro na senha</div>}
+        {isLoading && <div data-testid="form-loading">Enviando...</div>}
+        {message && <div data-testid="message">{message}</div>}
+        {errors && <div data-testid="errors">{JSON.stringify(errors)}</div>}
+        {isEdit && <div data-testid="is-edit">Modo Edição</div>}
+        <button type="submit">Salvar</button>
+      </form>
+    )
   ),
   FormPage: ({ title, subTitle, buttons, extraButton, children }) => (
     <div data-testid="form-page">
@@ -122,6 +127,9 @@ describe('EditarProfessor Page', () => {
       handleChange: mockHandleChange,
       handleSubmit: mockHandleSubmit,
       setFormData: mockSetFormData,
+      alterarSenhaAtivo: false,
+      handleAlterarSenha: jest.fn(),
+      handleCancelarAlteracaoSenha: jest.fn(),
     });
   });
 
@@ -380,5 +388,47 @@ describe('EditarProfessor Page', () => {
     // Verifica se formData está sendo passado
     const formDataElement = screen.getByTestId('form-data');
     expect(formDataElement).toHaveTextContent(JSON.stringify(mockFormData));
+  });
+
+  // Cobertura reversa: ProfessorForm recebe o retorno novo do hook
+  // useProfessorForm.
+  it('passes alterarSenhaAtivo, handleAlterarSenha and handleCancelarAlteracaoSenha to ProfessorForm', () => {
+    render(<EditarProfessor />);
+
+    const props = ProfessorForm.mock.calls[0][0];
+    expect(props.alterarSenhaAtivo).toBe(false);
+    expect(typeof props.handleAlterarSenha).toBe('function');
+    expect(typeof props.handleCancelarAlteracaoSenha).toBe('function');
+  });
+
+  // Cobertura reversa (AC-001-004, hook mockado): fixture
+  // `alterarSenhaAtivo: true` com asserção estrita (sem `Boolean()`) e
+  // handlers por identidade (`toBe`).
+  it('passes alterarSenhaAtivo=true and the exact hook handlers to ProfessorForm', () => {
+    const {
+      useProfessorForm,
+    } = require('@/hooks/professores/useProfessorForm');
+    const mockHandleAlterarSenha = jest.fn();
+    const mockHandleCancelarAlteracaoSenha = jest.fn();
+    useProfessorForm.mockReturnValue({
+      formData: mockFormData,
+      isSenhaError: false,
+      handleChange: mockHandleChange,
+      handleSubmit: mockHandleSubmit,
+      setFormData: mockSetFormData,
+      alterarSenhaAtivo: true,
+      handleAlterarSenha: mockHandleAlterarSenha,
+      handleCancelarAlteracaoSenha: mockHandleCancelarAlteracaoSenha,
+    });
+
+    render(<EditarProfessor />);
+
+    const props =
+      ProfessorForm.mock.calls[ProfessorForm.mock.calls.length - 1][0];
+    expect(props.alterarSenhaAtivo).toBe(true);
+    expect(props.handleAlterarSenha).toBe(mockHandleAlterarSenha);
+    expect(props.handleCancelarAlteracaoSenha).toBe(
+      mockHandleCancelarAlteracaoSenha
+    );
   });
 });

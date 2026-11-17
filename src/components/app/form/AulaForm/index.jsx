@@ -17,6 +17,7 @@ import {
   Form,
   FormError,
   FormGroup,
+  FormSection,
   InputField,
   SearchableSelectField,
   SelectField,
@@ -137,123 +138,129 @@ export const AulaForm = ({
       <FormError title={message} errors={errors} dataTestId="aula-form-error" />
 
       <div className="grid gap-6">
-        <FormGroup dataTestId="aula-form-group">
-          <SearchableSelectField
-            required
-            htmlFor="idAluno"
-            label="Aluno"
-            placeholder="Selecione o aluno"
-            options={getEntityOptions(alunos)}
-            onChange={handleAlunoChange}
-            value={formData.idAluno}
-            requiredError={fieldErrors.idAluno}
-          />
-          <SearchableSelectField
-            required
-            htmlFor="idProfessor"
-            label="Professor"
-            placeholder="Selecione o professor"
-            options={getEntityOptions(professorOptions)}
-            onChange={handleChange}
-            value={formData.idProfessor}
-            requiredError={fieldErrors.idProfessor}
-          />
-        </FormGroup>
-
-        <FormGroup cols={3} dataTestId="aula-form-group">
-          <SearchableSelectField
-            required
-            htmlFor="idContrato"
-            label="Contrato"
-            placeholder="Selecione o contrato"
-            options={contratoOptions}
-            onChange={handleChange}
-            value={formData.idContrato}
-            requiredError={fieldErrors.idContrato}
-            isLoading={isLoadingContratos}
-            disabledReason={
-              !formData.idAluno ? 'Selecione um Aluno antes' : undefined
-            }
-            selectedLabel={contratoSelecionadoLabel}
-            errorMessage={contratoErrorMessage}
-          />
-          <SelectField
-            required
-            htmlFor="tipo"
-            label="Tipo da aula"
-            options={TIPO_AULA.map(tipo => ({
-              label: TIPO_AULA_LABEL[tipo],
-              value: tipo,
-            }))}
-            onChange={handleChange}
-            value={formData.tipo}
-          />
-          <InputField
-            required
-            htmlFor="dataAula"
-            type="date"
-            label="Data"
-            onChange={handleChange}
-            value={formData.dataAula}
-          />
-        </FormGroup>
-
-        <FormGroup cols={isEdit ? 4 : 3} dataTestId="aula-form-group">
-          <InputField
-            required
-            htmlFor="horaInicial"
-            label="Hora Início"
-            type="time"
-            onChange={handleChange}
-            value={formData.horaInicial}
-          />
-
-          <SelectField
-            required
-            htmlFor="duracaoAula"
-            label="Duração da Aula"
-            options={DURACAO_AULA_ARRAY.map(duracao => ({
-              label: DURACAO_AULA_LABEL[duracao],
-              value: DURACAO_AULA[duracao],
-            }))}
-            onChange={handleChange}
-            value={formData.duracaoAula}
-          />
-
-          <InputField
-            required
-            disabled
-            htmlFor="horaFinal"
-            label="Hora Fim"
-            type="time"
-            onChange={handleChange}
-            value={formData.horaFinal}
-          />
-
-          {isEdit && (
-            <SelectField
+        <FormSection title="Participantes">
+          <FormGroup dataTestId="aula-form-group">
+            <SearchableSelectField
               required
-              htmlFor="status"
-              label="Status da aula"
-              options={STATUS_AULA.map(status => ({
-                label: STATUS_AULA_LABEL[status],
-                value: status,
-              }))}
-              onChange={handleChange}
-              value={formData.status}
+              htmlFor="idAluno"
+              label="Aluno"
+              placeholder="Selecione o aluno"
+              options={getEntityOptions(alunos)}
+              onChange={handleAlunoChange}
+              value={formData.idAluno}
+              requiredError={fieldErrors.idAluno}
             />
-          )}
-        </FormGroup>
+            <SearchableSelectField
+              required
+              htmlFor="idProfessor"
+              label="Professor"
+              placeholder="Selecione o professor"
+              options={getEntityOptions(professorOptions)}
+              onChange={handleChange}
+              value={formData.idProfessor}
+              requiredError={fieldErrors.idProfessor}
+            />
+          </FormGroup>
+        </FormSection>
 
-        <TextAreaField
-          required
-          htmlFor="observacao"
-          label="Conteúdo/Observação"
-          placeholder="Digite o conteúdo da aula"
-          maxLength={2000}
-          onChange={handleChange}
-          value={formData.observacao}
-        />
+        <FormSection title="Detalhes da aula">
+          <div className="grid gap-6">
+            <FormGroup cols={3} dataTestId="aula-form-group">
+              <SearchableSelectField
+                required
+                htmlFor="idContrato"
+                label="Contrato"
+                placeholder="Selecione o contrato"
+                options={contratoOptions}
+                onChange={handleChange}
+                value={formData.idContrato}
+                requiredError={fieldErrors.idContrato}
+                isLoading={isLoadingContratos}
+                disabledReason={
+                  !formData.idAluno ? 'Selecione um Aluno antes' : undefined
+                }
+                selectedLabel={contratoSelecionadoLabel}
+                errorMessage={contratoErrorMessage}
+              />
+              <SelectField
+                required
+                htmlFor="tipo"
+                label="Tipo da aula"
+                options={TIPO_AULA.map(tipo => ({
+                  label: TIPO_AULA_LABEL[tipo],
+                  value: tipo,
+                }))}
+                onChange={handleChange}
+                value={formData.tipo}
+              />
+              <InputField
+                required
+                htmlFor="dataAula"
+                type="date"
+                label="Data"
+                onChange={handleChange}
+                value={formData.dataAula}
+              />
+            </FormGroup>
+
+            <FormGroup cols={isEdit ? 4 : 3} dataTestId="aula-form-group">
+              <InputField
+                required
+                htmlFor="horaInicial"
+                label="Hora Início"
+                type="time"
+                onChange={handleChange}
+                value={formData.horaInicial}
+              />
+
+              <SelectField
+                required
+                htmlFor="duracaoAula"
+                label="Duração da Aula"
+                options={DURACAO_AULA_ARRAY.map(duracao => ({
+                  label: DURACAO_AULA_LABEL[duracao],
+                  value: DURACAO_AULA[duracao],
+                }))}
+                onChange={handleChange}
+                value={formData.duracaoAula}
+              />
+
+              <InputField
+                required
+                disabled
+                htmlFor="horaFinal"
+                label="Hora Fim"
+                type="time"
+                onChange={handleChange}
+                value={formData.horaFinal}
+              />
+
+              {isEdit && (
+                <SelectField
+                  required
+                  htmlFor="status"
+                  label="Status da aula"
+                  options={STATUS_AULA.map(status => ({
+                    label: STATUS_AULA_LABEL[status],
+                    value: status,
+                  }))}
+                  onChange={handleChange}
+                  value={formData.status}
+                />
+              )}
+            </FormGroup>
+
+            <TextAreaField
+              required
+              htmlFor="observacao"
+              label="Conteúdo/Observação"
+              placeholder="Digite o conteúdo da aula"
+              maxLength={2000}
+              onChange={handleChange}
+              value={formData.observacao}
+            />
+          </div>
+        </FormSection>
       </div>
 
       {/* Botões */}
