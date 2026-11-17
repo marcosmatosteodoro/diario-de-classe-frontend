@@ -456,4 +456,59 @@ describe('useContratos', () => {
       expect(result.current.painel.isOpen).toBe(false);
     });
   });
+
+  describe('persistirFiltros (lista neutra, sem o filtro salvo de /contratos)', () => {
+    const FILTRO_SALVO = JSON.stringify({ idAluno: 99, idioma: 'INGLES' });
+    const NEUTRO = {
+      dataInicio: '',
+      dataTermino: '',
+      idioma: '',
+      idAluno: '',
+      q: '',
+    };
+
+    it('desligada: carrega com filtros neutros e não lê nem grava a chave salva', () => {
+      localStorage.setItem('filters_contratos', FILTRO_SALVO);
+      const store = createMockStore({ list: [], status: STATUS.IDLE });
+      store.dispatch = mockDispatch;
+
+      const { result } = renderHook(
+        () => useContratos({ persistirFiltros: false }),
+        { wrapper: createWrapper(store) }
+      );
+
+      expect(getContratos).toHaveBeenCalledTimes(1);
+      expect(getContratos).toHaveBeenCalledWith(NEUTRO);
+      expect(result.current.formData).toEqual(NEUTRO);
+
+      act(() => {
+        result.current.handleChange({
+          target: { name: 'q', value: 'abc', type: 'text' },
+        });
+      });
+      act(() => {
+        result.current.handleClearFilter();
+      });
+      expect(localStorage.getItem('filters_contratos')).toBe(FILTRO_SALVO);
+    });
+
+    it('default: preserva o comportamento atual (carrega e grava o filtro persistido)', () => {
+      localStorage.setItem('filters_contratos', FILTRO_SALVO);
+      const store = createMockStore({ list: [], status: STATUS.IDLE });
+      store.dispatch = mockDispatch;
+
+      renderHook(() => useContratos(), { wrapper: createWrapper(store) });
+
+      expect(getContratos).toHaveBeenCalledWith({
+        ...NEUTRO,
+        idAluno: 99,
+        idioma: 'INGLES',
+      });
+      expect(JSON.parse(localStorage.getItem('filters_contratos'))).toEqual({
+        ...NEUTRO,
+        idAluno: 99,
+        idioma: 'INGLES',
+      });
+    });
+  });
 });

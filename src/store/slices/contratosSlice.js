@@ -246,6 +246,7 @@ const contratosSlice = createSlice({
     errors: [],
     message: null,
     count: 0,
+    listRequestId: null,
   },
   reducers: {
     clearErrors: state => {
@@ -266,7 +267,10 @@ const contratosSlice = createSlice({
   extraReducers: builder => {
     builder
       // getContratos
-      .addCase(getContratos.pending, state => {
+      .addCase(getContratos.pending, (state, action) => {
+        // Só a última listagem despachada vale: AulaForm e /contratos
+        // compartilham state.list com parâmetros diferentes.
+        state.listRequestId = action.meta.requestId;
         state.status = STATUS.LOADING;
         state.errors = [];
         state.list = [];
@@ -275,12 +279,14 @@ const contratosSlice = createSlice({
         state.action = 'getContratos';
       })
       .addCase(getContratos.fulfilled, (state, action) => {
+        if (action.meta.requestId !== state.listRequestId) return;
         state.status = STATUS.SUCCESS;
         state.list = action.payload.data;
         state.count = action.payload.count;
         state.message = action.payload.message;
       })
       .addCase(getContratos.rejected, (state, action) => {
+        if (action.meta.requestId !== state.listRequestId) return;
         state.status = STATUS.FAILED;
         state.errors = action.error;
         state.message = action.payload.message;
