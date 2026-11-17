@@ -1,9 +1,10 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ToastProvider } from '@/providers/ToastProvider';
 import { ReduxProvider } from '@/providers/ReduxyProvider';
 import { UserAuthProvider } from '@/providers/UserAuthProvider';
+import { NonceProvider } from '@/providers/NonceProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { getKey, parseThemeCookie } from '@/utils/themeCookie';
 import { ServiceWorkerRegister } from '@/components/app/ServiceWorkerRegister';
@@ -25,6 +26,7 @@ export const metadata = {
 
 export default async function RootLayout({ children }) {
   const cookieStore = await cookies();
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   // `null` (cookie ausente/inválido) chega como está a `ThemeProvider` — é o
   // sinal, idêntico nos dois lados, de "nada para herdar" (DEC-002-001);
   // colapsar aqui para `DEFAULT_THEME` impediria o provider de distinguir
@@ -45,11 +47,13 @@ export default async function RootLayout({ children }) {
       >
         <ServiceWorkerRegister />
         <ReduxProvider>
-          <ThemeProvider initialTheme={initialTheme}>
-            <ToastProvider>
-              <UserAuthProvider>{children}</UserAuthProvider>
-            </ToastProvider>
-          </ThemeProvider>
+          <NonceProvider nonce={nonce}>
+            <ThemeProvider initialTheme={initialTheme}>
+              <ToastProvider>
+                <UserAuthProvider>{children}</UserAuthProvider>
+              </ToastProvider>
+            </ThemeProvider>
+          </NonceProvider>
         </ReduxProvider>
       </body>
     </html>

@@ -40,7 +40,7 @@ export function useLancarConteudo({ conteudoOptions = [], onSuccess }) {
               ${opcoes
                 .map(
                   opcao =>
-                    `<option value="${opcao.value}" ${
+                    `<option value="${escapeHtml(opcao.value)}" ${
                       opcao.value === (linha.idConteudo || '') ? 'selected' : ''
                     }>${escapeHtml(opcao.label)}</option>`
                 )

@@ -1,13 +1,20 @@
+/** @jest-environment node */
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
 // M = maior operação do backend medida (geração de cronograma / planilha Excel,
-// base semeada, backend dev): ~31 ms. A produção tem base maior, por isso o
-// teste fixa a folga sobre 2×M, não o valor medido.
+// base semeada, backend dev): 31 ms. A produção tem base maior; 50 é o teto
+// arredondado de M e o teste fixa a folga sobre 2×M, não o valor medido.
 const M_MS = 50;
 const PROXY_TIMEOUT_MS = 120_000;
+const NEXT_DEFAULT_PROXY_TIMEOUT_MS = 30_000;
 
-const ENV_KEYS = ['API_INTERNAL_URL', 'NODE_ENV'];
+// Maior limite de corpo do backend: upload de planilha, 10 MiB de arquivo
+// (`fileSize` do multer em `src/utilities/planilhaUpload.js` do backend).
+// Literal ancorado: o backend é outro repositório e não está no runner.
+const BACKEND_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
+
+const ENV_KEYS = ['API_INTERNAL_URL', 'NEXT_PUBLIC_API_URL', 'NODE_ENV'];
 
 async function carregarConfig(env) {
   const salvo = Object.fromEntries(ENV_KEYS.map(k => [k, process.env[k]]));
@@ -17,7 +24,7 @@ async function carregarConfig(env) {
   }
   jest.resetModules();
   try {
-    return (await import('../../../next.config.mjs')).default;
+    return (await import('./next.config.mjs')).default;
   } finally {
     for (const k of ENV_KEYS) {
       if (salvo[k] === undefined) delete process.env[k];
@@ -26,7 +33,37 @@ async function carregarConfig(env) {
   }
 }
 
-describe('next.config.mjs', () => {
+describe('next.config — headers e flags', () => {
+  it('desliga o header X-Powered-By', async () => {
+    const config = await carregarConfig({ NODE_ENV: 'development' });
+    expect(config.poweredByHeader).toBe(false);
+  });
+
+  it('aplica os quatro headers de segurança a todas as rotas', async () => {
+    const config = await carregarConfig({ NODE_ENV: 'development' });
+    const regras = await config.headers();
+    const geral = regras.find(r => r.source === '/(.*)');
+    expect(geral.headers).toEqual([
+      { key: 'X-Frame-Options', value: 'DENY' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      { key: 'Strict-Transport-Security', value: 'max-age=31536000' },
+    ]);
+  });
+
+  it('serve /offline.html com CSP própria por hash', async () => {
+    const config = await carregarConfig({ NODE_ENV: 'development' });
+    const regras = await config.headers();
+    const offline = regras.find(r => r.source === '/offline.html');
+    expect(offline.headers).toHaveLength(1);
+    expect(offline.headers[0].key).toBe('Content-Security-Policy');
+    expect(offline.headers[0].value).toMatch(
+      /script-src 'self' 'sha256-[^']+'/
+    );
+  });
+});
+
+describe('next.config — rewrites e proxy', () => {
   it('reencaminha /api/:path* para API_INTERNAL_URL', async () => {
     const config = await carregarConfig({
       API_INTERNAL_URL: 'http://x.example:1234',
@@ -103,7 +140,32 @@ describe('next.config.mjs', () => {
     const config = await carregarConfig({ NODE_ENV: 'development' });
     expect(config.experimental.proxyTimeout).toBe(PROXY_TIMEOUT_MS);
     expect(config.experimental.proxyTimeout).toBeGreaterThan(2 * M_MS);
-    expect(config.experimental.proxyTimeout).toBeGreaterThan(30_000);
+    expect(config.experimental.proxyTimeout).toBeGreaterThan(
+      NEXT_DEFAULT_PROXY_TIMEOUT_MS
+    );
+  });
+
+  it('proxyClientMaxBodySize fica acima do maior limite de upload do backend', async () => {
+    const config = await carregarConfig({ NODE_ENV: 'development' });
+    expect(config.experimental.proxyClientMaxBodySize).toBeGreaterThan(
+      BACKEND_UPLOAD_LIMIT_BYTES
+    );
+  });
+
+  it('ignora NEXT_PUBLIC_API_URL: ausente ou definida, o config é o mesmo (DEC-003-019)', async () => {
+    const sem = await carregarConfig({
+      API_INTERNAL_URL: 'http://w.example:1',
+      NODE_ENV: 'production',
+    });
+    const com = await carregarConfig({
+      API_INTERNAL_URL: 'http://w.example:1',
+      NEXT_PUBLIC_API_URL: 'http://outra.example/api',
+      NODE_ENV: 'production',
+    });
+    expect(await com.rewrites()).toEqual(await sem.rewrites());
+    expect(await com.rewrites()).toEqual([
+      { source: '/api/:path*', destination: 'http://w.example:1/api/:path*' },
+    ]);
   });
 });
 

@@ -93,6 +93,25 @@ describe('useLancarConteudo', () => {
     expect(html).toContain('value="c-1" selected');
   });
 
+  it('escapa o value da opção e não deixa atributo injetado', async () => {
+    const hostil = 'x" onfocus="alert(1)';
+    const { result } = renderizar({
+      conteudoOptions: [{ value: hostil, ordem: 9, label: 'Conteúdo' }],
+    });
+
+    await act(async () => {
+      await result.current.handleLancarConteudo(linha);
+    });
+
+    const { html } = showForm.mock.calls[0][0];
+    expect(html).toContain('value="x&quot; onfocus=&quot;alert(1)"');
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    const option = container.querySelector('option[value^="x"]');
+    expect(option.getAttribute('value')).toBe(hostil);
+    expect(option.hasAttribute('onfocus')).toBe(false);
+  });
+
   it('escapa o título do conteúdo vindo do servidor', async () => {
     const { result } = renderizar({
       conteudoOptions: [

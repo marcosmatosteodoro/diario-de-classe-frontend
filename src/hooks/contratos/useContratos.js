@@ -5,7 +5,7 @@ import { getContratos } from '@/store/slices/contratosSlice';
 import { loadFilters, saveFilters, clearFilters } from '@/utils/filterStorage';
 import { countAppliedFilters } from '@/utils/filterCount';
 
-export function useContratos() {
+export function useContratos({ persistirFiltros = true } = {}) {
   const dispatch = useDispatch();
   const { list, status, action } = useSelector(state => state.contratos);
 
@@ -18,7 +18,9 @@ export function useContratos() {
   };
 
   const [formData, setFormData] = useState(() =>
-    loadFilters(FILTER_STORAGE_KEYS.contratos, defaultFormData)
+    persistirFiltros
+      ? loadFilters(FILTER_STORAGE_KEYS.contratos, defaultFormData)
+      : defaultFormData
   );
 
   const searchParams = query =>
@@ -43,14 +45,14 @@ export function useContratos() {
   };
 
   const handleClearFilter = () => {
-    clearFilters(FILTER_STORAGE_KEYS.contratos);
+    if (persistirFiltros) clearFilters(FILTER_STORAGE_KEYS.contratos);
     setFormData(defaultFormData);
   };
 
   useEffect(() => {
-    saveFilters(FILTER_STORAGE_KEYS.contratos, formData);
+    if (persistirFiltros) saveFilters(FILTER_STORAGE_KEYS.contratos, formData);
     handleSubmit(formData);
-  }, [handleSubmit, formData]);
+  }, [handleSubmit, formData, persistirFiltros]);
 
   const isAction = action === 'getContratos';
   const isLoading =

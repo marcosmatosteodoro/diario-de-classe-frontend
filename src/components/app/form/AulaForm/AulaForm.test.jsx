@@ -1634,6 +1634,71 @@ describe('AulaForm — FR-001-008: troca de Aluno limpa Contrato quando não per
   });
 });
 
+describe('AulaForm — BI-131: lista neutra de Contratos e limpeza segura ao trocar de Aluno', () => {
+  const baseForm = {
+    idAluno: 1,
+    idProfessor: 1,
+    idContrato: 1,
+    tipo: 'PADRAO',
+    dataAula: '2024-03-11',
+    horaInicial: '10:00',
+    horaFinal: '11:00',
+    observacao: '',
+    status: 'REALIZADA',
+  };
+  const doisAlunos = [
+    { id: 1, nome: 'João', sobrenome: 'Silva', email: 'joao@example.com' },
+    { id: 2, nome: 'Ana', sobrenome: 'Souza', email: 'ana@example.com' },
+  ];
+
+  const renderForm = (formData, contratos) => {
+    useAlunos.mockReturnValue({ alunos: doisAlunos });
+    useContratos.mockReturnValue({ contratos });
+    const handleChange = jest.fn();
+    render(
+      <AulaForm
+        handleSubmit={jest.fn()}
+        message=""
+        errors={null}
+        handleChange={handleChange}
+        formData={formData}
+        isLoading={false}
+      />
+    );
+    return handleChange;
+  };
+
+  it('pede a lista de Contratos sem persistir o filtro de /contratos', () => {
+    renderForm(baseForm, []);
+    expect(useContratos).toHaveBeenCalledWith({ persistirFiltros: false });
+  });
+
+  it('Contrato fora da lista (ausente/carregando) ao trocar para Aluno diferente: limpa idContrato antes do idAluno', () => {
+    const handleChange = renderForm(baseForm, []);
+
+    fireEvent.click(screen.getByText('Ana Souza (ana@example.com)'));
+
+    expect(handleChange).toHaveBeenCalledTimes(2);
+    expect(handleChange).toHaveBeenNthCalledWith(1, {
+      target: { name: 'idContrato', value: '' },
+    });
+    expect(handleChange).toHaveBeenNthCalledWith(2, {
+      target: { name: 'idAluno', value: 2 },
+    });
+  });
+
+  it('re-selecionar o mesmo Aluno não limpa idContrato, mesmo com o Contrato fora da lista', () => {
+    const handleChange = renderForm(baseForm, []);
+
+    fireEvent.click(screen.getByText('João Silva (joao@example.com)'));
+
+    expect(handleChange).toHaveBeenCalledTimes(1);
+    expect(handleChange).toHaveBeenCalledWith({
+      target: { name: 'idAluno', value: 1 },
+    });
+  });
+});
+
 describe('AulaForm — FR-001-010/AC-001-008: rótulo do Contrato fora de contratoOptions (selectedLabel)', () => {
   const mockFormData = {
     idAluno: 1,

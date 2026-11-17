@@ -1,3 +1,17 @@
+## [1.8.4](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.8.3...v1.8.4) (2026-11-17)
+
+### Bug Fixes
+
+- add security response headers and nonce-based content security policy ([fd68aa2](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/fd68aa24a2ea6518540c0825f2ac2c51de1a5265))
+- anchor proxy matcher exclusions and cover CSP environment wiring ([e12bfe7](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/e12bfe701018de0233a631c4a62cc181f719a435))
+
+## [1.8.3](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.8.2...v1.8.3) (2026-11-17)
+
+### Bug Fixes
+
+- **aula:** BI-131 load a neutral contrato list in AulaForm ([d7b3877](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/d7b38779bdee667d131dd9d76e705dccf649461d))
+- **contratos:** BI-131 ignore stale getContratos responses ([124d022](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/124d02243ba3095c67d881f3bd5f97c19c3a6221))
+
 ## [1.8.2](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.8.1...v1.8.2) (2026-11-17)
 
 ### Bug Fixes
