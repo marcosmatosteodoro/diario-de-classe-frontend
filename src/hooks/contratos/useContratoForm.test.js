@@ -1517,5 +1517,20 @@ describe('useContratoForm Hook', () => {
       expect(container.querySelector('input#horaInicial').value).toBe('10:00');
       expect(container.querySelector('input#observacao').value).toBe('');
     });
+
+    it('mantém data e hora com aspas como valor do campo', async () => {
+      const container = await abrirModal({
+        ...aulaBase,
+        dataAula: '2024-01-15" data-x="1',
+        horaInicial: '10:00" data-x="1',
+      });
+
+      expect(
+        container.querySelector('input#dataAula').hasAttribute('data-x')
+      ).toBe(false);
+      expect(
+        container.querySelector('input#horaInicial').hasAttribute('data-x')
+      ).toBe(false);
+    });
   });
 });
