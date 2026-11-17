@@ -1,3 +1,20 @@
+# [1.8.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.7.0...v1.8.0) (2026-11-17)
+
+### Bug Fixes
+
+- **aulas:** BI-134 restore 24px spacing inside Detalhes da aula ([ed32754](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/ed32754ae3fb72e1065dd07a06ffd429a181d352))
+- **meu-perfil:** BI-135 derive idioma from current idiomas on self edit ([ac14195](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/ac14195124cab05709704e3140dafa44a63c30ab))
+- **professores:** BI-135 guard focus effect by previous value under StrictMode ([d48911c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/d48911c1e712fde3a66aed76afc698698389f808))
+- **professores:** BI-135 move focus on password toggle and clear mismatch on cancel ([4415f19](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/4415f19fbe15fd8735ad93a2b053e90e247df4ca))
+- **professores:** BI-135 show password mismatch next to confirmation field ([398787a](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/398787a064c3788b1caee751b5674466b69ae246))
+- **ui:** BI-133 drop nested surface from FormSection ([b4e06a0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/b4e06a0062394f9f6d7e95c57a769896f4b11447))
+
+### Features
+
+- **aulas:** BI-134 TASK-002-003 group AulaForm fields into sections ([b36e026](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/b36e0263d0d4f81987fb524d6d661a833993108d))
+- **professores:** BI-135 split ProfessorForm into sections with opt-in password change ([edf8ea2](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/edf8ea2643b6648c1ada0395a8110b6672e3c9e0))
+- **ui:** BI-133 add FormSection and group AlunoForm fields ([11f5fa9](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/11f5fa90f68582dda7eb7fca19d6c660eb2c1ffd))
+
 # [1.7.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.6.0...v1.7.0) (2026-09-25)
 
 ### Bug Fixes
