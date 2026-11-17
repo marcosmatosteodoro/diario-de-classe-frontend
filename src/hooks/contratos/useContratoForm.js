@@ -15,6 +15,7 @@ import {
 import { calculateDuracaoAula } from '@/utils/calculateDuracaoAula';
 import { startOfTodayUTC } from '@/utils/startOfTodayUTC';
 import { todayLocalDate } from '@/utils/todayLocalDate';
+import { escapeHtml } from '@/utils/escapeHtml';
 
 export function useContratoForm({
   alunos,
@@ -315,11 +316,11 @@ export function useContratoForm({
               <div style="display: flex; flex-direction: column; gap: 1rem; text-align: left;">
                 <div>
                   <label for="dataAula" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Data da Aula</label>
-                  <input id="dataAula" type="date" class="swal2-input" value="${aula.dataAula}" style="margin: 0; width: 100%;">
+                  <input id="dataAula" type="date" class="swal2-input" value="${escapeHtml(aula.dataAula)}" style="margin: 0; width: 100%;">
                 </div>
                 <div>
                   <label for="horaInicial" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Hora Inicial</label>
-                  <input id="horaInicial" type="time" class="swal2-input" value="${aula.horaInicial}" style="margin: 0; width: 100%;">
+                  <input id="horaInicial" type="time" class="swal2-input" value="${escapeHtml(aula.horaInicial)}" style="margin: 0; width: 100%;">
                 </div>
                 <div>
                   <label for="duracaoAula" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Duração da Aula</label>
@@ -339,7 +340,7 @@ export function useContratoForm({
                 </div>
                 <div>
                   <label for="observacao" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Observação (opcional)</label>
-                  <input id="observacao" type="text" class="swal2-input" placeholder="Digite uma observação..." value="${aula.observacao || ''}" style="margin: 0; width: 100%;">
+                  <input id="observacao" type="text" class="swal2-input" placeholder="Digite uma observação..." value="${escapeHtml(aula.observacao)}" style="margin: 0; width: 100%;">
                 </div>
               </div>
             `,

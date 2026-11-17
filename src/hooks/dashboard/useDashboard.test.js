@@ -29,10 +29,12 @@ jest.mock('../professores/useProfessores', () => ({
   useProfessores: jest.fn(() => ({ professores: [] })),
 }));
 
+const mockShowForm = jest.fn();
+
 jest.mock('../useSweetAlert', () => ({
   __esModule: true,
   default: jest.fn(() => ({
-    showForm: jest.fn(),
+    showForm: mockShowForm,
     showSuccess: jest.fn(),
   })),
 }));
@@ -394,6 +396,55 @@ describe('useDashboard', () => {
       });
 
       expect(result.current.painel.isOpen).toBe(false);
+    });
+  });
+
+  describe('modal de edição da aula', () => {
+    const abrirModal = async observacao => {
+      useSelector.mockImplementation(selector =>
+        selector({
+          dashboard: {
+            data: { aulas: [{ id: 7, status: 'CONCLUIDA', observacao }] },
+            status: STATUS.IDLE,
+          },
+          aulas: { status: STATUS.IDLE, action: null },
+        })
+      );
+      mockShowForm.mockResolvedValue({ isConfirmed: false });
+      const { result } = renderHook(() => useDashboard(mockCurrentUser));
+      await act(async () => {
+        await result.current.handleClick(7);
+      });
+      const container = document.createElement('div');
+      container.innerHTML = mockShowForm.mock.calls[0][0].html;
+      return container;
+    };
+
+    it('exibe observação com caracteres especiais literalmente no campo', async () => {
+      const texto = '</textarea><img src=x onerror="alert(1)">';
+      const container = await abrirModal(texto);
+
+      expect(container.querySelector('img')).toBeNull();
+      expect(container.querySelector('textarea#swal-textarea').value).toContain(
+        texto
+      );
+    });
+
+    it('exibe observação com & e acentos igual ao original', async () => {
+      const texto = 'Revisão de verbos & adjetivos — "ação" it\'s ok';
+      const container = await abrirModal(texto);
+
+      expect(
+        container.querySelector('textarea#swal-textarea').value.trim()
+      ).toBe(texto);
+    });
+
+    it('exibe campo vazio quando a aula não tem observação', async () => {
+      const container = await abrirModal(null);
+
+      expect(
+        container.querySelector('textarea#swal-textarea').value.trim()
+      ).toBe('');
     });
   });
 });
