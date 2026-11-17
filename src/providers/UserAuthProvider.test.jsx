@@ -6,6 +6,7 @@ import {
   clearSession,
   getAccessToken,
   getUserId,
+  setSession,
 } from '@/store/api/sessionManager';
 import { clearAppCache } from '@/utils/appCache';
 
@@ -135,5 +136,16 @@ describe('UserAuthProvider (provider real)', () => {
     expect(getAccessToken()).toBe('tok-b');
     expect(getUserId()).toBe('u-b');
     expect(result.current.isAdmin()).toBe(false);
+  });
+
+  it('authenticate sem accessToken preserva o acesso já entregue ao sessionManager', async () => {
+    setSession({ accessToken: 'tok-thunk', userId: null });
+    const { accessToken: _omitido, ...semToken } = DADOS;
+    const { result } = renderHook(() => useUserAuth(), { wrapper });
+    await act(async () => {
+      result.current.authenticate(semToken);
+    });
+    expect(getAccessToken()).toBe('tok-thunk');
+    expect(getUserId()).toBe(DADOS.currentUser.id);
   });
 });

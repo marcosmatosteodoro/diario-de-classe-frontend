@@ -29,7 +29,7 @@ import relatorioReducer from '@/store/slices/relatorioSlice';
 import livrosReducer from '@/store/slices/livrosSlice';
 import cronogramasReducer from '@/store/slices/cronogramasSlice';
 
-import { clearSession } from '@/store/api/sessionManager';
+import { clearSession, getAccessToken } from '@/store/api/sessionManager';
 import { LoiginService } from '@/services/auth/loginService';
 import { GetAulaListService } from '@/services/aula/getAulaListService';
 import { GetAulaByIdService } from '@/services/aula/getAulaByIdService';
@@ -229,6 +229,7 @@ describe('Jornada ponta a ponta (AC-001-019, COMP-002-019)', () => {
     // ApplicationLayout (RTL não executa roteamento real; ver técnica
     // fixada, critério de pronto da TASK).
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/'));
+    expect(getAccessToken()).toBe('fake-access-token');
 
     // (2) rerender no MESMO `render()`, sem desmontar `Providers` — troca só
     // o que estava sob `AuthLayout` pelo `ApplicationLayout` real, cujo
