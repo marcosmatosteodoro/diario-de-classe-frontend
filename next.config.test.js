@@ -232,7 +232,7 @@ describe('Dockerfile', () => {
             path.join(raiz, 'node_modules')
           );
         } else if (d !== '.next' && d !== 'public' && d !== 'next-env.d.ts') {
-          // `.next`, `public` e o `next-env.d.ts` (gerado no build) não são importados pelo config
+          // `.next`, `public` e o `next-env.d.ts` (não versionado; o config não o importa) não são importados pelo config
           mkdirSync(path.dirname(path.join(raiz, d)), { recursive: true });
           cpSync(path.join(process.cwd(), d), path.join(raiz, d));
         }

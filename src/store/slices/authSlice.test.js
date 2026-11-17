@@ -1,7 +1,10 @@
-import { login } from './authSlice';
+import * as authSlice from './authSlice';
+import { login, logout } from './authSlice';
+import { LogoutService } from '@/services/auth/logoutService';
 import { LoiginService } from '@/services/auth/loginService';
 
 jest.mock('@/services/auth/loginService');
+jest.mock('@/services/auth/logoutService');
 
 const SEM_CONEXAO_MESSAGE =
   'Não foi possível concluir a ação. Verifique sua conexão com a internet e tente novamente.';
@@ -46,5 +49,23 @@ describe('authSlice - mensagem de erro do thunk login', () => {
 
     const rejected = findRejected(dispatch);
     expect(rejected.payload.message).toBe('Credenciais inválidas');
+  });
+});
+
+describe('authSlice - transporte de sair (TASK-003-005)', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('o thunk logout chama LogoutService.handle sem argumento', async () => {
+    LogoutService.handle.mockResolvedValue({ data: null });
+    const dispatch = jest.fn();
+    await logout()(dispatch, () => ({}), undefined);
+    expect(LogoutService.handle).toHaveBeenCalledTimes(1);
+    expect(LogoutService.handle.mock.calls[0]).toHaveLength(0);
+  });
+
+  it('o thunk refreshToken não é mais exportado', () => {
+    expect('refreshToken' in authSlice).toBe(false);
   });
 });

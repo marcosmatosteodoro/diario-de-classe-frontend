@@ -2,7 +2,6 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { STATUS } from '@/constants';
 import { LoiginService } from '@/services/auth/loginService';
 import { LogoutService } from '@/services/auth/logoutService';
-import { RefreshTokenService } from '@/services/auth/refreshTokenService';
 import { getRequestErrorMessage } from '@/utils/thunkErrorPayload';
 
 // LOGIN
@@ -26,29 +25,12 @@ export const login = createAsyncThunk(
 // LOGOUT
 export const logout = createAsyncThunk(
   'auth/logout',
-  async (refreshToken, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const res = await LogoutService.handle(refreshToken);
+      const res = await LogoutService.handle();
       return res.data;
     } catch (error) {
       const errorMessage = getRequestErrorMessage(error, 'Erro ao deslogar');
-      return rejectWithValue({ message: errorMessage });
-    }
-  }
-);
-
-// REFRESH TOKEN
-export const refreshToken = createAsyncThunk(
-  'auth/refreshToken',
-  async (data, { rejectWithValue }) => {
-    try {
-      const res = await RefreshTokenService.handle(data);
-      return res.data;
-    } catch (error) {
-      const errorMessage = getRequestErrorMessage(
-        error,
-        'Erro ao atualizar token'
-      );
       return rejectWithValue({ message: errorMessage });
     }
   }
@@ -106,22 +88,6 @@ const authSlice = createSlice({
         state.status = STATUS.FAILED;
         state.errors = action.payload?.errors || [];
         state.message = action.payload?.message || 'Erro ao deslogar';
-      })
-      // refreshToken
-      .addCase(refreshToken.pending, state => {
-        state.status = STATUS.LOADING;
-        state.errors = [];
-        state.message = null;
-        state.action = 'refreshToken';
-      })
-      .addCase(refreshToken.fulfilled, (state, action) => {
-        state.status = STATUS.SUCCESS;
-        state.data = null;
-      })
-      .addCase(refreshToken.rejected, (state, action) => {
-        state.status = STATUS.FAILED;
-        state.errors = action.payload?.errors || [];
-        state.message = action.payload?.message || 'Erro ao atualizar token';
       });
   },
 });

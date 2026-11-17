@@ -1,120 +1,60 @@
 'use client';
 
 import React, { createContext, useContext, useState } from 'react';
+import { SESSION_END_REASON, SESSION_STATUS } from '@/constants/session';
+import { clearSession, setSession } from '@/store/api/sessionManager';
 import { clearAppCache } from '@/utils/appCache';
 
 const UserAuthContext = createContext();
 
+const EMPTY_SETTINGS = {
+  duracaoAula: null,
+  tolerancia: null,
+  diasDeFuncionamento: [],
+};
+
 export function UserAuthProvider({ children }) {
-  const [auth, setAuth] = useState(() => {
-    // Check if we're in the browser before accessing localStorage
-    const emptyAuth = {
-      accessToken: null,
-      refreshToken: null,
-      tokenType: null,
-      expiresIn: null,
-      currentUser: null,
-    };
-    if (typeof window === 'undefined') {
-      return emptyAuth;
-    }
-
-    const tokenString = localStorage.getItem('token');
-    if (tokenString) {
-      const token = JSON.parse(tokenString);
-      return {
-        accessToken: token.accessToken || null,
-        refreshToken: token.refreshToken || null,
-        tokenType: token.tokenType || null,
-        expiresIn: token.expiresIn || null,
-        currentUser: token.currentUser || null,
-      };
-    }
-    return emptyAuth;
-  });
-
-  const [settings, setSettings] = useState(() => {
-    // Check if we're in the browser before accessing localStorage
-    const emptySettings = {
-      duracaoAula: null,
-      tolerancia: null,
-      diasDeFuncionamento: [],
-    };
-
-    if (typeof window === 'undefined') {
-      return emptySettings;
-    }
-
-    const settingsString = localStorage.getItem('settings');
-    if (settingsString) {
-      const settings = JSON.parse(settingsString);
-      return {
-        duracaoAula: settings.duracaoAula || null,
-        tolerancia: settings.tolerancia || null,
-        diasDeFuncionamento: settings.diasDeFuncionamento || [],
-      };
-    }
-    return emptySettings;
-  });
+  const [currentUser, setCurrentUser] = useState(null);
+  const [settings, setSettings] = useState(EMPTY_SETTINGS);
+  const [sessionStatus, setSessionStatus] = useState(SESSION_STATUS.ANONYMOUS);
+  const [endReason, setEndReason] = useState(SESSION_END_REASON.NUNCA);
 
   const authenticate = ({
     accessToken,
-    refreshToken,
-    tokenType,
-    expiresIn,
-    currentUser,
+    currentUser: user,
     duracaoAula,
     tolerancia,
     diasDeFuncionamento,
   }) => {
-    const token = {
-      accessToken,
-      refreshToken,
-      tokenType,
-      expiresIn,
-      currentUser,
-    };
-    const settings = {
-      duracaoAula,
-      tolerancia,
-      diasDeFuncionamento,
-    };
     clearAppCache();
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', JSON.stringify(token));
-      localStorage.setItem('settings', JSON.stringify(settings));
-    }
-    setAuth(token);
-    setSettings(settings);
+    setSession({ accessToken, userId: user?.id ?? null });
+    setCurrentUser(user);
+    setSettings({ duracaoAula, tolerancia, diasDeFuncionamento });
+    setSessionStatus(SESSION_STATUS.AUTHENTICATED);
   };
 
-  const removeAuthenticate = () => {
-    const token = {
-      accessToken: null,
-      refreshToken: null,
-      tokenType: null,
-      expiresIn: null,
-      currentUser: null,
-    };
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('token', JSON.stringify(token));
-    }
-    setAuth(token);
+  const removeAuthenticate = (motivo = SESSION_END_REASON.SAIDA) => {
+    clearSession();
+    setCurrentUser(null);
+    setSessionStatus(SESSION_STATUS.ANONYMOUS);
+    setEndReason(motivo);
   };
 
   const isAuthenticated = async () => {
-    return auth.currentUser !== null && auth.accessToken !== null;
+    return (
+      currentUser !== null && sessionStatus === SESSION_STATUS.AUTHENTICATED
+    );
   };
 
-  const isAdmin = () =>
-    auth.currentUser && auth.currentUser.permissao === 'admin';
+  const isAdmin = () => currentUser && currentUser.permissao === 'admin';
 
   return (
     <UserAuthContext.Provider
       value={{
-        currentUser: auth.currentUser,
-        refreshToken: auth.refreshToken,
+        currentUser,
         settings,
+        sessionStatus,
+        endReason,
         authenticate,
         removeAuthenticate,
         isAuthenticated,

@@ -10,11 +10,11 @@ import { clearAppCache } from '@/utils/appCache';
 export function useLogout() {
   const dispatch = useDispatch();
   const router = useRouter();
-  const { removeAuthenticate, refreshToken } = useUserAuth();
+  const { removeAuthenticate } = useUserAuth();
   const { info } = useToast();
 
   const logoutUser = () => {
-    dispatch(logout(refreshToken));
+    dispatch(logout());
     removeAuthenticate();
     clearAllFilters();
     clearAppCache();

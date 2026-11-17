@@ -1,4 +1,5 @@
 import { BaseApi } from './baseApi';
+import { getAccessToken } from './sessionManager';
 
 export class AuthenticatedApi extends BaseApi {
   constructor() {
@@ -7,12 +8,8 @@ export class AuthenticatedApi extends BaseApi {
   }
 
   addTokenInterceptor() {
-    const dataString = localStorage.getItem('token');
-    const data = dataString ? JSON.parse(dataString) : null;
-    this.token = data?.accessToken;
-
     this.api.interceptors.request.use(config => {
-      const token = this.token;
+      const token = getAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -21,6 +18,6 @@ export class AuthenticatedApi extends BaseApi {
   }
 
   isAuthenticated() {
-    return Boolean(this.token);
+    return Boolean(getAccessToken());
   }
 }

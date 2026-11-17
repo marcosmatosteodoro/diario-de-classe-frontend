@@ -16,7 +16,7 @@ import { clearAppCache } from '@/utils/appCache';
 export function useApplicationLayout() {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { isAuthenticated, removeAuthenticate, refreshToken } = useUserAuth();
+  const { isAuthenticated, removeAuthenticate } = useUserAuth();
   const { error } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isUnauthorized, setIsUnauthorized] = useState(false);
@@ -100,7 +100,7 @@ export function useApplicationLayout() {
 
     if (!isUnauthorized && statusErrors.includes('401')) {
       setIsUnauthorized(true);
-      dispatch(logout(refreshToken));
+      dispatch(logout());
       removeAuthenticate();
       clearAppCache();
       error('Sua sessão expirou. Entre novamente para continuar.');

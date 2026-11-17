@@ -29,6 +29,7 @@ import relatorioReducer from '@/store/slices/relatorioSlice';
 import livrosReducer from '@/store/slices/livrosSlice';
 import cronogramasReducer from '@/store/slices/cronogramasSlice';
 
+import { clearSession } from '@/store/api/sessionManager';
 import { LoiginService } from '@/services/auth/loginService';
 import { GetAulaListService } from '@/services/aula/getAulaListService';
 import { GetAulaByIdService } from '@/services/aula/getAulaByIdService';
@@ -169,6 +170,7 @@ describe('Jornada ponta a ponta (AC-001-019, COMP-002-019)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    clearSession();
     store = createRealStore();
 
     LoiginService.handle.mockResolvedValue({
@@ -180,9 +182,8 @@ describe('Jornada ponta a ponta (AC-001-019, COMP-002-019)', () => {
           diasDeFuncionamento: [],
         },
         accessToken: 'fake-access-token',
-        refreshToken: 'fake-refresh-token',
         tokenType: 'Bearer',
-        expiresIn: 3600,
+        expiresIn: 900,
       },
     });
     GetAulaListService.handle.mockResolvedValue({

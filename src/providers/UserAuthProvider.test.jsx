@@ -1,288 +1,139 @@
 import React from 'react';
-import { render, act, waitFor } from '@testing-library/react';
+import { render, renderHook, act } from '@testing-library/react';
 import { UserAuthProvider, useUserAuth } from './UserAuthProvider';
+import { SESSION_END_REASON, SESSION_STATUS } from '@/constants';
+import {
+  clearSession,
+  getAccessToken,
+  getUserId,
+} from '@/store/api/sessionManager';
+import { clearAppCache } from '@/utils/appCache';
 
 jest.mock('@/utils/appCache', () => ({ clearAppCache: jest.fn() }));
 
-beforeAll(() => {
-  const localStorageMock = (function () {
-    let store = {};
-    return {
-      getItem(key) {
-        return store[key] || null;
-      },
-      setItem(key, value) {
-        store[key] = value.toString();
-      },
-      removeItem(key) {
-        delete store[key];
-      },
-      clear() {
-        store = {};
-      },
-    };
-  })();
-  Object.defineProperty(global, 'localStorage', {
-    value: localStorageMock,
-  });
-});
+const wrapper = ({ children }) => (
+  <UserAuthProvider>{children}</UserAuthProvider>
+);
 
-function TestComponent() {
-  const {
-    currentUser,
-    refreshToken,
-    settings,
-    authenticate,
-    isAuthenticated,
-    isAdmin,
-    removeAuthenticate,
-  } = useUserAuth();
-  const [isLogin, setIsLogin] = React.useState(false);
-  React.useEffect(() => {
-    (async () => {
-      const authenticated = await isAuthenticated();
-      setIsLogin(authenticated);
-    })();
-  }, [currentUser, isAuthenticated]);
-  return (
-    <div>
-      <span data-testid="user">{currentUser ? currentUser.nome : 'none'}</span>
-      <span data-testid="refreshToken">{refreshToken || 'none'}</span>
-      <span data-testid="isUserLogin">{isLogin ? 'true' : 'false'}</span>
-      <span data-testid="isAdmin">{isAdmin() ? 'true' : 'false'}</span>
-      <span data-testid="duracaoAula">{settings?.duracaoAula || 'none'}</span>
-      <span data-testid="tolerancia">{settings?.tolerancia || 'none'}</span>
-      <span data-testid="diasDeFuncionamento">
-        {settings?.diasDeFuncionamento?.length || 0}
-      </span>
-      <button
-        data-testid="save"
-        onClick={() =>
-          authenticate({
-            accessToken: 'token',
-            refreshToken: 'refresh',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-            currentUser: { nome: 'Marcos', permissao: 'admin' },
-            duracaoAula: 60,
-            tolerancia: 10,
-            diasDeFuncionamento: [1, 2, 3, 4, 5],
-          })
-        }
-      >
-        Save
-      </button>
-      <button data-testid="remove" onClick={removeAuthenticate}>
-        Remove
-      </button>
-      <button
-        data-testid="save-professor-b"
-        onClick={() =>
-          authenticate({
-            accessToken: 'token-b',
-            refreshToken: 'refresh-b',
-            tokenType: 'Bearer',
-            expiresIn: 3600,
-            currentUser: { nome: 'Professor B', permissao: 'user' },
-            duracaoAula: 45,
-            tolerancia: 5,
-            diasDeFuncionamento: [1, 3, 5],
-          })
-        }
-      >
-        Save Professor B
-      </button>
-    </div>
-  );
-}
+const DADOS = {
+  accessToken: 'tok-1',
+  currentUser: { id: 'u-1', permissao: 'admin' },
+  duracaoAula: 50,
+  tolerancia: 10,
+  diasDeFuncionamento: ['SEGUNDA'],
+};
 
-describe('UserAuthProvider', () => {
+describe('UserAuthProvider (provider real)', () => {
   beforeEach(() => {
+    clearSession();
     localStorage.clear();
+    jest.clearAllMocks();
   });
 
-  it('should provide default values', async () => {
-    const { getByTestId } = render(
-      <UserAuthProvider>
-        <TestComponent />
-      </UserAuthProvider>
-    );
-    expect(getByTestId('user').textContent).toBe('none');
-    expect(getByTestId('refreshToken').textContent).toBe('none');
-    expect(getByTestId('duracaoAula').textContent).toBe('none');
-    expect(getByTestId('tolerancia').textContent).toBe('none');
-    expect(getByTestId('diasDeFuncionamento').textContent).toBe('0');
-    await waitFor(() => {
-      expect(getByTestId('isUserLogin').textContent).toBe('false');
+  it('estado inicial literal', async () => {
+    const { result } = renderHook(() => useUserAuth(), { wrapper });
+    expect(result.current.currentUser).toBeNull();
+    expect(result.current.settings).toEqual({
+      duracaoAula: null,
+      tolerancia: null,
+      diasDeFuncionamento: [],
     });
-    expect(getByTestId('isAdmin').textContent).toBe('false');
+    expect(result.current.sessionStatus).toBe(SESSION_STATUS.ANONYMOUS);
+    expect(result.current.endReason).toBe(SESSION_END_REASON.NUNCA);
+    expect(await result.current.isAuthenticated()).toBe(false);
+    expect('refreshToken' in result.current).toBe(false);
   });
 
-  it('should save token and settings and update user', async () => {
-    const { getByTestId } = render(
-      <UserAuthProvider>
-        <TestComponent />
-      </UserAuthProvider>
-    );
-    await act(async () => {
-      getByTestId('save').click();
-    });
-    await waitFor(() => {
-      expect(getByTestId('user').textContent).toBe('Marcos');
-      expect(getByTestId('isUserLogin').textContent).toBe('true');
-      expect(getByTestId('isAdmin').textContent).toBe('true');
-      expect(getByTestId('duracaoAula').textContent).toBe('60');
-      expect(getByTestId('tolerancia').textContent).toBe('10');
-      expect(getByTestId('diasDeFuncionamento').textContent).toBe('5');
-    });
-  });
-
-  it('should remove token and reset user', async () => {
-    const { getByTestId } = render(
-      <UserAuthProvider>
-        <TestComponent />
-      </UserAuthProvider>
-    );
-    await act(async () => {
-      getByTestId('save').click();
-    });
-    await act(async () => {
-      getByTestId('remove').click();
-    });
-    await waitFor(() => {
-      expect(getByTestId('user').textContent).toBe('none');
-      expect(getByTestId('isUserLogin').textContent).toBe('false');
-    });
-    expect(getByTestId('isAdmin').textContent).toBe('false');
-  });
-
-  it('should persist token in localStorage', async () => {
-    const { getByTestId } = render(
-      <UserAuthProvider>
-        <TestComponent />
-      </UserAuthProvider>
-    );
-    await act(async () => {
-      getByTestId('save').click();
-    });
-    await waitFor(() => {
-      expect(getByTestId('user').textContent).toBe('Marcos');
-    });
-    const tokenData = JSON.parse(localStorage.getItem('token'));
-    expect(tokenData).toEqual({
-      accessToken: 'token',
-      refreshToken: 'refresh',
-      tokenType: 'Bearer',
-      expiresIn: 3600,
-      currentUser: { nome: 'Marcos', permissao: 'admin' },
-    });
-  });
-
-  it('should persist settings in localStorage', async () => {
-    const { getByTestId } = render(
-      <UserAuthProvider>
-        <TestComponent />
-      </UserAuthProvider>
-    );
-    await act(async () => {
-      getByTestId('save').click();
-    });
-    await waitFor(() => {
-      expect(getByTestId('duracaoAula').textContent).toBe('60');
-    });
-    const settingsData = JSON.parse(localStorage.getItem('settings'));
-    expect(settingsData).toEqual({
-      duracaoAula: 60,
-      tolerancia: 10,
-      diasDeFuncionamento: [1, 2, 3, 4, 5],
-    });
-  });
-
-  it('should load token from localStorage on mount', () => {
+  it('ignora a chave legada `token` e não lê storage no primeiro render', () => {
     localStorage.setItem(
       'token',
-      JSON.stringify({
-        accessToken: 'stored-token',
-        refreshToken: 'stored-refresh',
-        tokenType: 'Bearer',
-        expiresIn: 7200,
-        currentUser: { nome: 'João', permissao: 'user' },
-      })
+      JSON.stringify({ accessToken: 'legado', currentUser: { id: 'x' } })
     );
-    const { getByTestId } = render(
+    const getItemSpy = jest.spyOn(Storage.prototype, 'getItem');
+    const renders = [];
+    function Sonda() {
+      const ctx = useUserAuth();
+      renders.push(ctx.currentUser);
+      return null;
+    }
+    render(
       <UserAuthProvider>
-        <TestComponent />
+        <Sonda />
       </UserAuthProvider>
     );
-    expect(getByTestId('user').textContent).toBe('João');
-    expect(getByTestId('refreshToken').textContent).toBe('stored-refresh');
-    expect(getByTestId('isAdmin').textContent).toBe('false');
+    expect(renders[0]).toBeNull();
+    expect(getItemSpy).not.toHaveBeenCalled();
+
+    localStorage.getItem('controle');
+    expect(getItemSpy).toHaveBeenCalledTimes(1);
+    getItemSpy.mockRestore();
   });
 
-  it('should load settings from localStorage on mount', () => {
-    localStorage.setItem(
-      'settings',
-      JSON.stringify({
-        duracaoAula: 90,
-        tolerancia: 15,
-        diasDeFuncionamento: [2, 4, 6],
-      })
-    );
-    const { getByTestId } = render(
-      <UserAuthProvider>
-        <TestComponent />
-      </UserAuthProvider>
-    );
-    expect(getByTestId('duracaoAula').textContent).toBe('90');
-    expect(getByTestId('tolerancia').textContent).toBe('15');
-    expect(getByTestId('diasDeFuncionamento').textContent).toBe('3');
-  });
-
-  it('should purge the app cache before overwriting token/settings on user switch without logout (AC-001-011)', async () => {
-    const { clearAppCache } = require('@/utils/appCache');
-    const setItemSpy = jest.spyOn(localStorage, 'setItem');
-    const { getByTestId } = render(
-      <UserAuthProvider>
-        <TestComponent />
-      </UserAuthProvider>
-    );
-
+  it('authenticate guarda em memória, entrega o acesso ao sessionManager e não grava storage', async () => {
+    const setItemSpy = jest.spyOn(Storage.prototype, 'setItem');
+    const { result } = renderHook(() => useUserAuth(), { wrapper });
     await act(async () => {
-      getByTestId('save').click();
+      result.current.authenticate(DADOS);
     });
-    await waitFor(() => {
-      expect(getByTestId('user').textContent).toBe('Marcos');
+    expect(result.current.currentUser).toEqual(DADOS.currentUser);
+    expect(result.current.settings).toEqual({
+      duracaoAula: 50,
+      tolerancia: 10,
+      diasDeFuncionamento: ['SEGUNDA'],
     });
-
-    // Purga defensiva já ocorre no primeiro login (toda `authenticate()`
-    // purga); zera os espiões para isolar só a chamada da troca de usuário.
-    clearAppCache.mockClear();
-    setItemSpy.mockClear();
-
-    await act(async () => {
-      getByTestId('save-professor-b').click();
-    });
-    await waitFor(() => {
-      expect(getByTestId('user').textContent).toBe('Professor B');
-    });
-
+    expect(result.current.isAdmin()).toBe(true);
+    expect(result.current.sessionStatus).toBe(SESSION_STATUS.AUTHENTICATED);
+    expect(getAccessToken()).toBe('tok-1');
+    expect(getUserId()).toBe('u-1');
+    expect(await result.current.isAuthenticated()).toBe(true);
     expect(clearAppCache).toHaveBeenCalledTimes(1);
-    const tokenWriteCallIndex = setItemSpy.mock.calls.findIndex(
-      ([key]) => key === 'token'
-    );
-    expect(tokenWriteCallIndex).toBeGreaterThanOrEqual(0);
-    const clearAppCacheOrder = clearAppCache.mock.invocationCallOrder[0];
-    const tokenWriteOrder =
-      setItemSpy.mock.invocationCallOrder[tokenWriteCallIndex];
-    expect(clearAppCacheOrder).toBeLessThan(tokenWriteOrder);
+    expect(setItemSpy).not.toHaveBeenCalled();
 
-    const settingsData = JSON.parse(localStorage.getItem('settings'));
-    expect(settingsData).toEqual({
-      duracaoAula: 45,
-      tolerancia: 5,
-      diasDeFuncionamento: [1, 3, 5],
-    });
-
+    localStorage.setItem('x', 'y');
+    expect(setItemSpy).toHaveBeenCalledTimes(1);
     setItemSpy.mockRestore();
+  });
+
+  it('removeAuthenticate encerra em memória com o motivo padrão e com motivo explícito', async () => {
+    const { result } = renderHook(() => useUserAuth(), { wrapper });
+    await act(async () => {
+      result.current.authenticate(DADOS);
+    });
+    await act(async () => {
+      result.current.removeAuthenticate();
+    });
+    expect(result.current.currentUser).toBeNull();
+    expect(result.current.sessionStatus).toBe(SESSION_STATUS.ANONYMOUS);
+    expect(result.current.endReason).toBe(SESSION_END_REASON.SAIDA);
+    expect(getAccessToken()).toBeNull();
+    expect(result.current.isAdmin()).toBeFalsy();
+    expect(await result.current.isAuthenticated()).toBe(false);
+
+    await act(async () => {
+      result.current.authenticate(DADOS);
+    });
+    await act(async () => {
+      result.current.removeAuthenticate(SESSION_END_REASON.EXPIRADA);
+    });
+    expect(result.current.endReason).toBe(SESSION_END_REASON.EXPIRADA);
+  });
+
+  it('trocar de usuário sem sair purga o cache e troca o acesso (AC-001-011)', async () => {
+    const { result } = renderHook(() => useUserAuth(), { wrapper });
+    await act(async () => {
+      result.current.authenticate(DADOS);
+    });
+    clearAppCache.mockClear();
+    await act(async () => {
+      result.current.authenticate({
+        ...DADOS,
+        accessToken: 'tok-b',
+        currentUser: { id: 'u-b', permissao: 'user' },
+      });
+    });
+    expect(clearAppCache).toHaveBeenCalledTimes(1);
+    expect(getAccessToken()).toBe('tok-b');
+    expect(getUserId()).toBe('u-b');
+    expect(result.current.isAdmin()).toBe(false);
   });
 });

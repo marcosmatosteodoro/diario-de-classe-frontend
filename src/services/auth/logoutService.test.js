@@ -6,34 +6,21 @@ jest.mock('@/store/api/authApi', () => ({
 import { LogoutService } from './logoutService';
 
 describe('LogoutService', () => {
-  it('should call authApi.logout with refreshToken when execute is called', async () => {
-    const mockApi = { logout: jest.fn().mockResolvedValue('result') };
-    const service = new LogoutService(mockApi);
-    const refreshToken = 'test-refresh-token-123';
-    const result = await service.execute(refreshToken);
-    expect(mockApi.logout).toHaveBeenCalledWith(refreshToken);
-    expect(result).toBe('result');
-  });
+  beforeEach(() => mockLogout.mockClear());
 
-  it('should call authApi.logout without refreshToken when execute is called without parameter', async () => {
+  it('execute chama authApi.logout sem argumento', async () => {
     const mockApi = { logout: jest.fn().mockResolvedValue('result') };
     const service = new LogoutService(mockApi);
     const result = await service.execute();
-    expect(mockApi.logout).toHaveBeenCalledWith(undefined);
+    expect(mockApi.logout).toHaveBeenCalledTimes(1);
+    expect(mockApi.logout.mock.calls[0]).toHaveLength(0);
     expect(result).toBe('result');
   });
 
-  it('static handle should instantiate AuthApi and call execute with refreshToken', async () => {
-    const refreshToken = 'test-refresh-token-456';
-    const result = await LogoutService.handle(refreshToken);
-    expect(mockLogout).toHaveBeenCalledWith(refreshToken);
-    expect(result).toBe('logout-result');
-  });
-
-  it('static handle should instantiate AuthApi and call execute without refreshToken', async () => {
-    mockLogout.mockClear();
+  it('static handle não recebe parâmetro e chama authApi.logout sem argumento', async () => {
+    expect(LogoutService.handle).toHaveLength(0);
     const result = await LogoutService.handle();
-    expect(mockLogout).toHaveBeenCalledWith(undefined);
+    expect(mockLogout.mock.calls[0]).toHaveLength(0);
     expect(result).toBe('logout-result');
   });
 });

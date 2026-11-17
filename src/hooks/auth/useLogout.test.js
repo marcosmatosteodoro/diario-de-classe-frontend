@@ -18,7 +18,6 @@ jest.mock('@/utils/appCache', () => ({ clearAppCache: jest.fn() }));
 
 describe('useLogout', () => {
   let dispatchMock, routerMock, infoMock, removeAuthenticateMock;
-  const mockRefreshToken = 'test-refresh-token-123';
 
   beforeEach(() => {
     dispatchMock = jest.fn();
@@ -31,7 +30,6 @@ describe('useLogout', () => {
     useToast.mockReturnValue({ info: infoMock });
     useUserAuth.mockReturnValue({
       removeAuthenticate: removeAuthenticateMock,
-      refreshToken: mockRefreshToken,
     });
   });
 
@@ -45,13 +43,15 @@ describe('useLogout', () => {
     expect(dispatchMock).toHaveBeenCalledWith(clearStatus());
   });
 
-  it('should logout user with refreshToken and redirect', () => {
+  it('should logout user without argument and redirect', () => {
     const { result } = renderHook(() => useLogout());
     const { logout } = require('@/store/slices/authSlice');
 
     result.current.logoutUser();
 
-    expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
+    expect(logout).toHaveBeenCalledTimes(1);
+    expect(logout.mock.calls[0]).toHaveLength(0);
+    expect('refreshToken' in useUserAuth()).toBe(false);
     expect(removeAuthenticateMock).toHaveBeenCalled();
     expect(infoMock).toHaveBeenCalledWith('Você saiu.');
     expect(routerMock.push).toHaveBeenCalledWith('/login');
@@ -73,22 +73,5 @@ describe('useLogout', () => {
     result.current.logoutUser();
 
     expect(clearAppCache).toHaveBeenCalled();
-  });
-
-  it('should handle logout without refreshToken', () => {
-    useUserAuth.mockReturnValue({
-      removeAuthenticate: removeAuthenticateMock,
-      refreshToken: undefined,
-    });
-
-    const { result } = renderHook(() => useLogout());
-    const { logout } = require('@/store/slices/authSlice');
-
-    result.current.logoutUser();
-
-    expect(dispatchMock).toHaveBeenCalledWith(logout(undefined));
-    expect(removeAuthenticateMock).toHaveBeenCalled();
-    expect(infoMock).toHaveBeenCalledWith('Você saiu.');
-    expect(routerMock.push).toHaveBeenCalledWith('/login');
   });
 });

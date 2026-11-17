@@ -38,7 +38,6 @@ describe('useApplicationLayout', () => {
     errorMock,
     useSelectorMock,
     removeAuthenticateMock;
-  const mockRefreshToken = 'test-refresh-token-123';
 
   beforeEach(() => {
     routerMock = { push: jest.fn() };
@@ -59,7 +58,6 @@ describe('useApplicationLayout', () => {
     require('@/providers/UserAuthProvider').useUserAuth.mockReturnValue({
       isAuthenticated: isAuthenticatedMock,
       removeAuthenticate: removeAuthenticateMock,
-      refreshToken: mockRefreshToken,
     });
     require('@/providers/ToastProvider').useToast.mockReturnValue({
       error: errorMock,
@@ -125,7 +123,7 @@ describe('useApplicationLayout', () => {
       })
     );
     renderHook(() => useApplicationLayout());
-    expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
+    expect(dispatchMock).toHaveBeenCalledWith({ type: 'auth/logout' });
     expect(removeAuthenticateMock).toHaveBeenCalled();
     expect(errorMock).toHaveBeenCalledWith(
       'Sua sessão expirou. Entre novamente para continuar.'
@@ -146,9 +144,27 @@ describe('useApplicationLayout', () => {
       })
     );
     renderHook(() => useApplicationLayout());
-    expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
+    expect(dispatchMock).toHaveBeenCalledWith({ type: 'auth/logout' });
     expect(clearAppCache).toHaveBeenCalled();
     expect(removeAuthenticateMock).toHaveBeenCalled();
+  });
+
+  it('despacha logout sem argumento e o useUserAuth mockado não fornece refreshToken (TASK-003-005)', () => {
+    const { logout } = require('@/store/slices/authSlice');
+    const { useUserAuth } = require('@/providers/UserAuthProvider');
+    useSelectorMock.mockImplementation(fn =>
+      fn({
+        professores: { statusError: '401' },
+        alunos: {},
+        aulas: {},
+        contratos: {},
+        configuracao: {},
+      })
+    );
+    renderHook(() => useApplicationLayout());
+    expect(logout).toHaveBeenCalledTimes(1);
+    expect(logout.mock.calls[0]).toHaveLength(0);
+    expect('refreshToken' in useUserAuth()).toBe(false);
   });
 
   it('deve chamar dispatch(logout), removeAuthenticate, error e router.push se statusError de alunos for 401', () => {
@@ -163,7 +179,7 @@ describe('useApplicationLayout', () => {
       })
     );
     renderHook(() => useApplicationLayout());
-    expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
+    expect(dispatchMock).toHaveBeenCalledWith({ type: 'auth/logout' });
     expect(removeAuthenticateMock).toHaveBeenCalled();
     expect(errorMock).toHaveBeenCalledWith(
       'Sua sessão expirou. Entre novamente para continuar.'
@@ -183,7 +199,7 @@ describe('useApplicationLayout', () => {
       })
     );
     renderHook(() => useApplicationLayout());
-    expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
+    expect(dispatchMock).toHaveBeenCalledWith({ type: 'auth/logout' });
     expect(removeAuthenticateMock).toHaveBeenCalled();
     expect(errorMock).toHaveBeenCalledWith(
       'Sua sessão expirou. Entre novamente para continuar.'
@@ -208,7 +224,7 @@ describe('useApplicationLayout', () => {
       ([action]) => action && action.type === 'auth/logout'
     );
     expect(logoutCalls).toHaveLength(1);
-    expect(logoutCalls[0][0]).toEqual(logout(mockRefreshToken));
+    expect(logoutCalls[0][0]).toEqual({ type: 'auth/logout' });
     expect(removeAuthenticateMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(routerMock.push).toHaveBeenCalledTimes(1);
@@ -230,7 +246,7 @@ describe('useApplicationLayout', () => {
       ([action]) => action && action.type === 'auth/logout'
     );
     expect(logoutCalls).toHaveLength(1);
-    expect(logoutCalls[0][0]).toEqual(logout(mockRefreshToken));
+    expect(logoutCalls[0][0]).toEqual({ type: 'auth/logout' });
     expect(removeAuthenticateMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(routerMock.push).toHaveBeenCalledTimes(1);
@@ -341,7 +357,7 @@ describe('useApplicationLayout', () => {
     rerender();
 
     await waitFor(() => {
-      expect(dispatchMock).toHaveBeenCalledWith(logout(mockRefreshToken));
+      expect(dispatchMock).toHaveBeenCalledWith({ type: 'auth/logout' });
     });
   });
 
