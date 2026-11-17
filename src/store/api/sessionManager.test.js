@@ -1,13 +1,23 @@
-import { SESSION_END_REASON, SESSION_EVENT, SESSION_STATUS } from '@/constants';
+import { AxiosError } from 'axios';
+import {
+  RENEW_FAILURE,
+  SESSION_END_REASON,
+  SESSION_EVENT,
+  SESSION_STATUS,
+} from '@/constants';
+import { AuthApi } from './authApi';
 import {
   clearSession,
   emitSessionEvent,
   getAccessToken,
   getSessionEpoch,
   getUserId,
+  renew,
   setSession,
   subscribe,
 } from './sessionManager';
+
+jest.mock('@/utils/reloadPage');
 
 function valoresDeWindow() {
   return Object.keys(window).map(chave => {
@@ -140,6 +150,235 @@ describe('sessionManager', () => {
       emitSessionEvent(SESSION_EVENT.RENEWED, { y: 2 });
       expect(cb).toHaveBeenCalledWith({ y: 2 });
       cancelar();
+    });
+  });
+});
+
+describe('sessionManager: renovação', () => {
+  let refresh;
+  let expirou;
+  let renovado;
+  let cancelar;
+
+  const ok = (id = 'u1') => ({
+    data: { accessToken: 'novo', user: { id }, configuracao: { c: 1 } },
+  });
+  const recusa = status =>
+    new AxiosError('x', 'E', {}, null, {
+      status,
+      data: {},
+      headers: {},
+      config: {},
+    });
+  const rede = () => new AxiosError('Network Error', 'ERR_NETWORK');
+  const deferido = () => {
+    let resolver;
+    let rejeitar;
+    const promessa = new Promise((res, rej) => {
+      resolver = res;
+      rejeitar = rej;
+    });
+    return { promessa, resolver, rejeitar };
+  };
+  const online = async () => {
+    window.dispatchEvent(new Event('online'));
+    await new Promise(r => setTimeout(r, 0));
+  };
+
+  beforeEach(() => {
+    clearSession();
+    setSession({ accessToken: 'velho', userId: 'u1' });
+    refresh = jest.spyOn(AuthApi.prototype, 'refreshToken');
+    expirou = jest.fn();
+    renovado = jest.fn();
+    cancelar = [
+      subscribe(SESSION_EVENT.EXPIRED, expirou),
+      subscribe(SESSION_EVENT.RENEWED, renovado),
+    ];
+  });
+
+  afterEach(async () => {
+    // zera a pendência por rede deixada pelo caso, sem chamar a rede real
+    refresh.mockResolvedValue(ok());
+    await online();
+    cancelar.forEach(c => c());
+    refresh.mockRestore();
+    clearSession();
+  });
+
+  it('200 grava o acesso, emite RENEWED sem o acesso e resolve com os dados', async () => {
+    refresh.mockResolvedValue(ok());
+
+    const r = await renew();
+
+    expect(r).toEqual({
+      accessToken: 'novo',
+      user: { id: 'u1' },
+      configuracao: { c: 1 },
+    });
+    expect(getAccessToken()).toBe('novo');
+    expect(renovado).toHaveBeenCalledTimes(1);
+    expect(renovado.mock.calls[0][0]).toEqual({
+      user: { id: 'u1' },
+      configuracao: { c: 1 },
+    });
+    expect(Object.keys(renovado.mock.calls[0][0])).not.toContain('accessToken');
+  });
+
+  it('chamadas simultâneas compartilham uma só renovação', async () => {
+    refresh.mockResolvedValue(ok());
+    await Promise.all([renew(), renew(), renew()]);
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([401, 403])(
+    '%s limpa a sessão e emite EXPIRED uma vez',
+    async status => {
+      refresh.mockRejectedValue(recusa(status));
+
+      await expect(renew()).rejects.toMatchObject({
+        tipo: RENEW_FAILURE.RECUSADA,
+      });
+
+      expect(getAccessToken()).toBeNull();
+      expect(expirou).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('recusa sem sessão prévia não emite EXPIRED', async () => {
+    clearSession();
+    refresh.mockRejectedValue(recusa(401));
+
+    await expect(renew()).rejects.toMatchObject({
+      tipo: RENEW_FAILURE.RECUSADA,
+    });
+
+    expect(expirou).not.toHaveBeenCalled();
+  });
+
+  it('sem resposta é REDE e não encerra a sessão (ambiente prova a si mesmo)', async () => {
+    const falha = rede();
+    refresh.mockRejectedValue(falha);
+
+    const r = await renew().catch(e => e);
+
+    expect(r.tipo).toBe(RENEW_FAILURE.REDE);
+    expect(r.error.response).toBeUndefined();
+    expect(getAccessToken()).toBe('velho');
+    expect(expirou).not.toHaveBeenCalled();
+  });
+
+  it.each([500, 400])('%s é FALHA, sem limpar a sessão', async status => {
+    refresh.mockRejectedValue(recusa(status));
+
+    const r = await renew().catch(e => e);
+
+    expect(r.tipo).toBe(RENEW_FAILURE.FALHA);
+    expect(r.error.response.status).toBe(status);
+    expect(getAccessToken()).toBe('velho');
+    expect(expirou).not.toHaveBeenCalled();
+  });
+
+  describe('evento online', () => {
+    it('após falha por rede renova uma vez e, com 200, grava o acesso novo e emite RENEWED', async () => {
+      refresh.mockRejectedValueOnce(rede());
+      await renew().catch(() => {});
+      refresh.mockClear();
+      refresh.mockResolvedValue(ok());
+
+      await online();
+
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(getAccessToken()).toBe('novo');
+      expect(renovado).toHaveBeenCalledTimes(1);
+      expect(renovado.mock.calls[0][0]).toEqual({
+        user: { id: 'u1' },
+        configuracao: { c: 1 },
+      });
+    });
+
+    it('com 401 emite EXPIRED e limpa a sessão', async () => {
+      refresh.mockRejectedValueOnce(rede());
+      await renew().catch(() => {});
+      refresh.mockRejectedValue(recusa(401));
+
+      await online();
+
+      expect(expirou).toHaveBeenCalledTimes(1);
+      expect(getAccessToken()).toBeNull();
+    });
+
+    it('nova falha por rede mantém a pendência', async () => {
+      refresh.mockRejectedValue(rede());
+      await renew().catch(() => {});
+      refresh.mockClear();
+
+      await online();
+      await online();
+
+      expect(refresh).toHaveBeenCalledTimes(2);
+    });
+
+    it('sem falha por rede pendente não chama refreshToken (controle)', async () => {
+      refresh.mockResolvedValue(ok());
+      await online();
+      expect(refresh).not.toHaveBeenCalled();
+    });
+
+    it('o módulo registra o ouvinte uma vez, mesmo importado duas vezes', () => {
+      const espia = jest.spyOn(window, 'addEventListener');
+      jest.isolateModules(() => {
+        require('./sessionManager');
+        require('./sessionManager');
+      });
+      const onlines = espia.mock.calls.filter(([nome]) => nome === 'online');
+      espia.mockRestore();
+      expect(onlines).toHaveLength(1);
+    });
+  });
+
+  describe('corrida na troca de sessão (TRISK-003-012)', () => {
+    it('clearSession durante a renovação: o 200 tardio não grava nem emite', async () => {
+      const d = deferido();
+      refresh.mockReturnValue(d.promessa);
+      const p = renew();
+      clearSession();
+      d.resolver(ok());
+
+      await expect(p).rejects.toMatchObject({ tipo: RENEW_FAILURE.RECUSADA });
+
+      expect(getAccessToken()).toBeNull();
+      expect(renovado).not.toHaveBeenCalled();
+    });
+
+    it('o 200 tardio não sobrescreve o acesso de outro usuário', async () => {
+      const d = deferido();
+      refresh.mockReturnValue(d.promessa);
+      const p = renew();
+      clearSession();
+      setSession({ accessToken: 'do-outro', userId: 'u9' });
+      d.resolver(ok('u9'));
+
+      await expect(p).rejects.toMatchObject({ tipo: RENEW_FAILURE.RECUSADA });
+
+      expect(getAccessToken()).toBe('do-outro');
+      expect(renovado).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('identidade diferente', () => {
+    it('emite IDENTITY_CHANGED, não grava o acesso, limpa a sessão e recarrega', async () => {
+      const { reloadPage } = require('@/utils/reloadPage');
+      reloadPage.mockClear();
+      refresh.mockResolvedValue(ok('u2'));
+
+      await expect(renew()).rejects.toMatchObject({
+        tipo: RENEW_FAILURE.IDENTIDADE,
+      });
+
+      expect(getAccessToken()).toBeNull();
+      expect(renovado).not.toHaveBeenCalled();
+      expect(reloadPage).toHaveBeenCalledTimes(1);
     });
   });
 });

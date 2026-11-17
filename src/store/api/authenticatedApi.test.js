@@ -26,6 +26,7 @@ describe('AuthenticatedApi', () => {
             interceptorFn = fn;
           }),
         },
+        response: { use: jest.fn() },
       },
     });
     clearSession();

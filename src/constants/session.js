@@ -17,3 +17,10 @@ export const SESSION_EVENT = {
   IDENTITY_CHANGED: 'identity-changed',
   RENEWED: 'renewed',
 };
+
+export const RENEW_FAILURE = {
+  RECUSADA: 'recusada',
+  REDE: 'rede',
+  FALHA: 'falha',
+  IDENTIDADE: 'identidade',
+};
