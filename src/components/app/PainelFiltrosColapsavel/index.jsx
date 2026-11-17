@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 // `{ mapKey, itemId }`) é de COMP-002-003 — endereço canônico em
 // `filterStorage.js`, dono de `loadPanelStateMap`/`savePanelStateMap`. Nunca
 // duplicar aqui.
+import { useNonce } from '@/providers/NonceProvider';
 import { isConfigDeMapa } from '@/utils/filterStorage';
 
 const RECOLHIDO = 'recolhido';
@@ -93,6 +94,7 @@ export const PainelFiltrosColapsavel = ({
   classeTitulo = 'text-xl font-semibold text-main',
   children,
 }) => {
+  const nonce = useNonce();
   const idBase = useId();
   const contentId = `${idBase}-conteudo`;
   const buttonId = `${idBase}-controle`;
@@ -204,6 +206,7 @@ export const PainelFiltrosColapsavel = ({
     >
       <script
         data-testid="painel-filtros-script"
+        nonce={nonce}
         dangerouslySetInnerHTML={{
           __html: buildAntiFlashScript({ storageKey }),
         }}

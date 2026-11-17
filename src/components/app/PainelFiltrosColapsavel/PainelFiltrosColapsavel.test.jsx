@@ -15,6 +15,7 @@ import {
 import { PainelFiltrosColapsavel, buildAntiFlashScript } from './index';
 import { PainelFiltrosColapsavel as PainelDoBarrel } from '@/components/app';
 import { useCollapsiblePanelState } from '@/hooks/useCollapsiblePanelState';
+import { NonceProvider } from '@/providers/NonceProvider';
 
 const MARCADOR_FIM_SCRIPT = '</script>';
 
@@ -1673,5 +1674,41 @@ describe('PainelFiltrosColapsavel', () => {
         });
       });
     });
+  });
+});
+
+describe('PainelFiltrosColapsavel — nonce do script inline', () => {
+  const painel = () => (
+    <PainelFiltrosColapsavel
+      titulo="Filtros"
+      isOpen
+      onToggle={() => {}}
+      storageKey="painel-nonce"
+    >
+      <p>conteúdo</p>
+    </PainelFiltrosColapsavel>
+  );
+
+  it('o <script> anti-flash recebe o nonce do contexto', () => {
+    const { container } = render(
+      <NonceProvider nonce="nonce-de-teste">{painel()}</NonceProvider>
+    );
+    const script = container.querySelector(
+      '[data-testid="painel-filtros-script"]'
+    );
+    expect(script.nonce).toBe('nonce-de-teste');
+  });
+
+  it('no markup do servidor o atributo nonce sai no <script>', () => {
+    const html = renderToStaticMarkup(
+      <NonceProvider nonce="nonce-de-teste">{painel()}</NonceProvider>
+    );
+    expect(html).toMatch(/<script[^>]*nonce="nonce-de-teste"/);
+  });
+
+  it('sem provider renderiza o <script> sem nonce e sem quebrar', () => {
+    const html = renderToStaticMarkup(painel());
+    expect(html).toContain('data-testid="painel-filtros-script"');
+    expect(html).not.toContain('nonce=');
   });
 });
