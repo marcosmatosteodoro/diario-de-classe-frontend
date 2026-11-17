@@ -1,3 +1,9 @@
+## [1.8.2](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.8.1...v1.8.2) (2026-11-17)
+
+### Bug Fixes
+
+- **deps:** BI-83 bump axios to 1.21.0 ([2b164b4](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/2b164b4a5fd26800e3f56507e9a1d611a4d5c31f))
+
 ## [1.8.1](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.8.0...v1.8.1) (2026-11-17)
 
 ### Bug Fixes
