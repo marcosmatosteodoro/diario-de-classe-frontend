@@ -85,6 +85,8 @@ describe('config.matcher', () => {
     '/manifest.json/x',
     '/_next/staticx',
     '/_next/imagex',
+    '/api',
+    '/apix',
   ])('cobre o documento %s', caminho => {
     expect(casa(caminho)).toBe(true);
   });

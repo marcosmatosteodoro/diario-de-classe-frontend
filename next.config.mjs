@@ -6,7 +6,7 @@ import { OFFLINE_CONTENT_SECURITY_POLICY } from './src/utils/offlineContentSecur
 const BUILD_ID = process.env.BUILD_ID || String(Date.now());
 
 // DEC-003-019: o navegador fala com a própria origem (`/api`) e o `rewrites()`
-// abaixo encaminha ao backend; `NEXT_PUBLIC_API_URL` não existe mais.
+// abaixo encaminha ao backend.
 const API_INTERNAL_URL_DEV = 'http://localhost:3000';
 
 // Tempo máximo do proxy do `rewrites()` (ms). O padrão do
