@@ -1,6 +1,6 @@
 {
   "name": "diario-de-classe-frontend",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -21,7 +21,7 @@
     "@reduxjs/toolkit": "^2.10.1",
     "@tanstack/react-query": "^5.90.5",
     "@tanstack/react-query-devtools": "^5.90.2",
-    "axios": "^1.13.2",
+    "axios": "^1.21.0",
     "lucide-react": "^0.552.0",
     "next": "^16.4.6",
     "react": "19.2.0",
