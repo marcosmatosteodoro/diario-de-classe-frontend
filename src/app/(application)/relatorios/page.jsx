@@ -125,7 +125,6 @@ export default function RelatoriosPage() {
     isSubmitting,
   } = useRelatorios();
 
-  if (data) console.log('data =>', data);
   return (
     <>
       <h1 className="page-title">Relatórios</h1>
