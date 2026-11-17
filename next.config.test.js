@@ -1,5 +1,14 @@
 /** @jest-environment node */
-import { readFileSync } from 'node:fs';
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 
 // M = maior operação do backend medida (geração de cronograma / planilha Excel,
@@ -196,5 +205,51 @@ describe('Dockerfile', () => {
   it('runner declara ARG e ENV de API_INTERNAL_URL', () => {
     expect(runner.some(l => /^ARG API_INTERNAL_URL\s*$/.test(l))).toBe(true);
     expect(runner.some(l => /^ENV API_INTERNAL_URL=/.test(l))).toBe(true);
+  });
+
+  it('o next.config.mjs carrega só com o que o estágio runner copia', async () => {
+    // Destino terminado em `/` recebe o arquivo com o nome da origem.
+    const destinos = runner
+      .map(l => /^COPY --from=builder \/app\/(\S+) (\S+)\s*$/.exec(l))
+      .filter(Boolean)
+      .map(([, origem, destino]) =>
+        path
+          .normalize(
+            destino.endsWith('/') ? destino + path.basename(origem) : destino
+          )
+          .replace(/\/$/, '')
+      );
+    const raiz = mkdtempSync(path.join(tmpdir(), 'runner-'));
+    const salvo = {
+      API_INTERNAL_URL: process.env.API_INTERNAL_URL,
+      NODE_ENV: process.env.NODE_ENV,
+    };
+    try {
+      for (const d of destinos) {
+        if (d === 'node_modules') {
+          symlinkSync(
+            path.join(process.cwd(), 'node_modules'),
+            path.join(raiz, 'node_modules')
+          );
+        } else if (d !== '.next' && d !== 'public' && d !== 'next-env.d.ts') {
+          // `.next`, `public` e o `next-env.d.ts` (gerado no build) não são importados pelo config
+          mkdirSync(path.dirname(path.join(raiz, d)), { recursive: true });
+          cpSync(path.join(process.cwd(), d), path.join(raiz, d));
+        }
+      }
+      process.env.API_INTERNAL_URL = 'http://backend.example:4000';
+      process.env.NODE_ENV = 'production';
+      jest.resetModules();
+      const mod = await import(
+        pathToFileURL(path.join(raiz, 'next.config.mjs')).href
+      );
+      expect(mod.default.rewrites).toEqual(expect.any(Function));
+    } finally {
+      for (const [k, v] of Object.entries(salvo)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+      rmSync(raiz, { recursive: true, force: true });
+    }
   });
 });

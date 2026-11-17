@@ -33,6 +33,8 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/next.config.mjs ./
+# next.config.mjs importa este módulo; o next start o carrega em runtime
+COPY --from=builder /app/src/utils/offlineContentSecurityPolicy.mjs ./src/utils/offlineContentSecurityPolicy.mjs
 COPY --from=builder /app/next-env.d.ts ./
 COPY --from=builder /app/jsconfig.json ./
 
