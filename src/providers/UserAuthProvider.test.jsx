@@ -9,8 +9,17 @@ import {
   setSession,
 } from '@/store/api/sessionManager';
 import { clearAppCache } from '@/utils/appCache';
+import { clearPendingExit, watchPendingExit } from '@/utils/sessionChannel';
 
 jest.mock('@/utils/appCache', () => ({ clearAppCache: jest.fn() }));
+jest.mock('@/utils/sessionChannel', () => {
+  const real = jest.requireActual('@/utils/sessionChannel');
+  return {
+    ...real,
+    clearPendingExit: jest.fn(real.clearPendingExit),
+    watchPendingExit: jest.fn(() => jest.fn()),
+  };
+});
 
 const wrapper = ({ children }) => (
   <UserAuthProvider>{children}</UserAuthProvider>
@@ -147,5 +156,30 @@ describe('UserAuthProvider (provider real)', () => {
     });
     expect(getAccessToken()).toBe('tok-thunk');
     expect(getUserId()).toBe(DADOS.currentUser.id);
+  });
+
+  describe('saída pendente (FR-002-017)', () => {
+    it('authenticate limpa a marca de saída pendente', () => {
+      localStorage.setItem('bls-saida-pendente', '1');
+      const { result } = renderHook(() => useUserAuth(), { wrapper });
+
+      act(() => {
+        result.current.authenticate(DADOS);
+      });
+
+      expect(clearPendingExit).toHaveBeenCalledTimes(1);
+      expect(localStorage.getItem('bls-saida-pendente')).toBeNull();
+    });
+
+    it('registra watchPendingExit na montagem e cancela no unmount', () => {
+      const cancelar = jest.fn();
+      watchPendingExit.mockReturnValueOnce(cancelar);
+      const { unmount } = renderHook(() => useUserAuth(), { wrapper });
+
+      expect(watchPendingExit).toHaveBeenCalledTimes(1);
+      expect(cancelar).not.toHaveBeenCalled();
+      unmount();
+      expect(cancelar).toHaveBeenCalledTimes(1);
+    });
   });
 });

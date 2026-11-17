@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
+import { SESSION_END_REASON } from '@/constants/session';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useToast } from '@/providers/ToastProvider';
 import { logout } from '@/store/slices/authSlice';
@@ -12,6 +13,7 @@ import { clearErrors as clearAulasErrors } from '@/store/slices/aulasSlice';
 import { clearErrors as clearContratoErrors } from '@/store/slices/contratosSlice';
 import { clearErrors as clearConfiguracaoErrors } from '@/store/slices/configuracaoSlice';
 import { clearAppCache } from '@/utils/appCache';
+import { SESSION_CHANNEL_EVENT, onSessionEvent } from '@/utils/sessionChannel';
 
 export function useApplicationLayout() {
   const router = useRouter();
@@ -92,6 +94,15 @@ export function useApplicationLayout() {
     return () => {
       isCurrent = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    return onSessionEvent(tipo => {
+      if (tipo !== SESSION_CHANNEL_EVENT.SAIDA) return;
+      removeAuthenticate(SESSION_END_REASON.OUTRA_ABA);
+      router.push('/login');
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

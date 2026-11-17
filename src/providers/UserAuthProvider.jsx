@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { SESSION_END_REASON, SESSION_STATUS } from '@/constants/session';
 import {
   clearSession,
@@ -8,6 +8,7 @@ import {
   setSession,
 } from '@/store/api/sessionManager';
 import { clearAppCache } from '@/utils/appCache';
+import { clearPendingExit, watchPendingExit } from '@/utils/sessionChannel';
 
 const UserAuthContext = createContext();
 
@@ -23,6 +24,8 @@ export function UserAuthProvider({ children }) {
   const [sessionStatus, setSessionStatus] = useState(SESSION_STATUS.ANONYMOUS);
   const [endReason, setEndReason] = useState(SESSION_END_REASON.NUNCA);
 
+  useEffect(() => watchPendingExit(), []);
+
   const authenticate = ({
     accessToken,
     currentUser: user,
@@ -31,6 +34,7 @@ export function UserAuthProvider({ children }) {
     diasDeFuncionamento,
   }) => {
     clearAppCache();
+    clearPendingExit();
     setSession({
       accessToken: accessToken ?? getAccessToken(),
       userId: user?.id ?? null,

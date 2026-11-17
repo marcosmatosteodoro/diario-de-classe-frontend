@@ -31,15 +31,25 @@ jest.mock('@/store/slices/authSlice', () => ({
   logout: jest.fn(() => ({ type: 'auth/logout' })),
 }));
 jest.mock('@/utils/appCache', () => ({ clearAppCache: jest.fn() }));
+jest.mock('@/utils/sessionChannel', () => ({
+  SESSION_CHANNEL_EVENT: { SAIDA: 'saida' },
+  onSessionEvent: jest.fn(),
+}));
 
 describe('useApplicationLayout', () => {
   let routerMock,
     isAuthenticatedMock,
     errorMock,
     useSelectorMock,
-    removeAuthenticateMock;
+    removeAuthenticateMock,
+    cancelarMock;
 
   beforeEach(() => {
+    cancelarMock = jest.fn();
+    require('@/utils/sessionChannel').onSessionEvent.mockReset();
+    require('@/utils/sessionChannel').onSessionEvent.mockReturnValue(
+      cancelarMock
+    );
     routerMock = { push: jest.fn() };
     isAuthenticatedMock = jest.fn();
     errorMock = jest.fn();
@@ -409,5 +419,58 @@ describe('useApplicationLayout', () => {
       'Por favor, faça login para acessar o sistema.'
     );
     expect(result.current.isLoading).toBe(true);
+  });
+
+  describe('saída vinda de outra aba (AC-002-023)', () => {
+    function capturarCallback() {
+      const { onSessionEvent } = require('@/utils/sessionChannel');
+      return onSessionEvent.mock.calls[onSessionEvent.mock.calls.length - 1][0];
+    }
+
+    it('saida encerra com motivo outra-aba, vai a /login e não avisa expiração', () => {
+      isAuthenticatedMock.mockReturnValue(new Promise(() => {}));
+      renderHook(() => useApplicationLayout());
+      const callback = capturarCallback();
+
+      callback('saida');
+
+      expect(removeAuthenticateMock).toHaveBeenCalledTimes(1);
+      expect(removeAuthenticateMock).toHaveBeenCalledWith('outra-aba');
+      expect(routerMock.push).toHaveBeenCalledTimes(1);
+      expect(routerMock.push).toHaveBeenCalledWith('/login');
+      expect(errorMock).not.toHaveBeenCalledWith(
+        expect.stringContaining('Sua sessão expirou')
+      );
+    });
+
+    it('tipo desconhecido não encerra a sessão', () => {
+      isAuthenticatedMock.mockReturnValue(new Promise(() => {}));
+      renderHook(() => useApplicationLayout());
+      capturarCallback()('outra-coisa');
+      expect(removeAuthenticateMock).not.toHaveBeenCalled();
+    });
+
+    it('cancela a assinatura no unmount', () => {
+      isAuthenticatedMock.mockReturnValue(new Promise(() => {}));
+      const { unmount } = renderHook(() => useApplicationLayout());
+      expect(cancelarMock).not.toHaveBeenCalled();
+      unmount();
+      expect(cancelarMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('em StrictMode a montagem dupla registra e cancela sem duplicar a ação', () => {
+      isAuthenticatedMock.mockReturnValue(new Promise(() => {}));
+      const { onSessionEvent } = require('@/utils/sessionChannel');
+      const { StrictMode } = require('react');
+      renderHook(() => useApplicationLayout(), { wrapper: StrictMode });
+
+      expect(onSessionEvent).toHaveBeenCalledTimes(2);
+      expect(cancelarMock).toHaveBeenCalledTimes(1);
+
+      // só a assinatura viva reage; a ação ocorre 1 vez
+      capturarCallback()('saida');
+      expect(removeAuthenticateMock).toHaveBeenCalledTimes(1);
+      expect(routerMock.push).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -65,6 +65,24 @@ describe('authSlice - transporte de sair (TASK-003-005)', () => {
     expect(LogoutService.handle.mock.calls[0]).toHaveLength(0);
   });
 
+  it.each([
+    ['500', { response: { status: 500, data: {} } }, 500],
+    ['403', { response: { status: 403, data: {} } }, 403],
+    ['sem response', { message: 'Network Error' }, undefined],
+  ])(
+    'o rejected de logout propaga statusError (%s)',
+    async (_, erro, esperado) => {
+      LogoutService.handle.mockRejectedValue(erro);
+      const dispatch = jest.fn();
+      await logout()(dispatch, () => ({}), undefined);
+      const rejected = dispatch.mock.calls.find(
+        ([a]) => a.type === logout.rejected.type
+      )[0];
+      expect(rejected.payload.statusError).toBe(esperado);
+      expect(typeof rejected.payload.message).toBe('string');
+    }
+  );
+
   it('o thunk refreshToken não é mais exportado', () => {
     expect('refreshToken' in authSlice).toBe(false);
   });

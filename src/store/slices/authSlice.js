@@ -35,7 +35,10 @@ export const logout = createAsyncThunk(
       return res.data;
     } catch (error) {
       const errorMessage = getRequestErrorMessage(error, 'Erro ao deslogar');
-      return rejectWithValue({ message: errorMessage });
+      return rejectWithValue({
+        message: errorMessage,
+        statusError: error.response?.status,
+      });
     }
   }
 );
