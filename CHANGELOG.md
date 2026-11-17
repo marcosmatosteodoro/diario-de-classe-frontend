@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.8.0...v1.8.1) (2026-11-17)
+
+### Bug Fixes
+
+- **aulas:** BI-62 BI-71 render aula fields literally in edit modals ([afe6d2c](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/afe6d2c9694a49f9e3e9735edcab97e3f053e51b))
+- **deps:** BI-60 bump next to 16.4.6 ([9f57552](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/commit/9f575525391a34b6370d0a133320b5dba9afb466))
+
 # [1.8.0](https://github.com/marcosmatosteodoro/diario-de-classe-frontend/compare/v1.7.0...v1.8.0) (2026-11-17)
 
 ### Bug Fixes
