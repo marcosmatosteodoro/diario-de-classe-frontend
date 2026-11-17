@@ -6,6 +6,8 @@ const BUILD_ID = process.env.BUILD_ID || String(Date.now());
 
 const config = {
   turbopack: {},
+  // Não gera AGENTS.md no `next dev` — a orientação para IA vive no CLAUDE.md do repo.
+  agentRules: false,
   env: {
     NEXT_PUBLIC_BUILD_ID: BUILD_ID,
   },
