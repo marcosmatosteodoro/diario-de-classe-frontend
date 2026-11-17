@@ -1,9 +1,10 @@
 import RootLayout from './layout';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import { NonceProvider } from '@/providers/NonceProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { ServiceWorkerRegister } from '@/components/app/ServiceWorkerRegister';
 
-jest.mock('next/headers', () => ({ cookies: jest.fn() }));
+jest.mock('next/headers', () => ({ cookies: jest.fn(), headers: jest.fn() }));
 
 jest.mock('@/providers/ThemeProvider', () => ({
   ThemeProvider: jest.fn(({ children }) => children),
@@ -36,6 +37,10 @@ function findHeadChildren(element) {
 }
 
 describe('RootLayout', () => {
+  beforeEach(() => {
+    headers.mockResolvedValue(new Headers());
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -90,5 +95,18 @@ describe('RootLayout', () => {
     expect(
       findElement(tree, el => el.type === ServiceWorkerRegister)
     ).not.toBeNull();
+  });
+
+  it('entrega o nonce da requisição (x-nonce) ao NonceProvider', async () => {
+    cookies.mockResolvedValue({ get: () => undefined });
+    headers.mockResolvedValue(
+      new Headers({ 'x-nonce': 'nonce-da-requisicao' })
+    );
+
+    const tree = await RootLayout({ children: 'conteudo' });
+
+    expect(findElement(tree, el => el.type === NonceProvider).props.nonce).toBe(
+      'nonce-da-requisicao'
+    );
   });
 });

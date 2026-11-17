@@ -66,8 +66,12 @@ global.setImmediate =
 // Configura timeouts menores para evitar stack overflow
 jest.setTimeout(10000);
 
-// Mock do HTMLFormElement.requestSubmit para jsdom
-if (typeof HTMLFormElement.prototype.requestSubmit === 'undefined') {
+// Mock do HTMLFormElement.requestSubmit para jsdom (ausente em suítes com
+// `@jest-environment node`)
+if (
+  typeof HTMLFormElement !== 'undefined' &&
+  typeof HTMLFormElement.prototype.requestSubmit === 'undefined'
+) {
   HTMLFormElement.prototype.requestSubmit = function (submitter) {
     if (submitter) {
       if (!submitter.form || submitter.form !== this) {
