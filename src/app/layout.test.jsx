@@ -109,4 +109,14 @@ describe('RootLayout', () => {
       'nonce-da-requisicao'
     );
   });
+
+  it('o NonceProvider envolve a página (children)', async () => {
+    cookies.mockResolvedValue({ get: () => undefined });
+    const pagina = <span data-testid="pagina" />;
+
+    const tree = await RootLayout({ children: pagina });
+    const provider = findElement(tree, el => el.type === NonceProvider);
+
+    expect(findElement(provider, el => el === pagina)).toBe(pagina);
+  });
 });

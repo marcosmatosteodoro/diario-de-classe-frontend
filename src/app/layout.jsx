@@ -26,12 +26,12 @@ export const metadata = {
 
 export default async function RootLayout({ children }) {
   const cookieStore = await cookies();
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   // `null` (cookie ausente/inválido) chega como está a `ThemeProvider` — é o
   // sinal, idêntico nos dois lados, de "nada para herdar" (DEC-002-001);
   // colapsar aqui para `DEFAULT_THEME` impediria o provider de distinguir
   // "sem cookie" de "cookie=light" e de disparar a migração de
   // `localStorage`.
-  const nonce = (await headers()).get('x-nonce') ?? undefined;
   const initialTheme = parseThemeCookie(cookieStore.get(getKey())?.value);
 
   return (

@@ -1,17 +1,17 @@
-const FALLBACK_API_URL = 'http://localhost:3000/api';
+import { SHARED_DIRECTIVES as d } from './offlineContentSecurityPolicy.mjs';
 
-// Mesmo fallback de `src/store/api/baseApi.js`; URL ausente ou inválida nunca
+const FALLBACK_API_ORIGIN = 'http://localhost:3000';
+
+// Mesmo host de fallback de `src/store/api/baseApi.js`; URL ausente ou inválida nunca
 // vira `*` nem lança.
 export function resolveApiOrigin(apiUrl) {
-  for (const candidate of [apiUrl, FALLBACK_API_URL]) {
-    try {
-      const { origin } = new URL(candidate);
-      if (origin && origin !== 'null') return origin;
-    } catch {
-      // tenta o próximo candidato
-    }
+  try {
+    const { origin } = new URL(apiUrl);
+    if (origin && origin !== 'null') return origin;
+  } catch {
+    // apiUrl ausente ou inválido: cai no fallback
   }
-  return new URL(FALLBACK_API_URL).origin;
+  return FALLBACK_API_ORIGIN;
 }
 
 export function buildContentSecurityPolicy({ nonce, isDev = false, apiUrl }) {
@@ -19,17 +19,16 @@ export function buildContentSecurityPolicy({ nonce, isDev = false, apiUrl }) {
   if (isDev) scriptSrc.push("'unsafe-eval'");
 
   return [
-    "default-src 'self'",
+    d.defaultSrc,
     `script-src ${scriptSrc.join(' ')}`,
-    // sweetalert2 e react-data-table-component injetam <style> em runtime.
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
-    "font-src 'self'",
+    d.styleSrc,
+    d.imgSrc,
+    d.fontSrc,
     `connect-src 'self' ${resolveApiOrigin(apiUrl)}`,
-    "object-src 'none'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
+    d.objectSrc,
+    d.baseUri,
+    d.formAction,
+    d.frameAncestors,
     "worker-src 'self'",
     "manifest-src 'self'",
   ].join('; ');

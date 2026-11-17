@@ -86,7 +86,9 @@ describe('CSP de offline.html', () => {
   );
 
   it('o hash da política bate com o <script> inline do arquivo', () => {
-    const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+    const scripts = [
+      ...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g),
+    ];
     expect(scripts).toHaveLength(1);
     const hash = crypto
       .createHash('sha256')
