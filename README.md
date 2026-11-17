@@ -14,7 +14,7 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3001](http://localhost:3001) with your browser to see the result. The app talks to the API at its own origin (`/api`); the Next `rewrites()` forwards it to the backend at `API_INTERNAL_URL` (server-only, backend origin without `/api`, default `http://localhost:3000` in dev, required in production at build and start).
 
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 

@@ -1,13 +1,12 @@
 'use client';
 
 import axios from 'axios';
+import { API_BASE_PATH } from '@/constants/api';
 
 export class BaseApi {
   constructor() {
-    const API_URL =
-      process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
     this.api = axios.create({
-      baseURL: API_URL,
+      baseURL: API_BASE_PATH,
       headers: {
         'Content-Type': 'application/json',
       },
