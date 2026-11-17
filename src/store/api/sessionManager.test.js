@@ -127,4 +127,19 @@ describe('sessionManager', () => {
       delete window.__prova;
     });
   });
+
+  describe('evento fora de SESSION_EVENT', () => {
+    it('subscribe e emitSessionEvent lançam erro de programação', () => {
+      expect(() => subscribe('expirou', jest.fn())).toThrow();
+      expect(() => emitSessionEvent('expirou', {})).toThrow();
+    });
+
+    it('eventos válidos seguem funcionando', () => {
+      const cb = jest.fn();
+      const cancelar = subscribe(SESSION_EVENT.RENEWED, cb);
+      emitSessionEvent(SESSION_EVENT.RENEWED, { y: 2 });
+      expect(cb).toHaveBeenCalledWith({ y: 2 });
+      cancelar();
+    });
+  });
 });

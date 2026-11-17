@@ -2,15 +2,19 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { STATUS } from '@/constants';
 import { LoiginService } from '@/services/auth/loginService';
 import { LogoutService } from '@/services/auth/logoutService';
+import { setSession } from '@/store/api/sessionManager';
 import { getRequestErrorMessage } from '@/utils/thunkErrorPayload';
 
-// LOGIN
+// LOGIN — o accessToken vai direto ao sessionManager (DEC-003-011): nunca sai
+// do thunk, então nenhuma action nem o state o carregam.
 export const login = createAsyncThunk(
   'auth/login',
   async (data, { rejectWithValue }) => {
     try {
       const res = await LoiginService.handle(data);
-      return res.data;
+      const { accessToken, user, configuracao } = res.data;
+      setSession({ accessToken, userId: user?.id ?? null });
+      return { user, configuracao };
     } catch (error) {
       const errorMessage = getRequestErrorMessage(error, 'Erro ao logar');
       const validationErrors = error.response?.data?.errors || [];
@@ -86,6 +90,7 @@ const authSlice = createSlice({
       })
       .addCase(logout.rejected, (state, action) => {
         state.status = STATUS.FAILED;
+        state.data = null;
         state.errors = action.payload?.errors || [];
         state.message = action.payload?.message || 'Erro ao deslogar';
       });

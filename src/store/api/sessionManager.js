@@ -37,7 +37,7 @@ export function clearSession() {
 export function subscribe(evento, callback) {
   const set = listeners[evento];
   if (!set) {
-    return () => {};
+    throw new Error(`Evento de sessão desconhecido: ${evento}`);
   }
   set.add(callback);
   return () => {
@@ -48,7 +48,7 @@ export function subscribe(evento, callback) {
 export function emitSessionEvent(evento, payload) {
   const set = listeners[evento];
   if (!set) {
-    return;
+    throw new Error(`Evento de sessão desconhecido: ${evento}`);
   }
   [...set].forEach(callback => callback(payload));
 }

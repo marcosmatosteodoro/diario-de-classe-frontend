@@ -2,7 +2,11 @@
 
 import React, { createContext, useContext, useState } from 'react';
 import { SESSION_END_REASON, SESSION_STATUS } from '@/constants/session';
-import { clearSession, setSession } from '@/store/api/sessionManager';
+import {
+  clearSession,
+  getAccessToken,
+  setSession,
+} from '@/store/api/sessionManager';
 import { clearAppCache } from '@/utils/appCache';
 
 const UserAuthContext = createContext();
@@ -27,7 +31,10 @@ export function UserAuthProvider({ children }) {
     diasDeFuncionamento,
   }) => {
     clearAppCache();
-    setSession({ accessToken, userId: user?.id ?? null });
+    setSession({
+      accessToken: accessToken ?? getAccessToken(),
+      userId: user?.id ?? null,
+    });
     setCurrentUser(user);
     setSettings({ duracaoAula, tolerancia, diasDeFuncionamento });
     setSessionStatus(SESSION_STATUS.AUTHENTICATED);

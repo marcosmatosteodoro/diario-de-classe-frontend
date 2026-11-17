@@ -184,9 +184,6 @@ describe('useLogin', () => {
         tolerancia: 10,
         diasDeFuncionamento: [1, 2, 3, 4, 5],
       },
-      accessToken: 'access-token-123',
-      tokenType: 'Bearer',
-      expiresIn: 900,
     };
 
     store = mockStore({
@@ -208,10 +205,9 @@ describe('useLogin', () => {
       duracaoAula: mockData.configuracao.duracaoAula,
       tolerancia: mockData.configuracao.tolerancia,
       diasDeFuncionamento: mockData.configuracao.diasDeFuncionamento,
-      accessToken: mockData.accessToken,
     });
     const recebido = mockAuthenticate.mock.calls[0][0];
-    ['refreshToken', 'tokenType', 'expiresIn'].forEach(chave =>
+    ['refreshToken', 'tokenType', 'expiresIn', 'accessToken'].forEach(chave =>
       expect(chave in recebido).toBe(false)
     );
     expect(mockPush).toHaveBeenCalledWith('/');
