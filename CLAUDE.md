@@ -30,6 +30,13 @@ src/
   constants/  utils/
 ```
 
+## Antes de mexer num domínio
+
+Se o workspace `diario-de-classe-workspace` estiver clonado ao lado (`../diario-de-classe-workspace/`),
+leia `docs/<dominio>/MAP.md` de lá antes de explorar o domínio — registra o fluxo real e a
+armadilha já encontrada, com âncora `arquivo:linha`. Confira a âncora antes de decidir por
+ela — o MAP é aproximação declarada, o código é a fonte.
+
 ## Fluxo de dados (camadas)
 
 ```
@@ -61,7 +68,7 @@ src/
      }
    }
    ```
-3. **Slice** (`store/slices/<dominio>Slice.js`) — `createAsyncThunk` chamando o Service; estado com `STATUS` (`IDLE/LOADING/SUCCESS/FAILED`), `list/current/errors/message/count`. Erros via `rejectWithValue({ message, statusError })`. Registrar o reducer em `store/index.js`.
+3. **Slice** (`store/slices/<dominio>Slice.js`) — `createAsyncThunk` chamando o Service; estado com `STATUS` (`IDLE/LOADING/SUCCESS/FAILED`), `list/current/errors/message/count`. Erros via `rejectWithValue({ message, statusError })`. Registrar o reducer em `store/index.js`. **O payload gravado no `fulfilled` de operações diferentes do mesmo domínio deve ter o mesmo formato** (ex.: `create*.fulfilled` e `get*.fulfilled` escrevendo no mesmo campo do estado) — já houve caso de formatos divergentes que só não quebrou a tela porque todo consumidor refazia o fetch logo depois.
 4. **Hook** (`hooks/<dominio>/use<Coisa>.js`) — encapsula `useDispatch`/`useSelector`, faz o fetch inicial em `useEffect`, retorna dados + flags (`isLoading`) + funções. Componentes consomem o hook, não o Redux direto.
 
 ## Componentes
