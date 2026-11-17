@@ -51,7 +51,7 @@ export const AulaForm = ({
     isLoading: isLoadingContratos,
     status: statusContratos,
     action: actionContratos,
-  } = useContratos();
+  } = useContratos({ persistirFiltros: false });
   const { dataFormatter } = useFormater();
   const { isAdmin, currentUser } = useUserAuth();
   const professorOptions = isAdmin() ? professores : [currentUser];
@@ -101,17 +101,21 @@ export const AulaForm = ({
   // exigiria um parâmetro novo repassado pelas duas páginas containers e uma
   // segunda instância de `useContratos()` (TRISK-002-004, PLAN-002 §8) —
   // aqui não há chamada extra, só reaproveita a lista já carregada.
+  // Ao trocar para Aluno diferente, o Contrato só é mantido quando a lista
+  // confirma que é do novo Aluno; ausente (carregando/não listado) ou de
+  // outro Aluno, limpa (fail secure). Mesmo Aluno não limpa.
   const handleAlunoChange = e => {
     const { value } = e.target;
-    const contratoAtual = contratos?.find(
-      contrato => String(contrato.id) === String(formData.idContrato)
-    );
-    if (
-      formData.idContrato &&
-      contratoAtual &&
-      String(contratoAtual.idAluno) !== String(value)
-    ) {
-      handleChange({ target: { name: 'idContrato', value: '' } });
+    const mudouDeAluno = String(formData.idAluno) !== String(value);
+    if (formData.idContrato && mudouDeAluno) {
+      const contratoAtual = contratos?.find(
+        contrato => String(contrato.id) === String(formData.idContrato)
+      );
+      const confirmadoDoNovoAluno =
+        contratoAtual && String(contratoAtual.idAluno) === String(value);
+      if (!confirmadoDoNovoAluno) {
+        handleChange({ target: { name: 'idContrato', value: '' } });
+      }
     }
     handleChange(e);
   };
