@@ -15,6 +15,7 @@ import { classNameDefault } from '@/components/ui/Fields/base';
 import { loadFilters, saveFilters, clearFilters } from '@/utils/filterStorage';
 import { getDatasPadrao } from '@/utils/getDatasPadrao';
 import { countAppliedFilters } from '@/utils/filterCount';
+import { escapeHtml } from '@/utils/escapeHtml';
 
 const JANELA_PADRAO_MESES = 6;
 
@@ -141,7 +142,7 @@ export function useDashboard() {
                   id="swal-textarea"
                   class="${classNameDefault} max-w-full min-w-0 box-border"
                   >
-                  ${aula?.observacao || ''}
+                  ${escapeHtml(aula?.observacao)}
                 </textarea>
               </div>
             </div>

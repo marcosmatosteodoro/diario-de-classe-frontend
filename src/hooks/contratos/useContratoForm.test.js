@@ -20,8 +20,10 @@ jest.mock('@/providers/UserAuthProvider', () => ({
 jest.mock('@/providers/ToastProvider', () => ({
   useToast: () => ({ showToast: jest.fn() }),
 }));
+const mockShowForm = jest.fn(async () => ({ isConfirmed: false }));
+
 jest.mock('@/hooks/useSweetAlert', () => () => ({
-  showForm: jest.fn(async () => ({ isConfirmed: false })),
+  showForm: mockShowForm,
   showSuccess: jest.fn(),
 }));
 
@@ -1466,6 +1468,69 @@ describe('useContratoForm Hook', () => {
       await hook2.flush();
       expect(hook2.getDataInicio()).toBe('2026-07-01');
       hook2.unmount();
+    });
+  });
+
+  describe('modal de edição da aula', () => {
+    const abrirModal = async aula => {
+      const { result } = renderHook(() =>
+        useContratoForm({ alunos, professores, submit: jest.fn() })
+      );
+      await act(async () => {
+        await result.current.handleEditAula(aula);
+      });
+      const container = document.createElement('div');
+      container.innerHTML = mockShowForm.mock.calls[0][0].html;
+      return container;
+    };
+
+    const aulaBase = {
+      id: 1,
+      dataAula: '2024-01-15T00:00:00.000Z',
+      horaInicial: '10:00',
+      horaFinal: '11:00',
+      tipo: 'PADRAO',
+    };
+
+    it('exibe observação com caracteres especiais literalmente no campo', async () => {
+      const texto = 'x" onfocus="alert(1)';
+      const container = await abrirModal({ ...aulaBase, observacao: texto });
+      const input = container.querySelector('input#observacao');
+
+      expect(input.hasAttribute('onfocus')).toBe(false);
+      expect(input.value).toBe(texto);
+    });
+
+    it('exibe observação com & e acentos igual ao original', async () => {
+      const texto = 'Revisão de verbos & adjetivos — ação';
+      const container = await abrirModal({ ...aulaBase, observacao: texto });
+
+      expect(container.querySelector('input#observacao').value).toBe(texto);
+    });
+
+    it('preenche data e hora da aula e deixa observação vazia quando ausente', async () => {
+      const container = await abrirModal(aulaBase);
+
+      expect(container.querySelector('input#dataAula').value).toBe(
+        '2024-01-15'
+      );
+      expect(container.querySelector('input#horaInicial').value).toBe('10:00');
+      expect(container.querySelector('input#observacao').value).toBe('');
+    });
+
+    it('mantém data e hora com aspas como valor do campo', async () => {
+      const container = await abrirModal({
+        ...aulaBase,
+        dataAula: '2024-01-15" data-x="1',
+        horaInicial: '10:00" data-x="1',
+      });
+
+      expect(
+        container.querySelector('input#dataAula').hasAttribute('data-x')
+      ).toBe(false);
+      expect(
+        container.querySelector('input#horaInicial').hasAttribute('data-x')
+      ).toBe(false);
     });
   });
 });
