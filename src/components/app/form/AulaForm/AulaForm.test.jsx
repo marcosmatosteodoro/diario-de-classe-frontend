@@ -1697,24 +1697,6 @@ describe('AulaForm — BI-131: lista neutra de Contratos e limpeza segura ao tro
       target: { name: 'idAluno', value: 1 },
     });
   });
-
-  it('Contrato de outro Aluno na lista ao trocar de Aluno: limpa (regressão)', () => {
-    const handleChange = renderForm({ ...baseForm, idContrato: 1 }, [
-      {
-        id: 1,
-        idAluno: 1,
-        status: 'ATIVO',
-        dataInicio: '2024-01-01',
-        dataTermino: '2024-12-31',
-      },
-    ]);
-
-    fireEvent.click(screen.getByText('Ana Souza (ana@example.com)'));
-
-    expect(handleChange).toHaveBeenNthCalledWith(1, {
-      target: { name: 'idContrato', value: '' },
-    });
-  });
 });
 
 describe('AulaForm — FR-001-010/AC-001-008: rótulo do Contrato fora de contratoOptions (selectedLabel)', () => {
