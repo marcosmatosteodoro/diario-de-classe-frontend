@@ -1,4 +1,5 @@
 // Adiciona configuração turbopack vazia para Next.js 16
+import { assertApiUrlForBuild } from './src/utils/assertApiUrlForBuild.mjs';
 
 // Alimenta `NEXT_PUBLIC_BUILD_ID` — mecanismo `?v=` de invalidação de cache
 // do SW documentado em `public/sw.js`.
@@ -13,4 +14,7 @@ const config = {
   },
 };
 
-export default config;
+export default phase => {
+  assertApiUrlForBuild({ phase });
+  return config;
+};
