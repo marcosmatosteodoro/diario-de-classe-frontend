@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { STATUS } from '@/constants';
+import { getRequestErrorMessage } from '@/utils/thunkErrorPayload';
 import { GetDashboardService } from '@/services/dashboard/getDashboardService';
 
 // GET DASHBOARD
@@ -10,10 +11,10 @@ export const getDashboard = createAsyncThunk(
       const res = await GetDashboardService.handle(params);
       return res.data;
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.message ||
-        'Erro ao buscar dashboard';
+      const errorMessage = getRequestErrorMessage(
+        error,
+        'Erro ao buscar dashboard'
+      );
       const validationErrors = error.response?.data?.errors || [];
       return rejectWithValue({
         message: errorMessage,

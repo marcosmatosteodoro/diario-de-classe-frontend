@@ -2,6 +2,7 @@
 
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { STATUS } from '@/constants';
+import { getRequestErrorMessage } from '@/utils/thunkErrorPayload';
 import { GetRelatorioService } from '@/services/relatorio/getReletorioService';
 import { GetRelatorioByReportService } from '@/services/relatorio/getRelatorioByReportService';
 
@@ -13,10 +14,10 @@ export const getRelatorios = createAsyncThunk(
       const res = await GetRelatorioService.handle();
       return res.data;
     } catch (error) {
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Erro ao buscar relatórios';
+      const errorMessage = getRequestErrorMessage(
+        error,
+        'Erro ao buscar relatórios'
+      );
       return rejectWithValue({
         message: errorMessage,
         statusError: error?.response?.status,
@@ -33,10 +34,10 @@ export const getRelatorioByReport = createAsyncThunk(
       const res = await GetRelatorioByReportService.handle(report, params);
       return res.file; // espera que o serviço retorne { file }
     } catch (error) {
-      const errorMessage =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Erro ao exportar relatório';
+      const errorMessage = getRequestErrorMessage(
+        error,
+        'Erro ao exportar relatório'
+      );
       return rejectWithValue({
         message: errorMessage,
         statusError: error?.response?.status,

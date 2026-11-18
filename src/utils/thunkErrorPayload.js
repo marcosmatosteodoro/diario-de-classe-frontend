@@ -12,9 +12,14 @@ export const SEM_CONEXAO_MESSAGE =
  *
  * @param {Error} error erro do axios
  * @param {string} fallback mensagem quando a API responde sem uma mensagem
- * @returns {string}
+ * @returns {string} `''` para erro marcado `sessaoTrocada`/`identidadeAlterada`
  */
 export function getRequestErrorMessage(error, fallback) {
+  // Rejeição marcada é silenciosa: a guarda de sessão é a fonte única do
+  // aviso, e o texto interno da marca não é mensagem ao usuário.
+  if (error?.sessaoTrocada || error?.identidadeAlterada) {
+    return '';
+  }
   if (!error.response) {
     return SEM_CONEXAO_MESSAGE;
   }

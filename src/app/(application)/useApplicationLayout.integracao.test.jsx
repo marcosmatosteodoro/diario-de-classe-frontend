@@ -7,6 +7,7 @@ import { useLogout } from '@/hooks/auth/useLogout';
 import { SESSION_END_REASON, SESSION_STATUS } from '@/constants/session';
 import { UserAuthProvider, useUserAuth } from '@/providers/UserAuthProvider';
 import { useToast } from '@/providers/ToastProvider';
+import { SEM_CONEXAO_MESSAGE } from '@/utils/thunkErrorPayload';
 import { clearAppCache } from '@/utils/appCache';
 import { reloadPage } from '@/utils/reloadPage';
 import {
@@ -147,8 +148,8 @@ describe('guarda de rota com provider, sessionManager e Apis reais', () => {
     clearSession();
   });
 
-  // Uma `*Api` de cada slice nunca observado pelo antigo 401 central e uma dos
-  // observados; a Api de cada slice é a que o thunk usa (src/services).
+  // Uma `*Api` de cada slice sem observador de 401 e uma de slice com
+  // observador; a Api de cada slice é a que o thunk usa (src/services).
   it.each([
     ['livros (LivroApi)', store => store.dispatch(getLivros())],
     ['diasAulas (DiaAulaApi)', store => store.dispatch(getDiasAulas())],
@@ -221,6 +222,19 @@ describe('guarda de rota com provider, sessionManager e Apis reais', () => {
     expect(getAccessToken()).toBeNull();
   });
 
+  it('controle: falha de rede real sem troca de sessão grava a mensagem de conexão no slice', async () => {
+    const { store } = await montarAutenticado();
+    rede.recurso = config => {
+      throw new AxiosError('Network Error', 'ERR_NETWORK', config);
+    };
+
+    await act(async () => {
+      await store.dispatch(getAlunos());
+    });
+
+    expect(store.getState().alunos.message).toBe(SEM_CONEXAO_MESSAGE);
+  });
+
   describe('rejeição de sessão trocada ou identidade alterada é silenciosa', () => {
     function segurarRenovacao() {
       let encerrar;
@@ -265,6 +279,7 @@ describe('guarda de rota com provider, sessionManager e Apis reais', () => {
       });
 
       expect(errorMock).not.toHaveBeenCalled();
+      expect(store.getState().alunos.message).not.toBe(SEM_CONEXAO_MESSAGE);
       expect(logoutsFeitos()).toBe(1);
       expect(result.current.auth.endReason).toBe(SESSION_END_REASON.SAIDA);
       expect(mockRouter.push).toHaveBeenCalledTimes(1);
@@ -294,6 +309,7 @@ describe('guarda de rota com provider, sessionManager e Apis reais', () => {
 
       expect(result.current.auth.endReason).toBe(SESSION_END_REASON.OUTRA_ABA);
       expect(errorMock).not.toHaveBeenCalled();
+      expect(store.getState().alunos.message).not.toBe(SEM_CONEXAO_MESSAGE);
       expect(logoutsFeitos()).toBe(0);
       expect(mockRouter.push).toHaveBeenCalledTimes(1);
     });
@@ -322,6 +338,7 @@ describe('guarda de rota com provider, sessionManager e Apis reais', () => {
       });
 
       expect(errorMock).not.toHaveBeenCalled();
+      expect(store.getState().alunos.message).not.toBe(SEM_CONEXAO_MESSAGE);
       expect(logoutsFeitos()).toBe(0);
       expect(mockRouter.push).not.toHaveBeenCalled();
       expect(result.current.auth.sessionStatus).toBe(
@@ -354,6 +371,7 @@ describe('guarda de rota com provider, sessionManager e Apis reais', () => {
 
       expect(reloadPage).toHaveBeenCalledTimes(1);
       expect(errorMock).not.toHaveBeenCalled();
+      expect(store.getState().alunos.message).not.toBe(SEM_CONEXAO_MESSAGE);
       expect(logoutsFeitos()).toBe(0);
       expect(mockRouter.push).not.toHaveBeenCalled();
     });
