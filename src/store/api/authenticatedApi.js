@@ -98,9 +98,8 @@ export class AuthenticatedApi extends BaseApi {
     try {
       return await this.api.request(config);
     } catch (error) {
-      // Época trocada com sessão nova em memória: o 401 é do usuário
-      // anterior. Sem sessão em memória a época subiu porque outra repetição
-      // da mesma expiração já a encerrou, e este 401 também é expiração.
+      // Sem sessão em memória não há usuário novo a proteger: o 401 segue
+      // como recusa e `expireSession()` é no-op.
       if (config[EPOCA] !== getSessionEpoch() && getAccessToken() !== null) {
         throw erroSessaoTrocada();
       }

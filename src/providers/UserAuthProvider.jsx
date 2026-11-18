@@ -154,6 +154,7 @@ export function UserAuthProvider({ children }) {
     return () => {
       montadoRef.current = false;
     };
+    // Efeito de montagem: `restore` é recriada a cada render e deve rodar uma vez por carga.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -175,6 +176,7 @@ export function UserAuthProvider({ children }) {
       desassinarRenovada();
       window.removeEventListener('online', aoVoltarOnline);
     };
+    // Assina uma vez; os handlers leem o estado atual por `statusRef`, não por closure.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
