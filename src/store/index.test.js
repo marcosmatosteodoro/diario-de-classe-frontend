@@ -92,6 +92,22 @@ describe('store real: o accessToken nunca transita pelo Redux', () => {
     estados.forEach(e => expect(contem(e)).toBe(false));
   });
 
+  it('restauração ao abrir (renew com o store real montado): nenhum estado nem action carrega o sentinela', async () => {
+    const { actions, api, sessao, store } = carregar();
+    api.prototype.refreshToken = jest.fn().mockResolvedValue(RESPOSTA);
+    const eventos = [];
+    sessao.subscribe('renewed', payload => eventos.push(payload));
+
+    const resolvido = await sessao.renew();
+
+    expect(resolvido.accessToken).toBe(SENTINELA);
+    expect(sessao.getAccessToken()).toBe(SENTINELA);
+    expect(eventos).toHaveLength(1);
+    expect(contem(eventos)).toBe(false);
+    expect(contem(store.getState())).toBe(false);
+    actions.forEach(a => expect(contem(a)).toBe(false));
+  });
+
   it.each([
     ['production', false],
     ['development', true],

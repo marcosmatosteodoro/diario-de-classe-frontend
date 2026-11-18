@@ -1,4 +1,6 @@
+import { StrictMode } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import { SESSION_STATUS } from '@/constants/session';
 import AuthLayout from './layout';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useToast } from '@/providers/ToastProvider';
@@ -35,18 +37,29 @@ jest.mock('lucide-react', () => ({
 }));
 
 describe('AuthLayout', () => {
-  let routerMock, successMock, isAuthenticatedMock;
+  let routerMock, successMock;
+
+  // Retorno real do provider: as mesmas chaves que o teste do provider afirma.
+  function sessao(sessionStatus, currentUser = null) {
+    useUserAuth.mockReturnValue({
+      currentUser,
+      settings: {},
+      sessionStatus,
+      endReason: 'nunca',
+      authenticate: jest.fn(),
+      removeAuthenticate: jest.fn(),
+      retryRestore: jest.fn(),
+      isAuthenticated: jest.fn(),
+      isAdmin: jest.fn(),
+    });
+  }
 
   beforeEach(() => {
     routerMock = { push: jest.fn() };
     successMock = jest.fn();
-    isAuthenticatedMock = jest.fn();
     useRouter.mockReturnValue(routerMock);
     useToast.mockReturnValue({ success: successMock });
-    useUserAuth.mockReturnValue({
-      currentUser: { nome: 'Marcos' },
-      isAuthenticated: isAuthenticatedMock,
-    });
+    sessao(SESSION_STATUS.ANONYMOUS);
   });
 
   afterEach(() => {
@@ -55,7 +68,6 @@ describe('AuthLayout', () => {
 
   describe('Basic Rendering', () => {
     it('should render children inside layout', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       const { getByTestId } = render(
         <AuthLayout>
           <div data-testid="child">Conteúdo</div>
@@ -65,7 +77,6 @@ describe('AuthLayout', () => {
     });
 
     it('renders the system footer text', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       render(
         <AuthLayout>
           <div>Content</div>
@@ -78,7 +89,6 @@ describe('AuthLayout', () => {
     });
 
     it('renders the main container with correct styling classes', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       const { container } = render(
         <AuthLayout>
           <div>Content</div>
@@ -97,7 +107,6 @@ describe('AuthLayout', () => {
 
   describe('Brand and Features Section', () => {
     it('renders the main title "Diário de Classe"', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       render(
         <AuthLayout>
           <div>Content</div>
@@ -110,7 +119,6 @@ describe('AuthLayout', () => {
     });
 
     it('renders the subtitle', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       render(
         <AuthLayout>
           <div>Content</div>
@@ -123,7 +131,6 @@ describe('AuthLayout', () => {
     });
 
     it('renders BookOpen icon with correct size and stroke', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       render(
         <AuthLayout>
           <div>Content</div>
@@ -137,7 +144,6 @@ describe('AuthLayout', () => {
     });
 
     it('renders GraduationCap icon with correct size and stroke', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       render(
         <AuthLayout>
           <div>Content</div>
@@ -151,7 +157,6 @@ describe('AuthLayout', () => {
     });
 
     it('renders Users icon with correct size and stroke', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       render(
         <AuthLayout>
           <div>Content</div>
@@ -165,7 +170,6 @@ describe('AuthLayout', () => {
     });
 
     it('renders "Gerencie suas Aulas" feature with description', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       render(
         <AuthLayout>
           <div>Content</div>
@@ -181,7 +185,6 @@ describe('AuthLayout', () => {
     });
 
     it('renders "Controle de Alunos" feature with description', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       render(
         <AuthLayout>
           <div>Content</div>
@@ -195,54 +198,108 @@ describe('AuthLayout', () => {
     });
   });
 
-  describe('Authentication Logic', () => {
-    it('should call success and redirect if authenticated', async () => {
-      isAuthenticatedMock.mockResolvedValue(true);
+  describe('Reação ao estado da sessão (AC-002-008, AC-002-009, AC-002-034)', () => {
+    it('RESTORING renderiza o loading e não o formulário', () => {
+      sessao(SESSION_STATUS.RESTORING);
       render(
         <AuthLayout>
           <div data-testid="child">Conteúdo</div>
         </AuthLayout>
       );
-
-      await waitFor(() => {
-        expect(successMock).toHaveBeenCalledWith('Bem-vindo de volta, Marcos!');
-        expect(routerMock.push).toHaveBeenCalledWith('/');
-      });
-    });
-
-    it('should not call success or redirect if not authenticated', async () => {
-      isAuthenticatedMock.mockResolvedValue(false);
-      render(
-        <AuthLayout>
-          <div data-testid="child">Conteúdo</div>
-        </AuthLayout>
-      );
-
-      await waitFor(() => {
-        expect(isAuthenticatedMock).toHaveBeenCalled();
-      });
-
+      expect(screen.getByTestId('loading')).toBeInTheDocument();
+      expect(screen.queryByTestId('child')).not.toBeInTheDocument();
       expect(successMock).not.toHaveBeenCalled();
       expect(routerMock.push).not.toHaveBeenCalled();
     });
 
-    it('calls isAuthenticated on component mount', async () => {
-      isAuthenticatedMock.mockResolvedValue(false);
-      render(
+    it.each([SESSION_STATUS.ANONYMOUS, SESSION_STATUS.UNAVAILABLE])(
+      '%s renderiza o formulário, sem aviso e sem redirecionar',
+      status => {
+        sessao(status);
+        render(
+          <AuthLayout>
+            <div data-testid="child">Conteúdo</div>
+          </AuthLayout>
+        );
+        expect(screen.getByTestId('child')).toBeInTheDocument();
+        expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+        expect(successMock).not.toHaveBeenCalled();
+        expect(routerMock.push).not.toHaveBeenCalled();
+      }
+    );
+
+    it('montada em RESTORING sem usuário e depois AUTHENTICATED com Ana: avisa com o nome novo, 1 vez, e vai a /', () => {
+      sessao(SESSION_STATUS.RESTORING);
+      const { rerender } = render(
         <AuthLayout>
-          <div>Content</div>
+          <div />
+        </AuthLayout>
+      );
+      sessao(SESSION_STATUS.AUTHENTICATED, { nome: 'Ana' });
+      rerender(
+        <AuthLayout>
+          <div />
         </AuthLayout>
       );
 
-      await waitFor(() => {
-        expect(isAuthenticatedMock).toHaveBeenCalled();
-      });
+      expect(successMock).toHaveBeenCalledTimes(1);
+      expect(successMock).toHaveBeenCalledWith('Bem-vindo de volta, Ana!');
+      expect(routerMock.push).toHaveBeenCalledTimes(1);
+      expect(routerMock.push).toHaveBeenCalledWith('/');
+    });
+
+    it('montada já AUTHENTICATED avisa e vai a / 1 vez, também sob StrictMode', () => {
+      sessao(SESSION_STATUS.AUTHENTICATED, { nome: 'Marcos' });
+      render(
+        <StrictMode>
+          <AuthLayout>
+            <div />
+          </AuthLayout>
+        </StrictMode>
+      );
+      expect(successMock).toHaveBeenCalledTimes(1);
+      expect(successMock).toHaveBeenCalledWith('Bem-vindo de volta, Marcos!');
+      expect(routerMock.push).toHaveBeenCalledTimes(1);
+      expect(routerMock.push).toHaveBeenCalledWith('/');
+    });
+
+    it('entrar explícito (ANONYMOUS -> AUTHENTICATED com a tela montada) não dispara o aviso de volta', () => {
+      sessao(SESSION_STATUS.ANONYMOUS);
+      const { rerender } = render(
+        <AuthLayout>
+          <div />
+        </AuthLayout>
+      );
+      sessao(SESSION_STATUS.AUTHENTICATED, { nome: 'Ana' });
+      rerender(
+        <AuthLayout>
+          <div />
+        </AuthLayout>
+      );
+      expect(successMock).not.toHaveBeenCalled();
+      expect(routerMock.push).not.toHaveBeenCalled();
+    });
+
+    it('UNAVAILABLE -> AUTHENTICATED (restauração concluída ao voltar a rede) avisa e vai a /', () => {
+      sessao(SESSION_STATUS.UNAVAILABLE);
+      const { rerender } = render(
+        <AuthLayout>
+          <div />
+        </AuthLayout>
+      );
+      sessao(SESSION_STATUS.AUTHENTICATED, { nome: 'Ana' });
+      rerender(
+        <AuthLayout>
+          <div />
+        </AuthLayout>
+      );
+      expect(successMock).toHaveBeenCalledWith('Bem-vindo de volta, Ana!');
+      expect(routerMock.push).toHaveBeenCalledWith('/');
     });
   });
 
   describe('Layout Structure', () => {
     it('renders two-column layout with left and right sections', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       const { container } = render(
         <AuthLayout>
           <div>Content</div>
@@ -254,7 +311,6 @@ describe('AuthLayout', () => {
     });
 
     it('renders decorative background circles', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       const { container } = render(
         <AuthLayout>
           <div>Content</div>
@@ -267,7 +323,6 @@ describe('AuthLayout', () => {
     });
 
     it('renders left side with gradient background', () => {
-      isAuthenticatedMock.mockResolvedValue(false);
       const { container } = render(
         <AuthLayout>
           <div>Content</div>

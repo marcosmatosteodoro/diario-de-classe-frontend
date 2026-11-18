@@ -1,61 +1,27 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { SESSION_END_REASON } from '@/constants/session';
+import { SESSION_END_REASON, SESSION_STATUS } from '@/constants/session';
 import { useUserAuth } from '@/providers/UserAuthProvider';
 import { useToast } from '@/providers/ToastProvider';
-import { logout } from '@/store/slices/authSlice';
-import { clearErrors as clearProfessoresErrors } from '@/store/slices/professoresSlice';
-import { clearErrors as clearAlunosErrors } from '@/store/slices/alunosSlice';
-import { clearErrors as clearAulasErrors } from '@/store/slices/aulasSlice';
-import { clearErrors as clearContratoErrors } from '@/store/slices/contratosSlice';
-import { clearErrors as clearConfiguracaoErrors } from '@/store/slices/configuracaoSlice';
 import { clearAppCache } from '@/utils/appCache';
 import { SESSION_CHANNEL_EVENT, onSessionEvent } from '@/utils/sessionChannel';
 
+const MSG_SEM_LOGIN = 'Por favor, faça login para acessar o sistema.';
+const MSG_EXPIRADA = 'Sua sessão expirou. Entre novamente para continuar.';
+
 export function useApplicationLayout() {
   const router = useRouter();
-  const dispatch = useDispatch();
-  const { isAuthenticated, removeAuthenticate } = useUserAuth();
+  const { sessionStatus, endReason, removeAuthenticate, retryRestore } =
+    useUserAuth();
   const { error } = useToast();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isUnauthorized, setIsUnauthorized] = useState(false);
   const [sidebarExpanded, setSidebarExpanded] = useState({
     isExpanded: false,
   });
-
-  const professoresState = useSelector(state => state.professores);
-  const alunosState = useSelector(state => state.alunos);
-  const aulasState = useSelector(state => state.aulas);
-  const contratosState = useSelector(state => state.contratos);
-  const configuracaoState = useSelector(state => state.configuracao);
-
-  // Fonte única dos slices observados pelo 401: cada par {state, clearErrors}
-  // alimenta tanto a lista de estados vigiada pelo efeito de logout forçado
-  // quanto a limpeza de statusError residual no mount — evita que um slice
-  // novo entre em uma lista e fique de fora da outra.
-  const sessionSlices = useMemo(
-    () => [
-      { state: professoresState, clearErrors: clearProfessoresErrors },
-      { state: alunosState, clearErrors: clearAlunosErrors },
-      { state: aulasState, clearErrors: clearAulasErrors },
-      { state: contratosState, clearErrors: clearContratoErrors },
-      { state: configuracaoState, clearErrors: clearConfiguracaoErrors },
-    ],
-    [
-      professoresState,
-      alunosState,
-      aulasState,
-      contratosState,
-      configuracaoState,
-    ]
-  );
-  const states = useMemo(
-    () => sessionSlices.map(({ state }) => state),
-    [sessionSlices]
-  );
+  // Valor anterior do par que decide a reação: o efeito age uma vez por fim
+  // de sessão, também sob a montagem dupla do StrictMode.
+  const anterior = useRef(null);
 
   const toggleSidebar = () => {
     setSidebarExpanded({
@@ -64,65 +30,42 @@ export function useApplicationLayout() {
   };
 
   useEffect(() => {
-    sessionSlices.forEach(({ clearErrors }) => dispatch(clearErrors()));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    let isCurrent = true;
-
-    async function checkAuth() {
-      let userIsAuth;
-      try {
-        userIsAuth = await isAuthenticated();
-      } catch {
-        userIsAuth = false;
-      }
-      if (!isCurrent) {
-        return;
-      }
-      if (!userIsAuth) {
-        error('Por favor, faça login para acessar o sistema.');
-        router.push('/login');
-        return;
-      } else {
-        setIsLoading(false);
-      }
+    const prev = anterior.current;
+    anterior.current = { sessionStatus, endReason };
+    if (
+      prev &&
+      prev.sessionStatus === sessionStatus &&
+      prev.endReason === endReason
+    ) {
+      return;
     }
-    checkAuth();
+    if (sessionStatus !== SESSION_STATUS.ANONYMOUS) return;
 
-    return () => {
-      isCurrent = false;
-    };
+    if (endReason === SESSION_END_REASON.NUNCA) {
+      error(MSG_SEM_LOGIN);
+    } else if (endReason === SESSION_END_REASON.EXPIRADA) {
+      error(MSG_EXPIRADA);
+      clearAppCache();
+    }
+    router.push('/login');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [sessionStatus, endReason]);
 
+  // A guarda é o único reator da navegação: o evento de outra aba só encerra
+  // a sessão, e o estado `outra-aba` leva ao login.
   useEffect(() => {
     return onSessionEvent(tipo => {
       if (tipo !== SESSION_CHANNEL_EVENT.SAIDA) return;
       removeAuthenticate(SESSION_END_REASON.OUTRA_ABA);
-      router.push('/login');
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    const statusErrors = states.map(state => String(state.statusError));
-
-    if (!isUnauthorized && statusErrors.includes('401')) {
-      setIsUnauthorized(true);
-      dispatch(logout());
-      removeAuthenticate();
-      clearAppCache();
-      error('Sua sessão expirou. Entre novamente para continuar.');
-      router.push('/login');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [states]);
-
   return {
-    isUnauthorized,
-    isLoading,
+    isUnauthorized: sessionStatus === SESSION_STATUS.ANONYMOUS,
+    isLoading: sessionStatus === SESSION_STATUS.RESTORING,
+    isUnavailable: sessionStatus === SESSION_STATUS.UNAVAILABLE,
+    retryRestore,
     sidebarExpanded,
     toggleSidebar,
   };

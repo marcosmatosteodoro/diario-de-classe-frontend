@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useRouter } from 'next/navigation';
 import { SESSION_END_REASON } from '@/constants/session';
 import { useToast } from '@/providers/ToastProvider';
 import { useUserAuth } from '@/providers/UserAuthProvider';
@@ -28,7 +27,6 @@ function isRecusa(statusError) {
 
 export function useLogout() {
   const dispatch = useDispatch();
-  const router = useRouter();
   const { removeAuthenticate } = useUserAuth();
   const { info, warning, error } = useToast();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -62,7 +60,6 @@ export function useLogout() {
       setIsLoggingOut(false);
     }
     postSessionEvent(SESSION_CHANNEL_EVENT.SAIDA);
-    router.push('/login');
   };
 
   useEffect(() => {

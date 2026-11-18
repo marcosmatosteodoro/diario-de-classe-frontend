@@ -1,27 +1,41 @@
 'use client';
 
+import { SESSION_STATUS } from '@/constants/session';
 import { useToast } from '@/providers/ToastProvider';
 import { useUserAuth } from '@/providers/UserAuthProvider';
+import { Loading } from '@/components/ui/Loading';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { BookOpen, GraduationCap, Users } from 'lucide-react';
 
 export default function AuthLayout({ children }) {
   const router = useRouter();
-  const { currentUser, isAuthenticated } = useUserAuth();
+  const { currentUser, sessionStatus } = useUserAuth();
   const { success } = useToast();
+  // Valor anterior em ref: o aviso de volta vale para a montagem já
+  // autenticada e para o fim da restauração, nunca para um entrar explícito
+  // (ANONYMOUS -> AUTHENTICATED com a tela montada, que o useLogin trata).
+  const anterior = useRef(null);
 
   useEffect(() => {
-    async function checkAuth() {
-      if (await isAuthenticated()) {
-        success(`Bem-vindo de volta, ${currentUser.nome}!`);
-        router.push('/');
-        return;
-      }
+    const prev = anterior.current;
+    anterior.current = sessionStatus;
+    if (sessionStatus !== SESSION_STATUS.AUTHENTICATED) return;
+    if (
+      prev !== null &&
+      prev !== SESSION_STATUS.RESTORING &&
+      prev !== SESSION_STATUS.UNAVAILABLE
+    ) {
+      return;
     }
-    checkAuth();
+    success(`Bem-vindo de volta, ${currentUser?.nome}!`);
+    router.push('/');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [sessionStatus]);
+
+  if (sessionStatus === SESSION_STATUS.RESTORING) {
+    return <Loading />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-login-gradient p-4">

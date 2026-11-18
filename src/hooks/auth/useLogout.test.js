@@ -128,7 +128,7 @@ describe('useLogout', () => {
     });
   });
 
-  it('204: encerra a sessão, limpa, avisa, notifica as abas e vai a /login', async () => {
+  it('204: encerra a sessão, limpa, avisa e notifica as abas, sem navegar', async () => {
     const { result } = renderHook(() => useLogout());
     await sair(result, () => resolverSaida());
 
@@ -141,8 +141,8 @@ describe('useLogout', () => {
     expect(clearPendingExit).toHaveBeenCalled();
     expect(infoMock).toHaveBeenCalledWith('Você saiu.');
     expect(postSessionEvent).toHaveBeenCalledWith('saida');
-    expect(routerMock.push).toHaveBeenCalledTimes(1);
-    expect(routerMock.push).toHaveBeenCalledWith('/login');
+    // a guarda de rota é o reator único da navegação
+    expect(routerMock.push).not.toHaveBeenCalled();
     expect(markPendingExit).not.toHaveBeenCalled();
     expect(warningMock).not.toHaveBeenCalled();
     expect(errorMock).not.toHaveBeenCalled();
@@ -164,7 +164,7 @@ describe('useLogout', () => {
       expect(clearAppCache).toHaveBeenCalled();
       expect(markPendingExit).toHaveBeenCalledTimes(1);
       expect(postSessionEvent).toHaveBeenCalledWith('saida');
-      expect(routerMock.push).toHaveBeenCalledWith('/login');
+      expect(routerMock.push).not.toHaveBeenCalled();
       expect(warningMock).toHaveBeenCalledWith(MSG_NAO_CONFIRMADA);
       expect(infoMock).not.toHaveBeenCalledWith('Você saiu.');
       expect(clearPendingExit).not.toHaveBeenCalled();
@@ -182,6 +182,6 @@ describe('useLogout', () => {
     expect(markPendingExit).not.toHaveBeenCalled();
     expect(errorMock).toHaveBeenCalledWith(MSG_RECUSADA);
     expect(warningMock).not.toHaveBeenCalled();
-    expect(routerMock.push).toHaveBeenCalledWith('/login');
+    expect(routerMock.push).not.toHaveBeenCalled();
   });
 });

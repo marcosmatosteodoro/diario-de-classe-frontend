@@ -2,6 +2,7 @@ import RootLayout from './layout';
 import { cookies, headers } from 'next/headers';
 import { NonceProvider } from '@/providers/NonceProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
+import { UserAuthProvider } from '@/providers/UserAuthProvider';
 import { ServiceWorkerRegister } from '@/components/app/ServiceWorkerRegister';
 
 jest.mock('next/headers', () => ({ cookies: jest.fn(), headers: jest.fn() }));
@@ -117,6 +118,17 @@ describe('RootLayout', () => {
     const tree = await RootLayout({ children: pagina });
     const provider = findElement(tree, el => el.type === NonceProvider);
 
+    expect(findElement(provider, el => el === pagina)).toBe(pagina);
+  });
+
+  it('monta o UserAuthProvider envolvendo a página: sem ele a restauração não ocorre e a ausência passaria por "sem sessão"', async () => {
+    cookies.mockResolvedValue({ get: () => undefined });
+    const pagina = <span data-testid="pagina" />;
+
+    const tree = await RootLayout({ children: pagina });
+    const provider = findElement(tree, el => el.type === UserAuthProvider);
+
+    expect(provider).not.toBeNull();
     expect(findElement(provider, el => el === pagina)).toBe(pagina);
   });
 });

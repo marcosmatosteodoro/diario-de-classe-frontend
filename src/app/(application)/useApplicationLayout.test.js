@@ -1,13 +1,22 @@
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { StrictMode } from 'react';
+import { Provider } from 'react-redux';
+import { renderHook, act } from '@testing-library/react';
 import { configureStore } from '@reduxjs/toolkit';
 import { useApplicationLayout } from './useApplicationLayout';
+import { SESSION_END_REASON, SESSION_STATUS } from '@/constants/session';
+import { useUserAuth } from '@/providers/UserAuthProvider';
+import { useToast } from '@/providers/ToastProvider';
+import { clearAppCache } from '@/utils/appCache';
+import { onSessionEvent } from '@/utils/sessionChannel';
 import professoresReducer from '@/store/slices/professoresSlice';
 import alunosReducer from '@/store/slices/alunosSlice';
 import aulasReducer from '@/store/slices/aulasSlice';
 import contratosReducer from '@/store/slices/contratosSlice';
-import configuracaoReducer, {
-  updateConfiguracao,
-} from '@/store/slices/configuracaoSlice';
+import configuracaoReducer from '@/store/slices/configuracaoSlice';
+import livrosReducer from '@/store/slices/livrosSlice';
+import diasAulasReducer from '@/store/slices/diasAulasSlice';
+import cronogramasReducer from '@/store/slices/cronogramasSlice';
+import relatorioReducer from '@/store/slices/relatorioSlice';
 
 jest.mock('next/navigation', () => ({ useRouter: jest.fn() }));
 jest.mock('@/providers/UserAuthProvider', () => ({ useUserAuth: jest.fn() }));
@@ -22,88 +31,69 @@ jest.mock('@/utils/isMobileFunction', () => ({
     );
   }),
 }));
-const dispatchMock = jest.fn();
-jest.mock('react-redux', () => ({
-  useSelector: jest.fn(),
-  useDispatch: jest.fn(() => dispatchMock),
-}));
-jest.mock('@/store/slices/authSlice', () => ({
-  logout: jest.fn(() => ({ type: 'auth/logout' })),
-}));
 jest.mock('@/utils/appCache', () => ({ clearAppCache: jest.fn() }));
 jest.mock('@/utils/sessionChannel', () => ({
   SESSION_CHANNEL_EVENT: { SAIDA: 'saida' },
   onSessionEvent: jest.fn(),
 }));
 
+const MSG_SEM_LOGIN = 'Por favor, faça login para acessar o sistema.';
+const MSG_EXPIRADA = 'Sua sessão expirou. Entre novamente para continuar.';
+
+const REDUCERS = {
+  professores: professoresReducer,
+  alunos: alunosReducer,
+  aulas: aulasReducer,
+  contratos: contratosReducer,
+  configuracao: configuracaoReducer,
+  livros: livrosReducer,
+  diasAulas: diasAulasReducer,
+  cronogramas: cronogramasReducer,
+  relatorio: relatorioReducer,
+};
+
 describe('useApplicationLayout', () => {
-  let routerMock,
-    isAuthenticatedMock,
-    errorMock,
-    useSelectorMock,
-    removeAuthenticateMock,
-    cancelarMock;
+  let routerMock, errorMock, removeAuthenticateMock, retryRestoreMock;
+  let cancelarMock;
+
+  // Retorno real do provider: as mesmas chaves que o teste do provider afirma.
+  function sessao(sessionStatus, endReason = SESSION_END_REASON.NUNCA) {
+    useUserAuth.mockReturnValue({
+      currentUser: null,
+      settings: {},
+      sessionStatus,
+      endReason,
+      authenticate: jest.fn(),
+      removeAuthenticate: removeAuthenticateMock,
+      retryRestore: retryRestoreMock,
+      isAuthenticated: jest.fn(),
+      isAdmin: jest.fn(),
+    });
+  }
 
   beforeEach(() => {
     cancelarMock = jest.fn();
-    require('@/utils/sessionChannel').onSessionEvent.mockReset();
-    require('@/utils/sessionChannel').onSessionEvent.mockReturnValue(
-      cancelarMock
-    );
+    onSessionEvent.mockReset();
+    onSessionEvent.mockReturnValue(cancelarMock);
     routerMock = { push: jest.fn() };
-    isAuthenticatedMock = jest.fn();
     errorMock = jest.fn();
     removeAuthenticateMock = jest.fn();
-    useSelectorMock = require('react-redux').useSelector;
-    useSelectorMock.mockImplementation(fn =>
-      fn({
-        professores: {},
-        alunos: {},
-        aulas: {},
-        contratos: {},
-        configuracao: {},
-      })
-    );
+    retryRestoreMock = jest.fn();
     require('next/navigation').useRouter.mockReturnValue(routerMock);
-    require('@/providers/UserAuthProvider').useUserAuth.mockReturnValue({
-      isAuthenticated: isAuthenticatedMock,
-      removeAuthenticate: removeAuthenticateMock,
-    });
-    require('@/providers/ToastProvider').useToast.mockReturnValue({
-      error: errorMock,
-    });
+    useToast.mockReturnValue({ error: errorMock });
+    sessao(SESSION_STATUS.AUTHENTICATED);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  it('deve iniciar com loading true e sidebar fechado', () => {
-    isAuthenticatedMock.mockResolvedValue(false);
+  it('inicia com a sidebar fechada', () => {
     const { result } = renderHook(() => useApplicationLayout());
-    expect(result.current.isLoading).toBe(true);
     expect(result.current.sidebarExpanded.isExpanded).toBe(false);
   });
 
-  it('deve redirecionar para login se não autenticado', async () => {
-    isAuthenticatedMock.mockResolvedValue(false);
-    renderHook(() => useApplicationLayout());
-    await Promise.resolve();
-    expect(errorMock).toHaveBeenCalledWith(
-      'Por favor, faça login para acessar o sistema.'
-    );
-    expect(routerMock.push).toHaveBeenCalledWith('/login');
-  });
-
-  it('deve desativar loading se autenticado', async () => {
-    isAuthenticatedMock.mockResolvedValue(true);
-    const { result } = renderHook(() => useApplicationLayout());
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-  });
-
-  it('deve alternar isExpanded ao chamar toggleSidebar, sem calcular classes', () => {
+  it('alterna isExpanded ao chamar toggleSidebar, sem calcular classes', () => {
     const { result } = renderHook(() => useApplicationLayout());
     act(() => {
       result.current.toggleSidebar();
@@ -121,337 +111,164 @@ describe('useApplicationLayout', () => {
     expect(result.current.sidebarExpanded).toEqual({ isExpanded: true });
   });
 
-  it('deve chamar dispatch(logout), removeAuthenticate, error e router.push se statusError de professores for 401', () => {
-    const { logout } = require('@/store/slices/authSlice');
-    useSelectorMock.mockImplementation(fn =>
-      fn({
-        professores: { statusError: '401' },
-        alunos: {},
-        aulas: {},
-        contratos: {},
-        configuracao: {},
-      })
-    );
-    renderHook(() => useApplicationLayout());
-    expect(dispatchMock).toHaveBeenCalledWith({ type: 'auth/logout' });
-    expect(removeAuthenticateMock).toHaveBeenCalled();
-    expect(errorMock).toHaveBeenCalledWith(
-      'Sua sessão expirou. Entre novamente para continuar.'
-    );
-    expect(routerMock.push).toHaveBeenCalledWith('/login');
-  });
-
-  it('deve purgar o cache do aplicativo na expiração por 401 (AC-001-010)', () => {
-    const { logout } = require('@/store/slices/authSlice');
-    const { clearAppCache } = require('@/utils/appCache');
-    useSelectorMock.mockImplementation(fn =>
-      fn({
-        professores: {},
-        alunos: { statusError: '401' },
-        aulas: {},
-        contratos: {},
-        configuracao: {},
-      })
-    );
-    renderHook(() => useApplicationLayout());
-    expect(dispatchMock).toHaveBeenCalledWith({ type: 'auth/logout' });
-    expect(clearAppCache).toHaveBeenCalled();
-    expect(removeAuthenticateMock).toHaveBeenCalled();
-  });
-
-  it('despacha logout sem argumento e o useUserAuth mockado não fornece refreshToken (TASK-003-005)', () => {
-    const { logout } = require('@/store/slices/authSlice');
-    const { useUserAuth } = require('@/providers/UserAuthProvider');
-    useSelectorMock.mockImplementation(fn =>
-      fn({
-        professores: { statusError: '401' },
-        alunos: {},
-        aulas: {},
-        contratos: {},
-        configuracao: {},
-      })
-    );
-    renderHook(() => useApplicationLayout());
-    expect(logout).toHaveBeenCalledTimes(1);
-    expect(logout.mock.calls[0]).toHaveLength(0);
-    expect('refreshToken' in useUserAuth()).toBe(false);
-  });
-
-  it('deve chamar dispatch(logout), removeAuthenticate, error e router.push se statusError de alunos for 401', () => {
-    const { logout } = require('@/store/slices/authSlice');
-    useSelectorMock.mockImplementation(fn =>
-      fn({
-        professores: {},
-        alunos: { statusError: '401' },
-        aulas: {},
-        contratos: {},
-        configuracao: {},
-      })
-    );
-    renderHook(() => useApplicationLayout());
-    expect(dispatchMock).toHaveBeenCalledWith({ type: 'auth/logout' });
-    expect(removeAuthenticateMock).toHaveBeenCalled();
-    expect(errorMock).toHaveBeenCalledWith(
-      'Sua sessão expirou. Entre novamente para continuar.'
-    );
-    expect(routerMock.push).toHaveBeenCalledWith('/login');
-  });
-
-  it('deve chamar dispatch(logout), removeAuthenticate, error e router.push se statusError de configuracao for 401', () => {
-    const { logout } = require('@/store/slices/authSlice');
-    useSelectorMock.mockImplementation(fn =>
-      fn({
-        professores: {},
-        alunos: {},
-        aulas: {},
-        contratos: {},
-        configuracao: { statusError: '401' },
-      })
-    );
-    renderHook(() => useApplicationLayout());
-    expect(dispatchMock).toHaveBeenCalledWith({ type: 'auth/logout' });
-    expect(removeAuthenticateMock).toHaveBeenCalled();
-    expect(errorMock).toHaveBeenCalledWith(
-      'Sua sessão expirou. Entre novamente para continuar.'
-    );
-    expect(routerMock.push).toHaveBeenCalledWith('/login');
-  });
-
-  it('deve chamar dispatch(logout) apenas uma vez se múltiplos estados tiverem 401', () => {
-    const { logout } = require('@/store/slices/authSlice');
-    useSelectorMock.mockImplementation(fn =>
-      fn({
-        professores: { statusError: '401' },
-        alunos: { statusError: '401' },
-        aulas: {},
-        contratos: {},
-        configuracao: {},
-      })
-    );
-    renderHook(() => useApplicationLayout());
-    // Conta apenas as chamadas de logout
-    const logoutCalls = dispatchMock.mock.calls.filter(
-      ([action]) => action && action.type === 'auth/logout'
-    );
-    expect(logoutCalls).toHaveLength(1);
-    expect(logoutCalls[0][0]).toEqual({ type: 'auth/logout' });
-    expect(removeAuthenticateMock).toHaveBeenCalledTimes(1);
-    expect(errorMock).toHaveBeenCalledTimes(1);
-    expect(routerMock.push).toHaveBeenCalledTimes(1);
-  });
-
-  it('deve chamar dispatch(logout) apenas uma vez se configuracao e professores tiverem 401 simultaneamente', () => {
-    const { logout } = require('@/store/slices/authSlice');
-    useSelectorMock.mockImplementation(fn =>
-      fn({
-        professores: { statusError: '401' },
-        alunos: {},
-        aulas: {},
-        contratos: {},
-        configuracao: { statusError: '401' },
-      })
-    );
-    renderHook(() => useApplicationLayout());
-    const logoutCalls = dispatchMock.mock.calls.filter(
-      ([action]) => action && action.type === 'auth/logout'
-    );
-    expect(logoutCalls).toHaveLength(1);
-    expect(logoutCalls[0][0]).toEqual({ type: 'auth/logout' });
-    expect(removeAuthenticateMock).toHaveBeenCalledTimes(1);
-    expect(errorMock).toHaveBeenCalledTimes(1);
-    expect(routerMock.push).toHaveBeenCalledTimes(1);
-  });
-
-  it('limpa o statusError residual de configuracao no mount, evitando logout forçado em toda remontagem', () => {
-    isAuthenticatedMock.mockResolvedValue(true);
-
-    const store = configureStore({
-      reducer: {
-        professores: professoresReducer,
-        alunos: alunosReducer,
-        aulas: aulasReducer,
-        contratos: contratosReducer,
-        configuracao: configuracaoReducer,
-      },
-    });
-    // 401 residual em configuracao, como se a última operação antes do
-    // logout/login seguinte tivesse falhado com sessão expirada.
-    store.dispatch({
-      type: updateConfiguracao.rejected.type,
-      payload: { statusError: '401' },
-    });
-
-    useSelectorMock.mockImplementation(fn => fn(store.getState()));
-    dispatchMock.mockImplementation(action => store.dispatch(action));
-
-    const countLogoutCalls = () =>
-      dispatchMock.mock.calls.filter(
-        ([action]) => action && action.type === 'auth/logout'
-      ).length;
-
-    try {
-      const mountCounts = [];
-      for (let mount = 0; mount < 3; mount += 1) {
-        const { unmount } = renderHook(() => useApplicationLayout());
-        mountCounts.push(countLogoutCalls());
-        dispatchMock.mockClear();
-        unmount();
-      }
-
-      // 1ª montagem ainda lê o 401 residual antes do clear aplicar (defeito
-      // conhecido, fora de escopo); da 2ª em diante o clear da montagem
-      // anterior já zerou o statusError.
-      expect(mountCounts).toEqual([1, 0, 0]);
-    } finally {
-      // Restaura o dispatchMock para os demais testes: sem isso, o dispatch
-      // continuaria roteando para esta store real depois que o teste termina.
-      dispatchMock.mockImplementation(() => {});
-    }
-  });
-
-  it('não deve chamar logout se statusError não for 401', () => {
-    const { logout } = require('@/store/slices/authSlice');
-    const { clearAppCache } = require('@/utils/appCache');
-    useSelectorMock.mockImplementation(fn =>
-      fn({
-        professores: { statusError: '404' },
-        alunos: { statusError: '500' },
-        aulas: {},
-        contratos: {},
-        configuracao: {},
-      })
-    );
-    renderHook(() => useApplicationLayout());
-    // Garante que nenhuma chamada de logout foi feita
-    const logoutCalls = dispatchMock.mock.calls.filter(
-      ([action]) => action && action.type === 'auth/logout'
-    );
-    expect(logoutCalls).toHaveLength(0);
-    expect(removeAuthenticateMock).not.toHaveBeenCalled();
-    expect(clearAppCache).not.toHaveBeenCalled();
-  });
-
-  it('deve monitorar mudanças nos estados de professores e alunos', async () => {
-    const { logout } = require('@/store/slices/authSlice');
-
-    // Inicialmente sem erro
-    useSelectorMock.mockImplementation(fn =>
-      fn({
-        professores: {},
-        alunos: {},
-        aulas: {},
-        contratos: {},
-        configuracao: {},
-      })
-    );
-
-    const { rerender } = renderHook(() => useApplicationLayout());
-
-    // Garante que nenhuma chamada de logout foi feita
-    const logoutCalls = dispatchMock.mock.calls.filter(
-      ([action]) => action && action.type === 'auth/logout'
-    );
-    expect(logoutCalls).toHaveLength(0);
-
-    // Atualiza para ter erro 401
-    useSelectorMock.mockImplementation(fn =>
-      fn({
-        professores: { statusError: '401' },
-        alunos: {},
-        aulas: {},
-        contratos: {},
-        configuracao: {},
-      })
-    );
-
-    rerender();
-
-    await waitFor(() => {
-      expect(dispatchMock).toHaveBeenCalledWith({ type: 'auth/logout' });
-    });
-  });
-
-  it('não deve disparar toast/redirect duplicado quando o efeito remonta antes do checkAuth resolver (Strict Mode)', async () => {
-    const resolvers = [];
-    isAuthenticatedMock.mockImplementation(
-      () =>
-        new Promise(resolve => {
-          resolvers.push(resolve);
-        })
-    );
-
-    // Simula o double-invoke do useEffect que o React Strict Mode provoca em
-    // dev: monta, desmonta antes do checkAuth() assíncrono resolver, e
-    // remonta. A invocação obsoleta (montagem 1) não deve mais agir quando
-    // resolver — só a montagem corrente (2) deve disparar toast/redirect.
-    const { unmount } = renderHook(() => useApplicationLayout());
-    unmount();
-    renderHook(() => useApplicationLayout());
-
-    expect(resolvers).toHaveLength(2);
-    resolvers[0](false);
-    resolvers[1](false);
-
-    await waitFor(() => {
-      expect(errorMock).toHaveBeenCalled();
-    });
-
-    expect(errorMock).toHaveBeenCalledTimes(1);
-    expect(errorMock).toHaveBeenCalledWith(
-      'Por favor, faça login para acessar o sistema.'
-    );
-    expect(routerMock.push).toHaveBeenCalledTimes(1);
-    expect(routerMock.push).toHaveBeenCalledWith('/login');
-  });
-
-  it('trata rejeição de isAuthenticated() como não-autenticada', async () => {
-    isAuthenticatedMock.mockRejectedValue(new Error('network error'));
-    const { result } = renderHook(() => useApplicationLayout());
-
-    await waitFor(() => {
+  describe('guarda de rota por estado (AC-002-007, AC-002-009, AC-002-034)', () => {
+    it('RESTORING: isLoading true, sem toast e sem push', () => {
+      sessao(SESSION_STATUS.RESTORING);
+      const { result } = renderHook(() => useApplicationLayout());
       expect(result.current.isLoading).toBe(true);
+      expect(result.current.isUnavailable).toBe(false);
+      expect(errorMock).not.toHaveBeenCalled();
+      expect(routerMock.push).not.toHaveBeenCalled();
     });
-    await waitFor(() => {
+
+    it('AUTHENTICATED: isLoading false, sem toast e sem push', () => {
+      const { result } = renderHook(() => useApplicationLayout());
+      expect(result.current.isLoading).toBe(false);
+      expect(result.current.isUnauthorized).toBe(false);
+      expect(errorMock).not.toHaveBeenCalled();
+      expect(routerMock.push).not.toHaveBeenCalled();
+    });
+
+    it('ANONYMOUS + NUNCA: aviso de login 1 vez e push para /login 1 vez', () => {
+      sessao(SESSION_STATUS.ANONYMOUS, SESSION_END_REASON.NUNCA);
+      const { result } = renderHook(() => useApplicationLayout());
+      expect(errorMock).toHaveBeenCalledTimes(1);
+      expect(errorMock).toHaveBeenCalledWith(MSG_SEM_LOGIN);
+      expect(routerMock.push).toHaveBeenCalledTimes(1);
+      expect(routerMock.push).toHaveBeenCalledWith('/login');
+      expect(clearAppCache).not.toHaveBeenCalled();
+      expect(result.current.isUnauthorized).toBe(true);
+    });
+
+    it('ANONYMOUS + EXPIRADA: aviso de expiração 1 vez, clearAppCache 1 vez e push', () => {
+      sessao(SESSION_STATUS.ANONYMOUS, SESSION_END_REASON.EXPIRADA);
+      renderHook(() => useApplicationLayout());
+      expect(errorMock).toHaveBeenCalledTimes(1);
+      expect(errorMock).toHaveBeenCalledWith(MSG_EXPIRADA);
+      expect(clearAppCache).toHaveBeenCalledTimes(1);
+      expect(routerMock.push).toHaveBeenCalledTimes(1);
       expect(routerMock.push).toHaveBeenCalledWith('/login');
     });
 
-    expect(errorMock).toHaveBeenCalledWith(
-      'Por favor, faça login para acessar o sistema.'
+    it('SAIDA: só push para /login, sem toast e sem clearAppCache (controle positivo da guarda real)', () => {
+      sessao(SESSION_STATUS.ANONYMOUS, SESSION_END_REASON.SAIDA);
+      renderHook(() => useApplicationLayout());
+      expect(routerMock.push).toHaveBeenCalledTimes(1);
+      expect(routerMock.push).toHaveBeenCalledWith('/login');
+      expect(errorMock).not.toHaveBeenCalled();
+      expect(clearAppCache).not.toHaveBeenCalled();
+    });
+
+    it('OUTRA_ABA: push para /login sem toast', () => {
+      sessao(SESSION_STATUS.ANONYMOUS, SESSION_END_REASON.OUTRA_ABA);
+      renderHook(() => useApplicationLayout());
+      expect(routerMock.push).toHaveBeenCalledTimes(1);
+      expect(routerMock.push).toHaveBeenCalledWith('/login');
+      expect(errorMock).not.toHaveBeenCalled();
+      expect(clearAppCache).not.toHaveBeenCalled();
+    });
+
+    it('UNAVAILABLE: isUnavailable true, sem toast e sem push; retryRestore é o do provider', () => {
+      sessao(SESSION_STATUS.UNAVAILABLE);
+      const { result } = renderHook(() => useApplicationLayout());
+      expect(result.current.isUnavailable).toBe(true);
+      expect(result.current.isLoading).toBe(false);
+      expect(errorMock).not.toHaveBeenCalled();
+      expect(routerMock.push).not.toHaveBeenCalled();
+      result.current.retryRestore();
+      expect(retryRestoreMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('retorna exatamente as chaves do contrato', () => {
+      const { result } = renderHook(() => useApplicationLayout());
+      expect(Object.keys(result.current).sort()).toEqual(
+        [
+          'isUnauthorized',
+          'isLoading',
+          'isUnavailable',
+          'retryRestore',
+          'sidebarExpanded',
+          'toggleSidebar',
+        ].sort()
+      );
+    });
+
+    it('em StrictMode com o estado final EXPIRADA o aviso e o push ocorrem 1 vez', () => {
+      sessao(SESSION_STATUS.ANONYMOUS, SESSION_END_REASON.EXPIRADA);
+      renderHook(() => useApplicationLayout(), { wrapper: StrictMode });
+      expect(errorMock).toHaveBeenCalledTimes(1);
+      expect(clearAppCache).toHaveBeenCalledTimes(1);
+      expect(routerMock.push).toHaveBeenCalledTimes(1);
+    });
+
+    it('reage a cada fim de sessão pela transição, comparando com o valor anterior', () => {
+      const { rerender } = renderHook(() => useApplicationLayout());
+      expect(routerMock.push).not.toHaveBeenCalled();
+
+      sessao(SESSION_STATUS.ANONYMOUS, SESSION_END_REASON.EXPIRADA);
+      rerender();
+      rerender();
+      expect(errorMock).toHaveBeenCalledTimes(1);
+      expect(routerMock.push).toHaveBeenCalledTimes(1);
+
+      sessao(SESSION_STATUS.AUTHENTICATED, SESSION_END_REASON.EXPIRADA);
+      rerender();
+      sessao(SESSION_STATUS.ANONYMOUS, SESSION_END_REASON.EXPIRADA);
+      rerender();
+      expect(errorMock).toHaveBeenCalledTimes(2);
+      expect(routerMock.push).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('nenhum slice com 401 desloga sozinho (observador removido)', () => {
+    it.each(Object.keys(REDUCERS))(
+      'slice %s com statusError 401 não encerra a sessão, não avisa e não navega',
+      chave => {
+        const inicial = REDUCERS[chave](undefined, { type: '@@init' });
+        const store = configureStore({
+          reducer: REDUCERS,
+          preloadedState: { [chave]: { ...inicial, statusError: 401 } },
+        });
+        expect(store.getState()[chave].statusError).toBe(401);
+
+        renderHook(() => useApplicationLayout(), {
+          wrapper: ({ children }) => (
+            <Provider store={store}>{children}</Provider>
+          ),
+        });
+
+        expect(removeAuthenticateMock).not.toHaveBeenCalled();
+        expect(clearAppCache).not.toHaveBeenCalled();
+        expect(errorMock).not.toHaveBeenCalled();
+        expect(routerMock.push).not.toHaveBeenCalled();
+      }
     );
-    expect(result.current.isLoading).toBe(true);
   });
 
   describe('saída vinda de outra aba (AC-002-023)', () => {
     function capturarCallback() {
-      const { onSessionEvent } = require('@/utils/sessionChannel');
       return onSessionEvent.mock.calls[onSessionEvent.mock.calls.length - 1][0];
     }
 
-    it('saida encerra com motivo outra-aba, vai a /login e não avisa expiração', () => {
-      isAuthenticatedMock.mockReturnValue(new Promise(() => {}));
+    it('saida só encerra com motivo outra-aba: o efeito não navega nem avisa', () => {
       renderHook(() => useApplicationLayout());
-      const callback = capturarCallback();
-
-      callback('saida');
+      capturarCallback()('saida');
 
       expect(removeAuthenticateMock).toHaveBeenCalledTimes(1);
-      expect(removeAuthenticateMock).toHaveBeenCalledWith('outra-aba');
-      expect(routerMock.push).toHaveBeenCalledTimes(1);
-      expect(routerMock.push).toHaveBeenCalledWith('/login');
-      expect(errorMock).not.toHaveBeenCalledWith(
-        expect.stringContaining('Sua sessão expirou')
+      expect(removeAuthenticateMock).toHaveBeenCalledWith(
+        SESSION_END_REASON.OUTRA_ABA
       );
+      expect(routerMock.push).not.toHaveBeenCalled();
+      expect(errorMock).not.toHaveBeenCalled();
     });
 
     it('tipo desconhecido não encerra a sessão', () => {
-      isAuthenticatedMock.mockReturnValue(new Promise(() => {}));
       renderHook(() => useApplicationLayout());
       capturarCallback()('outra-coisa');
       expect(removeAuthenticateMock).not.toHaveBeenCalled();
     });
 
     it('cancela a assinatura no unmount', () => {
-      isAuthenticatedMock.mockReturnValue(new Promise(() => {}));
       const { unmount } = renderHook(() => useApplicationLayout());
       expect(cancelarMock).not.toHaveBeenCalled();
       unmount();
@@ -459,18 +276,13 @@ describe('useApplicationLayout', () => {
     });
 
     it('em StrictMode a montagem dupla registra e cancela sem duplicar a ação', () => {
-      isAuthenticatedMock.mockReturnValue(new Promise(() => {}));
-      const { onSessionEvent } = require('@/utils/sessionChannel');
-      const { StrictMode } = require('react');
       renderHook(() => useApplicationLayout(), { wrapper: StrictMode });
 
       expect(onSessionEvent).toHaveBeenCalledTimes(2);
       expect(cancelarMock).toHaveBeenCalledTimes(1);
 
-      // só a assinatura viva reage; a ação ocorre 1 vez
       capturarCallback()('saida');
       expect(removeAuthenticateMock).toHaveBeenCalledTimes(1);
-      expect(routerMock.push).toHaveBeenCalledTimes(1);
     });
   });
 });
