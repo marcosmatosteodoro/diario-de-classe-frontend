@@ -17,6 +17,13 @@ describe('SessionUnavailable (FR-002-020)', () => {
     ).toBeInTheDocument();
   });
 
+  it('o título declara o token de cor text-main (contraste AA nos dois temas)', () => {
+    render(<SessionUnavailable onRetry={jest.fn()} />);
+    expect(
+      screen.getByRole('heading', { name: 'Sessão indisponível' })
+    ).toHaveClass('text-main');
+  });
+
   it('clicar chama onRetry exatamente 1 vez', () => {
     const onRetry = jest.fn();
     render(<SessionUnavailable onRetry={onRetry} />);

@@ -5,7 +5,9 @@ export const SessionUnavailable = ({ onRetry }) => (
     className="max-w-xl mx-auto bg-main rounded-lg shadow-sm p-8 text-center"
     data-testid="session-unavailable"
   >
-    <h1 className="text-xl font-semibold mb-2">Sessão indisponível</h1>
+    <h1 className="text-xl font-semibold text-main mb-2">
+      Sessão indisponível
+    </h1>
     <p className="text-muted mb-6">{SEM_CONEXAO_MESSAGE}</p>
     <button
       type="button"
