@@ -14,20 +14,15 @@ export default function AuthLayout({ children }) {
   const { success } = useToast();
   // Valor anterior em ref: o aviso de volta vale para a montagem já
   // autenticada e para o fim da restauração, nunca para um entrar explícito
-  // (ANONYMOUS -> AUTHENTICATED com a tela montada, que o useLogin trata).
+  // (ANONYMOUS/UNAVAILABLE -> AUTHENTICATED com a tela montada, que o
+  // useLogin trata); o retry sai de UNAVAILABLE por RESTORING.
   const anterior = useRef(null);
 
   useEffect(() => {
     const prev = anterior.current;
     anterior.current = sessionStatus;
     if (sessionStatus !== SESSION_STATUS.AUTHENTICATED) return;
-    if (
-      prev !== null &&
-      prev !== SESSION_STATUS.RESTORING &&
-      prev !== SESSION_STATUS.UNAVAILABLE
-    ) {
-      return;
-    }
+    if (prev !== null && prev !== SESSION_STATUS.RESTORING) return;
     success(`Bem-vindo de volta, ${currentUser?.nome}!`);
     router.push('/');
     // eslint-disable-next-line react-hooks/exhaustive-deps

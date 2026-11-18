@@ -280,7 +280,7 @@ describe('AuthLayout', () => {
       expect(routerMock.push).not.toHaveBeenCalled();
     });
 
-    it('UNAVAILABLE -> AUTHENTICATED (restauração concluída ao voltar a rede) avisa e vai a /', () => {
+    it('UNAVAILABLE -> AUTHENTICATED direto (entrar explícito) não avisa nem navega', () => {
       sessao(SESSION_STATUS.UNAVAILABLE);
       const { rerender } = render(
         <AuthLayout>
@@ -293,7 +293,32 @@ describe('AuthLayout', () => {
           <div />
         </AuthLayout>
       );
+      expect(successMock).not.toHaveBeenCalled();
+      expect(routerMock.push).not.toHaveBeenCalled();
+    });
+
+    it('UNAVAILABLE -> RESTORING -> AUTHENTICATED (tentar novamente) avisa 1 vez e vai a / 1 vez', () => {
+      sessao(SESSION_STATUS.UNAVAILABLE);
+      const { rerender } = render(
+        <AuthLayout>
+          <div />
+        </AuthLayout>
+      );
+      sessao(SESSION_STATUS.RESTORING);
+      rerender(
+        <AuthLayout>
+          <div />
+        </AuthLayout>
+      );
+      sessao(SESSION_STATUS.AUTHENTICATED, { nome: 'Ana' });
+      rerender(
+        <AuthLayout>
+          <div />
+        </AuthLayout>
+      );
+      expect(successMock).toHaveBeenCalledTimes(1);
       expect(successMock).toHaveBeenCalledWith('Bem-vindo de volta, Ana!');
+      expect(routerMock.push).toHaveBeenCalledTimes(1);
       expect(routerMock.push).toHaveBeenCalledWith('/');
     });
   });
