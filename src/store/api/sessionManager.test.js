@@ -53,6 +53,18 @@ describe('sessionManager', () => {
     expect(getSessionEpoch()).toBe(inicial + 2);
   });
 
+  it('setSession sobe a época quando o userId muda; o mesmo usuário não a altera', () => {
+    setSession({ accessToken: 'a', userId: 'u1' });
+    const base = getSessionEpoch();
+
+    setSession({ accessToken: 'b', userId: 'u1' });
+    expect(getSessionEpoch()).toBe(base);
+
+    setSession({ accessToken: 'c', userId: 'u2' });
+    expect(getSessionEpoch()).toBe(base + 1);
+    expect(getUserId()).toBe('u2');
+  });
+
   it('subscribe recebe o payload emitido e para após o cancelamento', () => {
     const cb = jest.fn();
     const cancelar = subscribe(SESSION_EVENT.EXPIRED, cb);
@@ -347,7 +359,6 @@ describe('sessionManager: renovação', () => {
       markPendingExit();
 
       await online();
-      clearPendingExit();
 
       expect(refresh).not.toHaveBeenCalled();
     });

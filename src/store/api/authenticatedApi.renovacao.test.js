@@ -325,6 +325,93 @@ describe('AuthenticatedApi: renovação transparente', () => {
       expect(getAccessToken()).toBe('do-u2');
       expect(expirou).not.toHaveBeenCalled();
     });
+
+    it.each([
+      ['rede', () => erroDeRede()],
+      [
+        '500',
+        () =>
+          new AxiosError(
+            'x',
+            'E',
+            {},
+            null,
+            resposta({}, 500, { message: 'x' })
+          ),
+      ],
+      [
+        '401',
+        () =>
+          new AxiosError(
+            'x',
+            'E',
+            {},
+            null,
+            resposta({}, 401, { message: 'x' })
+          ),
+      ],
+    ])(
+      'troca de sessão durante a espera com o refresh REJEITADO (%s) segue como sessaoTrocada',
+      async (_nome, criarFalha) => {
+        let rejeitarRenovacao;
+        renovar.mockReturnValue(
+          new Promise((_, rej) => (rejeitarRenovacao = rej))
+        );
+        const api = new AlunoApi();
+        const chamadas = instalarAdaptador(api, () => ({ status: 401 }));
+
+        const pendente = api.get('/x').catch(e => e);
+        while (renovar.mock.calls.length === 0) {
+          await new Promise(r => setTimeout(r, 0));
+        }
+        clearSession();
+        setSession({ accessToken: 'do-u2', userId: 'u2' });
+        rejeitarRenovacao(criarFalha());
+        const erro = await pendente;
+
+        expect(chamadas).toHaveLength(1);
+        expect(renovar).toHaveBeenCalledTimes(1);
+        expect(erro.sessaoTrocada).toBe(true);
+        expect(erro.sessionExpired).toBeUndefined();
+        expect(erro.response?.status).toBeUndefined();
+        expect(getAccessToken()).toBe('do-u2');
+        expect(expirou).not.toHaveBeenCalled();
+      }
+    );
+
+    it('troca de sessão durante a repetição (volta 401) rejeita sessaoTrocada e mantém o token do novo usuário', async () => {
+      let liberarRepeticao;
+      const api = new AlunoApi();
+      const chamadas = [];
+      api.api.defaults.adapter = jest.fn(async config => {
+        chamadas.push(config.headers.get('Authorization') ?? null);
+        if (chamadas.length === 2) {
+          await new Promise(r => (liberarRepeticao = r));
+        }
+        throw new AxiosError(
+          'falha',
+          'ERR_BAD_REQUEST',
+          config,
+          null,
+          resposta(config, 401)
+        );
+      });
+
+      const pendente = api.get('/x').catch(e => e);
+      while (chamadas.length < 2) {
+        await new Promise(r => setTimeout(r, 0));
+      }
+      clearSession();
+      setSession({ accessToken: 'do-u2', userId: 'u2' });
+      liberarRepeticao();
+      const erro = await pendente;
+
+      expect(chamadas).toEqual(['Bearer velho', 'Bearer novo']);
+      expect(erro.sessaoTrocada).toBe(true);
+      expect(erro.sessionExpired).toBeUndefined();
+      expect(getAccessToken()).toBe('do-u2');
+      expect(expirou).not.toHaveBeenCalled();
+    });
   });
 
   describe('renovação com falha não-recusa (gate 11)', () => {

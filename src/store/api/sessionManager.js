@@ -29,8 +29,12 @@ export function getSessionEpoch() {
 }
 
 export function setSession({ accessToken: token, userId: id }) {
+  const novoId = id ?? null;
+  // Troca de identidade sem clearSession() prévio também encerra a época: as
+  // requisições em voo do usuário anterior deixam de valer.
+  if (userId !== null && novoId !== userId) epoch += 1;
   accessToken = token ?? null;
-  userId = id ?? null;
+  userId = novoId;
 }
 
 export function clearSession() {
@@ -66,7 +70,7 @@ export function expireSession() {
 }
 
 // Renovação pelo cookie (DEC-003-012): uma promessa compartilhada por todas as
-// chamadas simultâneas. Rejeita sempre com { tipo, error } (RENEW_FAILURE).
+// chamadas simultâneas. Rejeita sempre com { tipo, error[, descartada] } (RENEW_FAILURE).
 let renovacaoEmVoo = null;
 
 function rejeicao(tipo, error) {
