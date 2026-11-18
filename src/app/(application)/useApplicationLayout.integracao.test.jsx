@@ -148,18 +148,13 @@ describe('guarda de rota com provider, sessionManager e Apis reais', () => {
     clearSession();
   });
 
-  // Uma `*Api` de cada slice sem observador de 401 e uma de slice com
-  // observador; a Api de cada slice é a que o thunk usa (src/services).
   it.each([
     ['livros (LivroApi)', store => store.dispatch(getLivros())],
     ['diasAulas (DiaAulaApi)', store => store.dispatch(getDiasAulas())],
     ['cronogramas (AlunoApi)', store => store.dispatch(getCronograma('a1'))],
     ['relatorio (RelatorioApi)', store => store.dispatch(getRelatorios())],
-    ['alunos (AlunoApi, já observado)', store => store.dispatch(getAlunos())],
-    [
-      'professores (ProfessorApi, já observado)',
-      store => store.dispatch(getProfessores()),
-    ],
+    ['alunos (AlunoApi)', store => store.dispatch(getAlunos())],
+    ['professores (ProfessorApi)', store => store.dispatch(getProfessores())],
   ])(
     'recusa da renovação em %s: 1 aviso, clearAppCache 1 vez e push para /login',
     async (_nome, disparar) => {
