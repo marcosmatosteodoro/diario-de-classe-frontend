@@ -10,6 +10,12 @@ import {
 const REPETIDA = Symbol('requisicaoRepetida');
 const EPOCA = Symbol('epocaDeEnvio');
 
+function erroSessaoTrocada() {
+  const trocada = new Error('Sessão trocada durante a requisição');
+  trocada.sessaoTrocada = true;
+  return trocada;
+}
+
 export class AuthenticatedApi extends BaseApi {
   constructor() {
     super();
@@ -43,9 +49,7 @@ export class AuthenticatedApi extends BaseApi {
       throw error;
     }
     if (config[EPOCA] !== getSessionEpoch()) {
-      const trocada = new Error('Sessão trocada durante a requisição');
-      trocada.sessaoTrocada = true;
-      throw trocada;
+      throw erroSessaoTrocada();
     }
     const atual = getAccessToken();
     if (atual === null) throw error;
@@ -55,6 +59,7 @@ export class AuthenticatedApi extends BaseApi {
       try {
         await renew();
       } catch (falha) {
+        if (falha?.descartada) throw erroSessaoTrocada();
         throw this.erroDaRenovacao(error, falha);
       }
     }

@@ -300,6 +300,31 @@ describe('AuthenticatedApi: renovação transparente', () => {
       expect(renovar).toHaveBeenCalledTimes(1);
       expect(chamadas).toEqual(['Bearer velho', 'Bearer novo']);
     });
+
+    it('troca de sessão DURANTE a espera da renovação rejeita com sessaoTrocada, sem sessionExpired', async () => {
+      let resolverRenovacao;
+      renovar.mockReturnValue(new Promise(r => (resolverRenovacao = r)));
+      const api = new AlunoApi();
+      const chamadas = instalarAdaptador(api, () => ({ status: 401 }));
+
+      const pendente = api.get('/x').catch(e => e);
+      while (renovar.mock.calls.length === 0) {
+        await new Promise(r => setTimeout(r, 0));
+      }
+      clearSession();
+      setSession({ accessToken: 'do-u2', userId: 'u2' });
+      resolverRenovacao({
+        data: { accessToken: 'novo', user: { id: 'u1' }, configuracao: null },
+      });
+      const erro = await pendente;
+
+      expect(chamadas).toHaveLength(1);
+      expect(erro.sessaoTrocada).toBe(true);
+      expect(erro.sessionExpired).toBeUndefined();
+      expect(erro.response?.status).toBeUndefined();
+      expect(getAccessToken()).toBe('do-u2');
+      expect(expirou).not.toHaveBeenCalled();
+    });
   });
 
   describe('renovação com falha não-recusa (gate 11)', () => {

@@ -199,6 +199,7 @@ describe('sessionManager: renovação', () => {
   });
 
   afterEach(async () => {
+    clearPendingExit();
     // zera a pendência por rede deixada pelo caso, sem chamar a rede real
     refresh.mockResolvedValue(ok());
     await online();
@@ -321,7 +322,6 @@ describe('sessionManager: renovação', () => {
         expect(refresh).not.toHaveBeenCalled();
         expect(getAccessToken()).toBeNull();
         expect(renovado).not.toHaveBeenCalled();
-        clearPendingExit();
       }
     );
 

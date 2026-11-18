@@ -80,7 +80,7 @@ async function executarRenovacao() {
     resposta = await new AuthApi().refreshToken();
   } catch (error) {
     if (epocaInicial !== epoch) {
-      throw rejeicao(RENEW_FAILURE.RECUSADA, error);
+      throw { ...rejeicao(RENEW_FAILURE.RECUSADA, error), descartada: true };
     }
     const status = error?.response?.status;
     if (status === 401 || status === 403) {
@@ -97,7 +97,7 @@ async function executarRenovacao() {
     );
   }
   if (epocaInicial !== epoch) {
-    throw rejeicao(RENEW_FAILURE.RECUSADA, null);
+    throw { ...rejeicao(RENEW_FAILURE.RECUSADA, null), descartada: true };
   }
   const { accessToken: novo, user, configuracao } = resposta.data;
   pendentePorRede = false;
