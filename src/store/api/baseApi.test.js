@@ -1,5 +1,6 @@
 import { BaseApi } from './baseApi';
 import axios from 'axios';
+import { API_BASE_PATH } from '@/constants';
 
 jest.mock('axios');
 
@@ -19,11 +20,29 @@ describe('BaseApi', () => {
     axios.create.mockReturnValue(mockAxiosInstance);
   });
 
-  it('deve criar a instância do axios com baseURL correto', () => {
-    new BaseApi();
-    expect(axios.create).toHaveBeenCalledWith({
-      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
-      headers: { 'Content-Type': 'application/json' },
+  describe('baseURL', () => {
+    const original = process.env.NEXT_PUBLIC_API_URL;
+
+    afterEach(() => {
+      if (original === undefined) delete process.env.NEXT_PUBLIC_API_URL;
+      else process.env.NEXT_PUBLIC_API_URL = original;
+    });
+
+    it('deve criar a instância do axios com baseURL /api (origem do app)', () => {
+      expect(API_BASE_PATH).toBe('/api');
+      new BaseApi();
+      expect(axios.create).toHaveBeenCalledWith({
+        baseURL: '/api',
+        headers: { 'Content-Type': 'application/json' },
+      });
+    });
+
+    it('deve ignorar NEXT_PUBLIC_API_URL', () => {
+      process.env.NEXT_PUBLIC_API_URL = 'http://outro.example/api';
+      new BaseApi();
+      expect(axios.create).toHaveBeenCalledWith(
+        expect.objectContaining({ baseURL: '/api' })
+      );
     });
   });
 

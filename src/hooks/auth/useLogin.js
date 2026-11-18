@@ -53,10 +53,6 @@ export function useLogin() {
         duracaoAula: data.configuracao.duracaoAula,
         tolerancia: data.configuracao.tolerancia,
         diasDeFuncionamento: data.configuracao.diasDeFuncionamento,
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-        tokenType: data.tokenType,
-        expiresIn: data.expiresIn,
       });
       router.push('/');
     }

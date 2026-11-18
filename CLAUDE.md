@@ -125,5 +125,5 @@ const handleChange = e => {
 
 ## Config / env
 
-- Env pública com prefixo `NEXT_PUBLIC_` (ex.: `NEXT_PUBLIC_API_URL`). `BaseApi` lê a URL com fallback para localhost. Manter `.env.example`.
-- Token guardado em `localStorage` (`token`) e injetado como `Bearer` por `AuthenticatedApi`. Acesso SSR-safe (`typeof window !== 'undefined'`).
+- Env pública com prefixo `NEXT_PUBLIC_` (vai para o bundle; nunca segredo). `BaseApi` fala com a base fixa `/api` (`API_BASE_PATH`, origem do app) e o `rewrites()` do `next.config.mjs` reencaminha ao backend por `API_INTERNAL_URL` (só servidor, origem sem `/api`; obrigatória em produção, no build e no start). Dev roda em `-p 3001`. Manter `.env.example`.
+- Acesso só em memória no `sessionManager` (`src/store/api/sessionManager.js`, DEC-003-011), lido pelo interceptor de `AuthenticatedApi` a cada requisição e enviado como `Bearer`; renovação pelo cookie httpOnly `bls_sessao` (o front nunca o lê). Nunca gravar credencial em storage, cookie legível, `window`, contexto ou Redux. Acesso a storage SSR-safe (`typeof window !== 'undefined'`).

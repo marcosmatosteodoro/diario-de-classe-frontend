@@ -8,7 +8,6 @@ export function proxy(request) {
   const csp = buildContentSecurityPolicy({
     nonce,
     isDev: process.env.NODE_ENV === 'development',
-    apiUrl: process.env.NEXT_PUBLIC_API_URL,
   });
 
   // O Next lê o nonce da CSP da requisição e o aplica aos próprios scripts.
@@ -25,7 +24,7 @@ export const config = {
   matcher: [
     {
       source:
-        '/((?!_next/static/|_next/image$|favicon\\.ico$|sw\\.js$|offline\\.html$|manifest\\.json$|(?:bls|bls-dark|icon-192|icon-512|icon-maskable)\\.png$|(?:file|globe|next|vercel|window)\\.svg$).*)',
+        '/((?!api/|_next/static/|_next/image$|favicon\\.ico$|sw\\.js$|offline\\.html$|manifest\\.json$|(?:bls|bls-dark|icon-192|icon-512|icon-maskable)\\.png$|(?:file|globe|next|vercel|window)\\.svg$).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

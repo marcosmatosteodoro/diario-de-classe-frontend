@@ -16,6 +16,10 @@ RUN npm ci
 # Copy the rest of the application code
 COPY . .
 
+# Origem do backend (sem /api, só servidor): o build exige a variável
+ARG API_INTERNAL_URL
+ENV API_INTERNAL_URL=$API_INTERNAL_URL
+
 # Build the Next.js app
 RUN npm run build
 
@@ -29,8 +33,14 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/next.config.mjs ./
+# next.config.mjs importa este módulo; o next start o carrega em runtime
+COPY --from=builder /app/src/utils/offlineContentSecurityPolicy.mjs ./src/utils/offlineContentSecurityPolicy.mjs
 COPY --from=builder /app/next-env.d.ts ./
 COPY --from=builder /app/jsconfig.json ./
+
+# O next start carrega o next.config.mjs, que exige a variável em produção
+ARG API_INTERNAL_URL
+ENV API_INTERNAL_URL=$API_INTERNAL_URL
 
 # Set environment variable for production
 ENV NODE_ENV=production

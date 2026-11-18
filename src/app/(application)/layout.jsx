@@ -8,12 +8,19 @@ import {
   Loading,
   InstallPrompt,
   TransitionShell,
+  SessionUnavailable,
 } from '@/components';
 import { UnsavedChangesGuardProvider } from '@/providers/UnsavedChangesGuardProvider';
 
 export default function ApplicationLayout({ children }) {
-  const { isUnauthorized, isLoading, sidebarExpanded, toggleSidebar } =
-    useApplicationLayout();
+  const {
+    isUnauthorized,
+    isLoading,
+    isUnavailable,
+    retryRestore,
+    sidebarExpanded,
+    toggleSidebar,
+  } = useApplicationLayout();
 
   return (
     <UnsavedChangesGuardProvider>
@@ -32,7 +39,9 @@ export default function ApplicationLayout({ children }) {
               sidebarExpanded.isExpanded ? 'md:ml-[150px]' : 'md:ml-18'
             }`}
           >
-            {isLoading || isUnauthorized ? (
+            {isUnavailable ? (
+              <SessionUnavailable onRetry={retryRestore} />
+            ) : isLoading || isUnauthorized ? (
               <Loading />
             ) : (
               <div className="max-w-6xl mx-auto">{children}</div>
@@ -40,7 +49,7 @@ export default function ApplicationLayout({ children }) {
           </main>
         </div>
         <Footer />
-        {!isLoading && !isUnauthorized && <InstallPrompt />}
+        {!isLoading && !isUnauthorized && !isUnavailable && <InstallPrompt />}
       </TransitionShell>
     </UnsavedChangesGuardProvider>
   );

@@ -14,6 +14,7 @@ import livrosReducer from './slices/livrosSlice';
 import cronogramasReducer from './slices/cronogramasSlice';
 
 export const store = configureStore({
+  devTools: process.env.NODE_ENV !== 'production',
   reducer: {
     relatorio: relatorioReducer,
     livros: livrosReducer,

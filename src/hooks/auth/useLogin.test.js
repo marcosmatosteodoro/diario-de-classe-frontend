@@ -160,6 +160,7 @@ describe('useLogin', () => {
     });
     renderHook(() => useLogin(), { wrapper });
     expect(mockError).toHaveBeenCalledWith('Credenciais inválidas');
+    expect(mockAuthenticate).not.toHaveBeenCalled();
   });
 
   it('should not show error if action is not login', () => {
@@ -183,10 +184,6 @@ describe('useLogin', () => {
         tolerancia: 10,
         diasDeFuncionamento: [1, 2, 3, 4, 5],
       },
-      accessToken: 'access-token-123',
-      refreshToken: 'refresh-token-456',
-      tokenType: 'Bearer',
-      expiresIn: 3600,
     };
 
     store = mockStore({
@@ -202,16 +199,17 @@ describe('useLogin', () => {
     renderHook(() => useLogin(), { wrapper });
 
     expect(mockSuccess).toHaveBeenCalledWith('Bem-vindo, João Silva!');
+    expect(mockAuthenticate).toHaveBeenCalledTimes(1);
     expect(mockAuthenticate).toHaveBeenCalledWith({
       currentUser: mockData.user,
       duracaoAula: mockData.configuracao.duracaoAula,
       tolerancia: mockData.configuracao.tolerancia,
       diasDeFuncionamento: mockData.configuracao.diasDeFuncionamento,
-      accessToken: mockData.accessToken,
-      refreshToken: mockData.refreshToken,
-      tokenType: mockData.tokenType,
-      expiresIn: mockData.expiresIn,
     });
+    const recebido = mockAuthenticate.mock.calls[0][0];
+    ['refreshToken', 'tokenType', 'expiresIn', 'accessToken'].forEach(chave =>
+      expect(chave in recebido).toBe(false)
+    );
     expect(mockPush).toHaveBeenCalledWith('/');
     expect(store.dispatch).toHaveBeenCalledWith({ type: 'auth/clearStatus' });
 
@@ -232,7 +230,6 @@ describe('useLogin', () => {
         diasDeFuncionamento: [1, 2, 3, 4, 5],
       },
       accessToken: 'access-token-123',
-      refreshToken: 'refresh-token-456',
       tokenType: 'Bearer',
       expiresIn: 3600,
     };

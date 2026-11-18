@@ -5,7 +5,7 @@ import { Menu, MoonIcon, SunIcon, X } from 'lucide-react';
 import Image from 'next/image';
 
 export const Header = ({ isExpanded, toggleSidebar }) => {
-  const { logoutUser } = useLogout();
+  const { logoutUser, isLoggingOut } = useLogout();
   const { toggleTheme, theme } = useTheme();
   const { confirmNavigation } = useUnsavedChangesGuard();
 
@@ -62,9 +62,11 @@ export const Header = ({ isExpanded, toggleSidebar }) => {
           </button>
           <button
             onClick={handleLogoutClick}
-            className="text-muted hover:text-main transition-colors cursor-pointer"
+            disabled={isLoggingOut}
+            aria-busy={isLoggingOut ? 'true' : undefined}
+            className="text-muted hover:text-main transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Sair
+            {isLoggingOut ? 'Saindo…' : 'Sair'}
           </button>
         </nav>
       </div>

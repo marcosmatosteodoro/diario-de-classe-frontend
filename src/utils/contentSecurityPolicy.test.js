@@ -13,7 +13,7 @@ const PRODUCAO = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  "connect-src 'self' https://api.exemplo.com",
+  "connect-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -31,7 +31,6 @@ describe('buildContentSecurityPolicy', () => {
       buildContentSecurityPolicy({
         nonce: 'abc',
         isDev: false,
-        apiUrl: 'https://api.exemplo.com/api',
       })
     ).toBe(PRODUCAO);
   });
@@ -40,7 +39,6 @@ describe('buildContentSecurityPolicy', () => {
     const dev = buildContentSecurityPolicy({
       nonce: 'abc',
       isDev: true,
-      apiUrl: 'https://api.exemplo.com/api',
     });
     expect(diretiva(dev, 'script-src')).toBe(
       "script-src 'self' 'nonce-abc' 'strict-dynamic' 'unsafe-eval'"
@@ -56,26 +54,14 @@ describe('buildContentSecurityPolicy', () => {
     }
   );
 
-  it.each([
-    ['ausente', undefined],
-    ['inválida', 'isto não é url'],
-    ['vazia', ''],
-  ])('connect-src cai no fallback com URL %s', (_, apiUrl) => {
-    const csp = buildContentSecurityPolicy({ nonce: 'abc', apiUrl });
-    expect(diretiva(csp, 'connect-src')).toBe(
-      "connect-src 'self' http://localhost:3000"
-    );
-    expect(csp).not.toContain('*');
-  });
-
-  it('remove o caminho da URL da API', () => {
+  it("connect-src é só 'self': a API é da mesma origem (DEC-003-019)", () => {
     const csp = buildContentSecurityPolicy({
       nonce: 'abc',
-      apiUrl: 'http://api.local:4000/api/v1',
+      apiUrl: 'https://api.exemplo.com/api',
     });
-    expect(diretiva(csp, 'connect-src')).toBe(
-      "connect-src 'self' http://api.local:4000"
-    );
+    expect(diretiva(csp, 'connect-src')).toBe("connect-src 'self'");
+    expect(csp).not.toContain('*');
+    expect(csp).not.toContain('api.exemplo.com');
   });
 });
 

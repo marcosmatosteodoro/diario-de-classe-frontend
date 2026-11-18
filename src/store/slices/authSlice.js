@@ -2,16 +2,19 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { STATUS } from '@/constants';
 import { LoiginService } from '@/services/auth/loginService';
 import { LogoutService } from '@/services/auth/logoutService';
-import { RefreshTokenService } from '@/services/auth/refreshTokenService';
+import { setSession } from '@/store/api/sessionManager';
 import { getRequestErrorMessage } from '@/utils/thunkErrorPayload';
 
-// LOGIN
+// LOGIN — o accessToken vai direto ao sessionManager (DEC-003-011): nunca sai
+// do thunk, então nenhuma action nem o state o carregam.
 export const login = createAsyncThunk(
   'auth/login',
   async (data, { rejectWithValue }) => {
     try {
       const res = await LoiginService.handle(data);
-      return res.data;
+      const { accessToken, user, configuracao } = res.data;
+      setSession({ accessToken, userId: user?.id ?? null });
+      return { user, configuracao };
     } catch (error) {
       const errorMessage = getRequestErrorMessage(error, 'Erro ao logar');
       const validationErrors = error.response?.data?.errors || [];
@@ -26,30 +29,16 @@ export const login = createAsyncThunk(
 // LOGOUT
 export const logout = createAsyncThunk(
   'auth/logout',
-  async (refreshToken, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const res = await LogoutService.handle(refreshToken);
+      const res = await LogoutService.handle();
       return res.data;
     } catch (error) {
       const errorMessage = getRequestErrorMessage(error, 'Erro ao deslogar');
-      return rejectWithValue({ message: errorMessage });
-    }
-  }
-);
-
-// REFRESH TOKEN
-export const refreshToken = createAsyncThunk(
-  'auth/refreshToken',
-  async (data, { rejectWithValue }) => {
-    try {
-      const res = await RefreshTokenService.handle(data);
-      return res.data;
-    } catch (error) {
-      const errorMessage = getRequestErrorMessage(
-        error,
-        'Erro ao atualizar token'
-      );
-      return rejectWithValue({ message: errorMessage });
+      return rejectWithValue({
+        message: errorMessage,
+        statusError: error.response?.status,
+      });
     }
   }
 );
@@ -104,24 +93,9 @@ const authSlice = createSlice({
       })
       .addCase(logout.rejected, (state, action) => {
         state.status = STATUS.FAILED;
+        state.data = null;
         state.errors = action.payload?.errors || [];
         state.message = action.payload?.message || 'Erro ao deslogar';
-      })
-      // refreshToken
-      .addCase(refreshToken.pending, state => {
-        state.status = STATUS.LOADING;
-        state.errors = [];
-        state.message = null;
-        state.action = 'refreshToken';
-      })
-      .addCase(refreshToken.fulfilled, (state, action) => {
-        state.status = STATUS.SUCCESS;
-        state.data = null;
-      })
-      .addCase(refreshToken.rejected, (state, action) => {
-        state.status = STATUS.FAILED;
-        state.errors = action.payload?.errors || [];
-        state.message = action.payload?.message || 'Erro ao atualizar token';
       });
   },
 });

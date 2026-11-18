@@ -40,7 +40,7 @@ describe('proxy', () => {
     const diretiva = (csp, nome) =>
       csp.split('; ').find(d => d.startsWith(`${nome} `));
 
-    it('em production: script-src sem unsafe-eval e connect-src com a origem da API', () => {
+    it("em production: script-src sem unsafe-eval e connect-src só 'self', ignorando NEXT_PUBLIC_API_URL", () => {
       process.env.NODE_ENV = 'production';
       process.env.NEXT_PUBLIC_API_URL = 'https://api.exemplo.com/api';
       const csp = chamar().headers.get('content-security-policy');
@@ -48,9 +48,7 @@ describe('proxy', () => {
       expect(diretiva(csp, 'script-src')).toBe(
         `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`
       );
-      expect(diretiva(csp, 'connect-src')).toBe(
-        "connect-src 'self' https://api.exemplo.com"
-      );
+      expect(diretiva(csp, 'connect-src')).toBe("connect-src 'self'");
     });
 
     it("em development: script-src termina em 'unsafe-eval'", () => {
@@ -87,12 +85,16 @@ describe('config.matcher', () => {
     '/manifest.json/x',
     '/_next/staticx',
     '/_next/imagex',
+    '/api',
+    '/apix',
   ])('cobre o documento %s', caminho => {
     expect(casa(caminho)).toBe(true);
   });
 
   it.each([
     '/sw.js',
+    '/api/alunos',
+    '/api/alunos/upload',
     '/offline.html',
     '/manifest.json',
     '/icon-192.png',
@@ -105,7 +107,7 @@ describe('config.matcher', () => {
     '/favicon.ico',
     '/_next/static/chunks/a.js',
     '/_next/image',
-  ])('exclui o estático %s', caminho => {
+  ])('exclui o estático ou a API %s', caminho => {
     expect(casa(caminho)).toBe(false);
   });
 

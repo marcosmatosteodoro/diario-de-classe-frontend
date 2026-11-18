@@ -84,6 +84,13 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(request.url);
 
+  // A API vive na mesma origem do app (rewrite `/api`): sem esta saída, a
+  // ausência de cache de resposta autenticada (login/renovação carregam
+  // credencial) dependeria só de omissão, e a navegação a `/api/` cairia no
+  // fallback de `navigate`. Vínculo: `API_BASE_PATH` — mudar o prefixo exige
+  // mudar aqui (DEC-003-023, DEC-002-002 do slug `pwa`, NFR-001-001).
+  if (url.pathname.startsWith('/api/')) return;
+
   if (isCacheableStaticAsset(url)) {
     event.respondWith(cacheFirst(request));
     return;
@@ -94,7 +101,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Nenhum handler para o resto (chamada de API, recurso cross-origin, etc.)
+  // Nenhum handler para o resto (recurso cross-origin, etc.)
   // — ausência de `respondWith` é network-only por definição da spec de
   // Service Worker (DEC-002-002, NFR-001-001): nunca cacheia resposta de
   // rede autenticada nem HTML de rota.

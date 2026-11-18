@@ -20,6 +20,7 @@ describe('Header Component', () => {
     logoutUserMock = jest.fn();
     require('@/hooks/auth/useLogout').useLogout.mockReturnValue({
       logoutUser: logoutUserMock,
+      isLoggingOut: false,
     });
     // Default: sem guard registrado — regressão, navega/desloga direto.
     require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
@@ -171,6 +172,36 @@ describe('Header Component', () => {
 
       await user.keyboard(' ');
       expect(toggleSidebar).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('AC-002-017: controle de sair enquanto a saída aguarda', () => {
+    it('com isLoggingOut, o botão fica Saindo…, desabilitado, aria-busy e não chama logoutUser', () => {
+      require('@/hooks/auth/useLogout').useLogout.mockReturnValue({
+        logoutUser: logoutUserMock,
+        isLoggingOut: true,
+      });
+      render(
+        <ThemeProvider>
+          <Header />
+        </ThemeProvider>
+      );
+      const botao = screen.getByRole('button', { name: 'Saindo…' });
+      expect(botao).toBeDisabled();
+      expect(botao).toHaveAttribute('aria-busy', 'true');
+      fireEvent.click(botao);
+      expect(logoutUserMock).not.toHaveBeenCalled();
+    });
+
+    it('sem isLoggingOut, o botão é Sair, habilitado e sem aria-busy', () => {
+      render(
+        <ThemeProvider>
+          <Header />
+        </ThemeProvider>
+      );
+      const botao = screen.getByRole('button', { name: 'Sair' });
+      expect(botao).toBeEnabled();
+      expect(botao).not.toHaveAttribute('aria-busy');
     });
   });
 

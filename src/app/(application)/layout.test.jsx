@@ -30,6 +30,11 @@ jest.mock('@/components', () => ({
   ),
   Footer: () => <footer data-testid="footer" />,
   Loading: () => <div data-testid="loading" />,
+  SessionUnavailable: ({ onRetry }) => (
+    <div data-testid="session-unavailable">
+      <button onClick={onRetry}>Tentar novamente</button>
+    </div>
+  ),
   TransitionShell: ({ children, className }) => (
     <div data-testid="transition-shell" className={className}>
       {children}
@@ -159,5 +164,59 @@ describe('ApplicationLayout', () => {
     const classes = screen.getByRole('main').className.split(' ');
     expect(classes).toContain('min-w-0');
     expect(classes).toContain('flex-1');
+  });
+
+  it('isUnavailable renderiza o bloco no lugar do conteúdo, com Header e Sidebar, e o botão chama retryRestore', () => {
+    const retryRestore = jest.fn();
+    jest.resetModules();
+    jest.doMock('./useApplicationLayout', () => ({
+      useApplicationLayout: () => ({
+        isLoading: false,
+        isUnauthorized: false,
+        isUnavailable: true,
+        retryRestore,
+        sidebarExpanded: { isExpanded: false },
+        toggleSidebar: jest.fn(),
+      }),
+    }));
+    const { default: ApplicationLayoutReloaded } = require('./layout');
+    render(
+      <ApplicationLayoutReloaded>
+        <div data-testid="conteudo" />
+      </ApplicationLayoutReloaded>
+    );
+
+    expect(screen.getByTestId('session-unavailable')).toBeInTheDocument();
+    expect(screen.queryByTestId('conteudo')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+    expect(screen.getByTestId('header')).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar')).toBeInTheDocument();
+    expect(screen.queryByTestId('install-prompt-mock')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar novamente' }));
+    expect(retryRestore).toHaveBeenCalledTimes(1);
+  });
+
+  it('isLoading renderiza o loading sem o conteúdo nem o bloco de indisponibilidade', () => {
+    jest.resetModules();
+    jest.doMock('./useApplicationLayout', () => ({
+      useApplicationLayout: () => ({
+        isLoading: true,
+        isUnauthorized: false,
+        isUnavailable: false,
+        retryRestore: jest.fn(),
+        sidebarExpanded: { isExpanded: false },
+        toggleSidebar: jest.fn(),
+      }),
+    }));
+    const { default: ApplicationLayoutReloaded } = require('./layout');
+    render(
+      <ApplicationLayoutReloaded>
+        <div data-testid="conteudo" />
+      </ApplicationLayoutReloaded>
+    );
+    expect(screen.getByTestId('loading')).toBeInTheDocument();
+    expect(screen.queryByTestId('conteudo')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('session-unavailable')).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,8 @@
-import { thunkErrorPayload, getRequestErrorMessage } from './thunkErrorPayload';
+import {
+  thunkErrorPayload,
+  getRequestErrorMessage,
+  SEM_CONEXAO_MESSAGE,
+} from './thunkErrorPayload';
 
 describe('thunkErrorPayload', () => {
   it('prefere a mensagem da API', () => {
@@ -49,6 +53,25 @@ describe('thunkErrorPayload', () => {
     expect(
       thunkErrorPayload({ message: 'x' }, 'f').statusError
     ).toBeUndefined();
+  });
+});
+
+describe('getRequestErrorMessage — rejeição marcada', () => {
+  it.each(['sessaoTrocada', 'identidadeAlterada'])(
+    'erro marcado %s devolve vazio, nunca a mensagem de conexão',
+    marca => {
+      const error = new Error('texto interno da marca');
+      error[marca] = true;
+
+      expect(getRequestErrorMessage(error, 'fallback')).toBe('');
+      expect(thunkErrorPayload(error, 'fallback').message).toBe('');
+    }
+  );
+
+  it('controle: o mesmo erro sem marca e sem response é falha de conexão', () => {
+    expect(
+      getRequestErrorMessage(new Error('texto interno da marca'), 'fallback')
+    ).toBe(SEM_CONEXAO_MESSAGE);
   });
 });
 

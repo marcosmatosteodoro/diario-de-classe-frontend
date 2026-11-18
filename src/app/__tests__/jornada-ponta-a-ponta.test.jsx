@@ -29,6 +29,8 @@ import relatorioReducer from '@/store/slices/relatorioSlice';
 import livrosReducer from '@/store/slices/livrosSlice';
 import cronogramasReducer from '@/store/slices/cronogramasSlice';
 
+import { AuthApi } from '@/store/api/authApi';
+import { clearSession, getAccessToken } from '@/store/api/sessionManager';
 import { LoiginService } from '@/services/auth/loginService';
 import { GetAulaListService } from '@/services/aula/getAulaListService';
 import { GetAulaByIdService } from '@/services/aula/getAulaByIdService';
@@ -166,10 +168,23 @@ function Providers({ store, children }) {
 describe('Jornada ponta a ponta (AC-001-019, COMP-002-019)', () => {
   let store;
 
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    clearSession();
     store = createRealStore();
+
+    // O provider real restaura ao montar: sem cookie a renovação é recusada
+    // e a tela de login aparece.
+    jest
+      .spyOn(AuthApi.prototype, 'refreshToken')
+      .mockRejectedValue(
+        Object.assign(new Error('recusada'), { response: { status: 401 } })
+      );
 
     LoiginService.handle.mockResolvedValue({
       data: {
@@ -180,9 +195,8 @@ describe('Jornada ponta a ponta (AC-001-019, COMP-002-019)', () => {
           diasDeFuncionamento: [],
         },
         accessToken: 'fake-access-token',
-        refreshToken: 'fake-refresh-token',
         tokenType: 'Bearer',
-        expiresIn: 3600,
+        expiresIn: 900,
       },
     });
     GetAulaListService.handle.mockResolvedValue({
@@ -213,7 +227,7 @@ describe('Jornada ponta a ponta (AC-001-019, COMP-002-019)', () => {
       </Providers>
     );
 
-    fireEvent.change(screen.getByLabelText('Email'), {
+    fireEvent.change(await screen.findByLabelText('Email'), {
       target: { value: PROFESSOR_ADMIN.email },
     });
     fireEvent.change(screen.getByLabelText('Senha'), {
@@ -228,6 +242,7 @@ describe('Jornada ponta a ponta (AC-001-019, COMP-002-019)', () => {
     // ApplicationLayout (RTL não executa roteamento real; ver técnica
     // fixada, critério de pronto da TASK).
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/'));
+    expect(getAccessToken()).toBe('fake-access-token');
 
     // (2) rerender no MESMO `render()`, sem desmontar `Providers` — troca só
     // o que estava sob `AuthLayout` pelo `ApplicationLayout` real, cujo

@@ -13,3 +13,4 @@ export * from './ClearFiltersButton';
 export * from './PainelFiltrosColapsavel';
 export * from './InstallPrompt';
 export * from './ServiceWorkerRegister';
+export * from './SessionUnavailable';

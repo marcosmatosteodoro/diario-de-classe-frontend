@@ -1,4 +1,7 @@
 import axios from 'axios';
+import { AuthenticatedApi } from './authenticatedApi';
+import { setSession, clearSession } from './sessionManager';
+
 jest.mock('axios');
 jest.mock('./baseApi', () => {
   return {
@@ -11,86 +14,71 @@ jest.mock('./baseApi', () => {
 });
 
 describe('AuthenticatedApi', () => {
-  let apiInstance;
-  let mockLocalStorage;
   let interceptorFn;
-  let interceptors;
+  let getItemSpy;
 
   beforeEach(() => {
-    mockLocalStorage = {};
-    global.localStorage = {
-      getItem: jest.fn(key => {
-        if (mockLocalStorage.hasOwnProperty(key)) {
-          // Retorna string se definido
-          return typeof mockLocalStorage[key] === 'string'
-            ? mockLocalStorage[key]
-            : null;
-        }
-        return null;
-      }),
-      setItem: jest.fn((key, value) => {
-        mockLocalStorage[key] = value;
-      }),
-      removeItem: jest.fn(key => {
-        delete mockLocalStorage[key];
-      }),
-    };
-    interceptors = {
-      request: {
-        use: jest.fn(fn => {
-          interceptorFn = fn;
-        }),
+    interceptorFn = undefined;
+    axios.create.mockReturnValue({
+      interceptors: {
+        request: {
+          use: jest.fn(fn => {
+            interceptorFn = fn;
+          }),
+        },
+        response: { use: jest.fn() },
       },
-    };
-    axios.create.mockReturnValue({ interceptors });
-    // Força o require da classe após definir o mock do localStorage
-    jest.resetModules();
+    });
+    clearSession();
+    getItemSpy = jest.spyOn(Storage.prototype, 'getItem');
   });
 
-  it('deve adicionar o interceptor de token no construtor', () => {
-    apiInstance = new (require('./authenticatedApi').AuthenticatedApi)();
+  afterEach(() => {
+    getItemSpy.mockRestore();
+  });
+
+  it('registra o interceptor de request no construtor', () => {
+    new AuthenticatedApi();
     expect(interceptorFn).toBeInstanceOf(Function);
   });
 
-  it('deve adicionar Authorization se houver token', () => {
-    global.localStorage.setItem(
-      'token',
-      JSON.stringify({ accessToken: 'abc123' })
+  it('lê o acesso a cada requisição, na mesma instância', () => {
+    const apiInstance = new AuthenticatedApi();
+    setSession({ accessToken: 't1', userId: 'u-1' });
+    expect(interceptorFn({ headers: {} }).headers.Authorization).toBe(
+      'Bearer t1'
     );
-    const { AuthenticatedApi } = require('./authenticatedApi');
-    apiInstance = new AuthenticatedApi();
-    const config = { headers: {} };
-    const result = interceptorFn(config);
-    expect(apiInstance.token).toBe('abc123');
-    expect(result.headers.Authorization).toBe('Bearer abc123');
-  });
-
-  it('não adiciona Authorization se não houver token', () => {
-    global.localStorage.removeItem('token'); // Garante remoção
-    const { AuthenticatedApi } = require('./authenticatedApi');
-    apiInstance = new AuthenticatedApi();
-    const config = { headers: {} };
-    const result = interceptorFn(config);
-    expect(result.headers.Authorization).toBeUndefined();
+    setSession({ accessToken: 't2', userId: 'u-1' });
+    expect(interceptorFn({ headers: {} }).headers.Authorization).toBe(
+      'Bearer t2'
+    );
     expect(apiInstance.token).toBeUndefined();
   });
 
-  it('isAuthenticated retorna true se houver token', () => {
-    global.localStorage.setItem(
-      'token',
-      JSON.stringify({ accessToken: 'tokenzinho' })
-    );
-    const { AuthenticatedApi } = require('./authenticatedApi');
-    apiInstance = new AuthenticatedApi();
-    expect(apiInstance.token).toBe('tokenzinho');
-    expect(apiInstance.isAuthenticated()).toBe(true);
+  it('sem sessão não envia Authorization', () => {
+    new AuthenticatedApi();
+    expect(
+      interceptorFn({ headers: {} }).headers.Authorization
+    ).toBeUndefined();
   });
 
-  it('isAuthenticated retorna false se não houver token', () => {
-    global.localStorage.removeItem('token'); // Garante remoção
-    const { AuthenticatedApi } = require('./authenticatedApi');
-    apiInstance = new AuthenticatedApi();
-    expect(apiInstance.token).toBeUndefined();
+  it('isAuthenticated deriva do módulo: true com sessão, false após clearSession', () => {
+    const apiInstance = new AuthenticatedApi();
     expect(apiInstance.isAuthenticated()).toBe(false);
+    setSession({ accessToken: 'tokenzinho', userId: 'u-1' });
+    expect(apiInstance.isAuthenticated()).toBe(true);
+    clearSession();
+    expect(apiInstance.isAuthenticated()).toBe(false);
+  });
+
+  it('não lê localStorage na construção nem na requisição (com controle positivo)', () => {
+    setSession({ accessToken: 't1', userId: 'u-1' });
+    const apiInstance = new AuthenticatedApi();
+    interceptorFn({ headers: {} });
+    apiInstance.isAuthenticated();
+    expect(getItemSpy).not.toHaveBeenCalled();
+
+    localStorage.getItem('qualquer');
+    expect(getItemSpy).toHaveBeenCalledTimes(1);
   });
 });

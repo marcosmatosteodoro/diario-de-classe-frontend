@@ -9,3 +9,5 @@ export * from './idioma';
 export * from './statusContrato';
 export * from './duracaoAula';
 export * from './filters';
+export * from './api';
+export * from './session';
