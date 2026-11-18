@@ -265,4 +265,36 @@ describe('sessionManager: re-tentativa de renovação em FALHA (DEC-005-019)', (
       expect(refreshToken).toHaveBeenCalledTimes(4);
     });
   });
+
+  describe('episódio fechado em todo setSession', () => {
+    it('S1: login antes do disparo cancela a re-tentativa da restauração', async () => {
+      const renewed = jest.fn();
+      const mudou = jest.fn();
+      const off1 = subscribe(SESSION_EVENT.RENEWED, renewed);
+      const off2 = subscribe(SESSION_EVENT.IDENTITY_CHANGED, mudou);
+      clearSession();
+      await expect(renew()).rejects.toMatchObject({
+        tipo: RENEW_FAILURE.FALHA,
+      });
+      expect(refreshToken).toHaveBeenCalledTimes(1);
+      setSession({ accessToken: 'tok-login', userId: 'u1' });
+      await avancar(60000);
+      expect(refreshToken).toHaveBeenCalledTimes(1);
+      expect(renewed).not.toHaveBeenCalled();
+      expect(mudou).not.toHaveBeenCalled();
+      expect(jest.getTimerCount()).toBe(0);
+      off1();
+      off2();
+    });
+
+    it('S2: troca de usuário depois de esgotar não deixa o online renovar', async () => {
+      await expect(renew()).rejects.toBeDefined();
+      await avancar(14000);
+      expect(refreshToken).toHaveBeenCalledTimes(4);
+      setSession({ accessToken: 'tok-2', userId: 'u2' });
+      window.dispatchEvent(new Event('online'));
+      await avancar(60000);
+      expect(refreshToken).toHaveBeenCalledTimes(4);
+    });
+  });
 });

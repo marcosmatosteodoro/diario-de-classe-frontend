@@ -18,11 +18,19 @@ let pendentePorRede = false;
 // Re-tentativa de FALHA (DEC-005-019): timer único no módulo, preso à época que o agendou.
 let timerRetentativa = null;
 let retentativasFeitas = 0;
-let ciclosEsgotado = false;
+let cicloEsgotado = false;
 
 function cancelarRetentativa() {
   if (timerRetentativa !== null) clearTimeout(timerRetentativa);
   timerRetentativa = null;
+}
+
+// Todo caminho que estabelece ou encerra uma sessão fecha o episódio: timer,
+// contagem e ciclo esgotado não atravessam login, troca de usuário nem logout.
+function encerrarEpisodio() {
+  cancelarRetentativa();
+  retentativasFeitas = 0;
+  cicloEsgotado = false;
 }
 
 const listeners = Object.fromEntries(
@@ -47,8 +55,8 @@ export function setSession({ accessToken: token, userId: id }) {
   // requisições em voo do usuário anterior deixam de valer.
   if (userId !== null && novoId !== userId) {
     epoch += 1;
-    cancelarRetentativa();
   }
+  encerrarEpisodio();
   accessToken = token ?? null;
   userId = novoId;
 }
@@ -58,9 +66,7 @@ export function clearSession() {
   userId = null;
   epoch += 1;
   pendentePorRede = false;
-  cancelarRetentativa();
-  retentativasFeitas = 0;
-  ciclosEsgotado = false;
+  encerrarEpisodio();
 }
 
 export function subscribe(evento, callback) {
@@ -100,7 +106,7 @@ function agendarRetentativa(epocaAgendada) {
   cancelarRetentativa();
   if (hasPendingExit()) return;
   if (retentativasFeitas >= RENEW_RETRY_DELAYS_MS.length) {
-    ciclosEsgotado = true;
+    cicloEsgotado = true;
     return;
   }
   const atraso = RENEW_RETRY_DELAYS_MS[retentativasFeitas];
@@ -141,9 +147,7 @@ async function executarRenovacao() {
   }
   const { accessToken: novo, user, configuracao } = resposta.data;
   pendentePorRede = false;
-  cancelarRetentativa();
-  retentativasFeitas = 0;
-  ciclosEsgotado = false;
+  encerrarEpisodio();
   if (userId !== null && user?.id !== userId) {
     emitSessionEvent(SESSION_EVENT.IDENTITY_CHANGED);
     throw rejeicao(RENEW_FAILURE.IDENTIDADE, null);
@@ -164,10 +168,7 @@ function renovar() {
 
 // Chamada de fora do timer: abre um episódio novo de re-tentativas.
 export function renew() {
-  if (!renovacaoEmVoo) {
-    retentativasFeitas = 0;
-    ciclosEsgotado = false;
-  }
+  if (!renovacaoEmVoo) encerrarEpisodio();
   return renovar();
 }
 
@@ -179,7 +180,7 @@ subscribe(SESSION_EVENT.IDENTITY_CHANGED, () => {
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
     if (
-      (pendentePorRede || ciclosEsgotado) &&
+      (pendentePorRede || cicloEsgotado) &&
       accessToken !== null &&
       !hasPendingExit()
     ) {
