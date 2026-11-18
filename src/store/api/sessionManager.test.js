@@ -5,6 +5,7 @@ import {
   SESSION_EVENT,
   SESSION_STATUS,
 } from '@/constants';
+import { clearPendingExit, markPendingExit } from '@/utils/sessionChannel';
 import { AuthApi } from './authApi';
 import {
   clearSession,
@@ -295,6 +296,60 @@ describe('sessionManager: renovação', () => {
         user: { id: 'u1' },
         configuracao: { c: 1 },
       });
+    });
+
+    it.each([
+      ['clearSession', () => clearSession()],
+      [
+        'clearSession com saída pendente',
+        () => {
+          markPendingExit();
+          clearSession();
+        },
+      ],
+    ])(
+      'falha por rede e depois %s: o online não renova nem grava acesso',
+      async (_n, encerrar) => {
+        refresh.mockRejectedValueOnce(rede());
+        await renew().catch(() => {});
+        refresh.mockClear();
+        refresh.mockResolvedValue(ok());
+        encerrar();
+
+        await online();
+
+        expect(refresh).not.toHaveBeenCalled();
+        expect(getAccessToken()).toBeNull();
+        expect(renovado).not.toHaveBeenCalled();
+        clearPendingExit();
+      }
+    );
+
+    it('falha por rede, troca de sessão e online: a pendência da sessão anterior não renova a do novo usuário', async () => {
+      refresh.mockRejectedValueOnce(rede());
+      await renew().catch(() => {});
+      refresh.mockClear();
+      refresh.mockResolvedValue(ok('u2'));
+      clearSession();
+      setSession({ accessToken: 'do-u2', userId: 'u2' });
+
+      await online();
+
+      expect(refresh).not.toHaveBeenCalled();
+      expect(getAccessToken()).toBe('do-u2');
+      expect(renovado).not.toHaveBeenCalled();
+    });
+
+    it('saída pendente com acesso em memória: o online não renova (defesa em profundidade)', async () => {
+      refresh.mockRejectedValueOnce(rede());
+      await renew().catch(() => {});
+      refresh.mockClear();
+      markPendingExit();
+
+      await online();
+      clearPendingExit();
+
+      expect(refresh).not.toHaveBeenCalled();
     });
 
     it('com 401 emite EXPIRED e limpa a sessão', async () => {

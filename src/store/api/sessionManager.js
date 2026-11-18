@@ -1,5 +1,6 @@
 import { RENEW_FAILURE, SESSION_EVENT } from '@/constants/session';
 import { reloadPage } from '@/utils/reloadPage';
+import { hasPendingExit } from '@/utils/sessionChannel';
 import { AuthApi } from './authApi';
 
 // Exceção à cadeia fixa (DEC-003-011): o acesso vive só nesta variável de
@@ -8,6 +9,8 @@ import { AuthApi } from './authApi';
 let accessToken = null;
 let userId = null;
 let epoch = 0;
+// A pendência por rede pertence à época da sessão que a criou: clearSession a desarma.
+let pendentePorRede = false;
 
 const listeners = Object.fromEntries(
   Object.values(SESSION_EVENT).map(evento => [evento, new Set()])
@@ -34,6 +37,7 @@ export function clearSession() {
   accessToken = null;
   userId = null;
   epoch += 1;
+  pendentePorRede = false;
 }
 
 export function subscribe(evento, callback) {
@@ -64,7 +68,6 @@ export function expireSession() {
 // Renovação pelo cookie (DEC-003-012): uma promessa compartilhada por todas as
 // chamadas simultâneas. Rejeita sempre com { tipo, error } (RENEW_FAILURE).
 let renovacaoEmVoo = null;
-let pendentePorRede = false;
 
 function rejeicao(tipo, error) {
   return { tipo, error };
@@ -123,7 +126,7 @@ subscribe(SESSION_EVENT.IDENTITY_CHANGED, () => {
 
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
-    if (pendentePorRede) {
+    if (pendentePorRede && accessToken !== null && !hasPendingExit()) {
       renew().catch(() => {});
     }
   });

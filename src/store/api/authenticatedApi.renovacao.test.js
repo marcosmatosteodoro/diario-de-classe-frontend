@@ -1,8 +1,9 @@
 import { AxiosError } from 'axios';
-import { SESSION_EVENT } from '@/constants/session';
+import { RENEW_FAILURE_MESSAGE, SESSION_EVENT } from '@/constants/session';
 import {
   getRequestErrorMessage,
   SEM_CONEXAO_MESSAGE,
+  thunkErrorPayload,
 } from '@/utils/thunkErrorPayload';
 import { reloadPage } from '@/utils/reloadPage';
 import { AlunoApi } from './alunoApi';
@@ -12,6 +13,7 @@ import {
   clearSession,
   getAccessToken,
   getSessionEpoch,
+  renew,
   setSession,
   subscribe,
 } from './sessionManager';
@@ -141,7 +143,9 @@ describe('AuthenticatedApi: renovação transparente', () => {
   describe('sem laço e recusa (AC-002-030, AC-002-007)', () => {
     it('repetição que volta 401 não renova de novo, limpa a sessão e marca sessionExpired', async () => {
       const api = new AlunoApi();
-      const chamadas = instalarAdaptador(api, () => ({ status: 401 }));
+      const chamadas = instalarAdaptador(api, n =>
+        n <= 2 ? { status: 401 } : { status: 200 }
+      );
 
       await expect(api.getAulasByAluno('a1')).rejects.toMatchObject({
         sessionExpired: true,
@@ -191,7 +195,7 @@ describe('AuthenticatedApi: renovação transparente', () => {
 
     it('renovação 200 e as três repetições 401: EXPIRED e época sobem uma vez', async () => {
       const api = new AlunoApi();
-      instalarAdaptador(api, () => ({ status: 401 }));
+      instalarAdaptador(api, n => (n <= 6 ? { status: 401 } : { status: 200 }));
       const epoca = getSessionEpoch();
 
       const r = await Promise.allSettled([
@@ -221,23 +225,107 @@ describe('AuthenticatedApi: renovação transparente', () => {
       expect(expirou).not.toHaveBeenCalled();
     });
 
-    it('requisição sem Authorization com acesso presente repete direto (comparação ?? null)', async () => {
+    it('requisição sem Authorization com acesso presente na mesma época repete direto (comparação ?? null)', async () => {
+      clearSession();
       const api = new AlunoApi();
+      let liberar;
+      const travada = new Promise(r => (liberar = r));
       const chamadas = [];
       api.api.defaults.adapter = jest.fn(async config => {
         chamadas.push(config.headers.get('Authorization') ?? null);
         if (chamadas.length === 1) {
+          await travada;
           throw new AxiosError('x', 'E', config, null, resposta(config, 401));
         }
         return resposta(config, 200, {});
       });
-      // simula o request interceptor ter rodado sem acesso
-      api.api.interceptors.request.clear();
 
-      await api.get('/x');
+      const pendente = api.get('/x');
+      await Promise.resolve();
+      setSession({ accessToken: 'velho', userId: 'u1' });
+      liberar();
+      await pendente;
 
       expect(renovar).not.toHaveBeenCalled();
-      expect(chamadas).toEqual([null, null]);
+      expect(chamadas).toEqual([null, 'Bearer velho']);
+    });
+  });
+
+  describe('troca de sessão durante a requisição (FR-002-019, TRISK-003-012)', () => {
+    function emVoo(api) {
+      let liberar;
+      const travada = new Promise(r => (liberar = r));
+      const chamadas = [];
+      api.api.defaults.adapter = jest.fn(async config => {
+        chamadas.push(config.headers.get('Authorization') ?? null);
+        if (chamadas.length === 1) {
+          await travada;
+          throw new AxiosError('x', 'E', config, null, resposta(config, 401));
+        }
+        return resposta(config, 200, {});
+      });
+      return { chamadas, liberar };
+    }
+
+    it('401 de requisição da sessão anterior não repete nem renova e rejeita com sessaoTrocada', async () => {
+      const api = new AlunoApi();
+      const { chamadas, liberar } = emVoo(api);
+
+      const pendente = api.get('/x').catch(e => e);
+      await Promise.resolve();
+      clearSession();
+      setSession({ accessToken: 'do-u2', userId: 'u2' });
+      liberar();
+      const erro = await pendente;
+
+      expect(chamadas).toHaveLength(1);
+      expect(renovar).not.toHaveBeenCalled();
+      expect(erro.sessaoTrocada).toBe(true);
+      expect(erro.sessionExpired).toBeUndefined();
+      expect(erro.response?.status).toBeUndefined();
+      expect(expirou).not.toHaveBeenCalled();
+      expect(getAccessToken()).toBe('do-u2');
+    });
+
+    it('controle: acesso trocado por renew() na mesma época repete uma vez com o acesso novo', async () => {
+      const api = new AlunoApi();
+      const { chamadas, liberar } = emVoo(api);
+
+      const pendente = api.get('/x');
+      await Promise.resolve();
+      await renew();
+      liberar();
+      await pendente;
+
+      expect(renovar).toHaveBeenCalledTimes(1);
+      expect(chamadas).toEqual(['Bearer velho', 'Bearer novo']);
+    });
+  });
+
+  describe('renovação com falha não-recusa (gate 11)', () => {
+    it('5xx na renovação leva ao slice a copy do produto, não a do endpoint auxiliar', async () => {
+      renovar.mockRejectedValue(
+        new AxiosError(
+          'x',
+          'E',
+          {},
+          null,
+          resposta({}, 500, { message: 'Erro ao renovar token' })
+        )
+      );
+      const api = new AlunoApi();
+      instalarAdaptador(api, () => ({ status: 401 }));
+
+      const erro = await api.get('/x').catch(e => e);
+
+      expect(erro.response.status).toBe(500);
+      expect(getRequestErrorMessage(erro, 'fallback')).toBe(
+        RENEW_FAILURE_MESSAGE
+      );
+      expect(thunkErrorPayload(erro, 'fallback')).toMatchObject({
+        message: RENEW_FAILURE_MESSAGE,
+        statusError: 500,
+      });
     });
   });
 

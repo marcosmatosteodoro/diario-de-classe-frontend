@@ -1,8 +1,14 @@
-import { RENEW_FAILURE } from '@/constants/session';
+import { RENEW_FAILURE, RENEW_FAILURE_MESSAGE } from '@/constants/session';
 import { BaseApi } from './baseApi';
-import { expireSession, getAccessToken, renew } from './sessionManager';
+import {
+  expireSession,
+  getAccessToken,
+  getSessionEpoch,
+  renew,
+} from './sessionManager';
 
 const REPETIDA = Symbol('requisicaoRepetida');
+const EPOCA = Symbol('epocaDeEnvio');
 
 export class AuthenticatedApi extends BaseApi {
   constructor() {
@@ -13,6 +19,7 @@ export class AuthenticatedApi extends BaseApi {
 
   addTokenInterceptor() {
     this.api.interceptors.request.use(config => {
+      config[EPOCA] = getSessionEpoch();
       const token = getAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -34,6 +41,11 @@ export class AuthenticatedApi extends BaseApi {
     const config = error?.config;
     if (error?.response?.status !== 401 || !config || config[REPETIDA]) {
       throw error;
+    }
+    if (config[EPOCA] !== getSessionEpoch()) {
+      const trocada = new Error('Sessão trocada durante a requisição');
+      trocada.sessaoTrocada = true;
+      throw trocada;
     }
     const atual = getAccessToken();
     if (atual === null) throw error;
@@ -59,7 +71,21 @@ export class AuthenticatedApi extends BaseApi {
       erro.identidadeAlterada = true;
       return erro;
     }
+    if (falha?.tipo === RENEW_FAILURE.FALHA) {
+      return this.erroDeFalhaDaRenovacao(falha.error);
+    }
     return falha?.error ?? original;
+  }
+
+  // O texto do endpoint auxiliar ("Erro ao renovar token") não é do produto:
+  // o erro segue com o status, mas a mensagem que o slice mostra é a da ação.
+  erroDeFalhaDaRenovacao(error) {
+    const erro = new Error(RENEW_FAILURE_MESSAGE);
+    erro.response = {
+      status: error?.response?.status,
+      data: { message: RENEW_FAILURE_MESSAGE, errors: [] },
+    };
+    return erro;
   }
 
   async repetir(config) {

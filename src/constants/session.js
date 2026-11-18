@@ -24,3 +24,6 @@ export const RENEW_FAILURE = {
   FALHA: 'falha',
   IDENTIDADE: 'identidade',
 };
+
+export const RENEW_FAILURE_MESSAGE =
+  'Não foi possível concluir a ação agora. Tente novamente em instantes.';
