@@ -27,3 +27,6 @@ export const RENEW_FAILURE = {
 
 export const RENEW_FAILURE_MESSAGE =
   'Não foi possível concluir a ação agora. Tente novamente em instantes.';
+
+// Backoff da re-tentativa de renovação em FALHA (DEC-005-019): 3 tentativas por episódio.
+export const RENEW_RETRY_DELAYS_MS = [2000, 4000, 8000];

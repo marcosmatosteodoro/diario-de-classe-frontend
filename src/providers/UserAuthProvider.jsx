@@ -213,6 +213,12 @@ export function UserAuthProvider({ children }) {
     );
   };
 
+  /**
+   * Dado de exibição: deriva de `currentUser.permissao`, gravado no cliente e
+   * editável pelo usuário. Serve só para mostrar ou esconder elementos de tela
+   * e nunca é base de decisão de autorização. A autorização é do servidor
+   * (`isLoggedIn` + `adminOnly`, sobre a claim `role` assinada).
+   */
   const isAdmin = () => currentUser && currentUser.permissao === 'admin';
 
   return (

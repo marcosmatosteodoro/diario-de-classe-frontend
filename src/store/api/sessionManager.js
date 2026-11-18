@@ -1,4 +1,8 @@
-import { RENEW_FAILURE, SESSION_EVENT } from '@/constants/session';
+import {
+  RENEW_FAILURE,
+  RENEW_RETRY_DELAYS_MS,
+  SESSION_EVENT,
+} from '@/constants/session';
 import { reloadPage } from '@/utils/reloadPage';
 import { hasPendingExit } from '@/utils/sessionChannel';
 import { AuthApi } from './authApi';
@@ -11,6 +15,23 @@ let userId = null;
 let epoch = 0;
 // A pendência por rede pertence à época da sessão que a criou: clearSession a desarma.
 let pendentePorRede = false;
+// Re-tentativa de FALHA (DEC-005-019): timer único no módulo, preso à época que o agendou.
+let timerRetentativa = null;
+let retentativasFeitas = 0;
+let cicloEsgotado = false;
+
+function cancelarRetentativa() {
+  if (timerRetentativa !== null) clearTimeout(timerRetentativa);
+  timerRetentativa = null;
+}
+
+// Todo caminho que estabelece ou encerra uma sessão fecha o episódio: timer,
+// contagem e ciclo esgotado não atravessam login, troca de usuário nem logout.
+function encerrarEpisodio() {
+  cancelarRetentativa();
+  retentativasFeitas = 0;
+  cicloEsgotado = false;
+}
 
 const listeners = Object.fromEntries(
   Object.values(SESSION_EVENT).map(evento => [evento, new Set()])
@@ -32,7 +53,10 @@ export function setSession({ accessToken: token, userId: id }) {
   const novoId = id ?? null;
   // Troca de identidade sem clearSession() prévio também encerra a época: as
   // requisições em voo do usuário anterior deixam de valer.
-  if (userId !== null && novoId !== userId) epoch += 1;
+  if (userId !== null && novoId !== userId) {
+    epoch += 1;
+  }
+  encerrarEpisodio();
   accessToken = token ?? null;
   userId = novoId;
 }
@@ -42,6 +66,7 @@ export function clearSession() {
   userId = null;
   epoch += 1;
   pendentePorRede = false;
+  encerrarEpisodio();
 }
 
 export function subscribe(evento, callback) {
@@ -77,6 +102,22 @@ function rejeicao(tipo, error) {
   return { tipo, error };
 }
 
+function agendarRetentativa(epocaAgendada) {
+  cancelarRetentativa();
+  if (hasPendingExit()) return;
+  if (retentativasFeitas >= RENEW_RETRY_DELAYS_MS.length) {
+    cicloEsgotado = true;
+    return;
+  }
+  const atraso = RENEW_RETRY_DELAYS_MS[retentativasFeitas];
+  timerRetentativa = setTimeout(() => {
+    timerRetentativa = null;
+    if (epocaAgendada !== epoch || hasPendingExit()) return;
+    retentativasFeitas += 1;
+    renovar().catch(() => {});
+  }, atraso);
+}
+
 async function executarRenovacao() {
   const epocaInicial = epoch;
   let resposta;
@@ -95,6 +136,7 @@ async function executarRenovacao() {
       throw rejeicao(RENEW_FAILURE.RECUSADA, error);
     }
     pendentePorRede = !error?.response;
+    if (error?.response) agendarRetentativa(epocaInicial);
     throw rejeicao(
       error?.response ? RENEW_FAILURE.FALHA : RENEW_FAILURE.REDE,
       error
@@ -105,6 +147,7 @@ async function executarRenovacao() {
   }
   const { accessToken: novo, user, configuracao } = resposta.data;
   pendentePorRede = false;
+  encerrarEpisodio();
   if (userId !== null && user?.id !== userId) {
     emitSessionEvent(SESSION_EVENT.IDENTITY_CHANGED);
     throw rejeicao(RENEW_FAILURE.IDENTIDADE, null);
@@ -114,13 +157,19 @@ async function executarRenovacao() {
   return { accessToken: novo, user, configuracao };
 }
 
-export function renew() {
+function renovar() {
   if (renovacaoEmVoo) return renovacaoEmVoo;
   const promessa = executarRenovacao().finally(() => {
     if (renovacaoEmVoo === promessa) renovacaoEmVoo = null;
   });
   renovacaoEmVoo = promessa;
   return promessa;
+}
+
+// Chamada de fora do timer: abre um episódio novo de re-tentativas.
+export function renew() {
+  if (!renovacaoEmVoo) encerrarEpisodio();
+  return renovar();
 }
 
 subscribe(SESSION_EVENT.IDENTITY_CHANGED, () => {
@@ -130,7 +179,11 @@ subscribe(SESSION_EVENT.IDENTITY_CHANGED, () => {
 
 if (typeof window !== 'undefined') {
   window.addEventListener('online', () => {
-    if (pendentePorRede && accessToken !== null && !hasPendingExit()) {
+    if (
+      (pendentePorRede || cicloEsgotado) &&
+      accessToken !== null &&
+      !hasPendingExit()
+    ) {
       renew().catch(() => {});
     }
   });

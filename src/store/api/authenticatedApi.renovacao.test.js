@@ -441,8 +441,36 @@ describe('AuthenticatedApi: renovação transparente', () => {
     });
   });
 
+  describe('renovação em FALHA 503 agenda re-tentativas (DEC-005-019)', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('401 seguido de 503 na renovação: payload com a copy do produto e re-tentativa agendada', async () => {
+      jest.useFakeTimers();
+      renovar.mockRejectedValue(
+        new AxiosError('x', 'E', {}, null, resposta({}, 503, {}))
+      );
+      const api = new AlunoApi();
+      instalarAdaptador(api, () => ({ status: 401 }));
+
+      const erro = await api.get('/x').catch(e => e);
+
+      expect(thunkErrorPayload(erro, 'fallback')).toMatchObject({
+        message: RENEW_FAILURE_MESSAGE,
+      });
+      expect(renovar).toHaveBeenCalledTimes(1);
+      expect(jest.getTimerCount()).toBeGreaterThanOrEqual(1);
+      await jest.advanceTimersByTimeAsync(2000);
+      expect(renovar).toHaveBeenCalledTimes(2);
+      expect(expirou).not.toHaveBeenCalled();
+      expect(getAccessToken()).toBe('velho');
+    });
+  });
+
   describe('nada de renovação indevida (AC-002-031)', () => {
-    it.each([403, 404, 500])('%s não renova', async status => {
+    it.each([403, 404, 500, 503])('%s não renova', async status => {
+      jest.useFakeTimers();
       const api = new AlunoApi();
       instalarAdaptador(api, () => ({ status }));
 
@@ -451,8 +479,10 @@ describe('AuthenticatedApi: renovação transparente', () => {
       });
 
       expect(renovar).not.toHaveBeenCalled();
+      expect(jest.getTimerCount()).toBe(0);
       expect(getAccessToken()).toBe('velho');
       expect(expirou).not.toHaveBeenCalled();
+      jest.useRealTimers();
     });
 
     it('login com 401 não renova e AuthApi não tem interceptor de resposta', async () => {

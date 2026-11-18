@@ -98,6 +98,7 @@ describe('UserAuthProvider (provider real)', () => {
       pendencias.splice(0).forEach(resolve => resolve(RESTAURADA));
     });
     refreshToken.mockRestore();
+    clearSession();
   });
 
   it('estado inicial literal: restoring, isAuthenticated pendente e sem usuário na memória', async () => {
@@ -404,6 +405,72 @@ describe('UserAuthProvider (provider real)', () => {
       expect(result.current.sessionStatus).toBe(SESSION_STATUS.AUTHENTICATED);
       expect(clearPendingExit).not.toHaveBeenCalled();
       expect(clearAppCache).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('indisponibilidade temporária 503 com re-tentativa (AC-004-013 b, FR-004-017)', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    async function avancar(ms) {
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(ms);
+      });
+    }
+
+    it('503: unavailable, endReason nunca e sem usuário; 200 em 2 s restaura com os dados do servidor', async () => {
+      refreshToken
+        .mockRejectedValueOnce(recusa(503))
+        .mockResolvedValueOnce(RESTAURADA);
+      const { result } = await montar();
+      expect(result.current.sessionStatus).toBe(SESSION_STATUS.UNAVAILABLE);
+      expect(result.current.endReason).toBe(SESSION_END_REASON.NUNCA);
+      expect(result.current.currentUser).toBeNull();
+
+      await avancar(1999);
+      expect(result.current.sessionStatus).toBe(SESSION_STATUS.UNAVAILABLE);
+      await avancar(1);
+      expect(result.current.sessionStatus).toBe(SESSION_STATUS.AUTHENTICATED);
+      expect(result.current.currentUser).toEqual(RESTAURADA.data.user);
+      expect(result.current.settings.duracaoAula).toBe(50);
+    });
+
+    it('503, 503 e 200 (2 s e 4 s) restaura', async () => {
+      refreshToken
+        .mockRejectedValueOnce(recusa(503))
+        .mockRejectedValueOnce(recusa(503))
+        .mockResolvedValueOnce(RESTAURADA);
+      const { result } = await montar();
+      await avancar(2000);
+      expect(result.current.sessionStatus).toBe(SESSION_STATUS.UNAVAILABLE);
+      await avancar(4000);
+      expect(result.current.sessionStatus).toBe(SESSION_STATUS.AUTHENTICATED);
+      expect(result.current.currentUser).toEqual(RESTAURADA.data.user);
+    });
+
+    it('503 nas 4 chamadas segue unavailable; retryRestore volta a restoring e a authenticated', async () => {
+      refreshToken.mockRejectedValue(recusa(503));
+      const { result } = await montar();
+      await avancar(14000);
+      expect(refreshToken).toHaveBeenCalledTimes(4);
+      expect(result.current.sessionStatus).toBe(SESSION_STATUS.UNAVAILABLE);
+      expect(result.current.endReason).toBe(SESSION_END_REASON.NUNCA);
+
+      let liberar;
+      refreshToken.mockReturnValueOnce(new Promise(r => (liberar = r)));
+      act(() => {
+        result.current.retryRestore();
+      });
+      expect(result.current.sessionStatus).toBe(SESSION_STATUS.RESTORING);
+      await act(async () => {
+        liberar(RESTAURADA);
+      });
+      expect(result.current.sessionStatus).toBe(SESSION_STATUS.AUTHENTICATED);
     });
   });
 
