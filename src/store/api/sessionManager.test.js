@@ -35,6 +35,10 @@ describe('sessionManager', () => {
     clearSession();
   });
 
+  afterEach(() => {
+    clearSession();
+  });
+
   it('setSession guarda acesso e identidade', () => {
     setSession({ accessToken: 'tok-1', userId: 'u-1' });
     expect(getAccessToken()).toBe('tok-1');
