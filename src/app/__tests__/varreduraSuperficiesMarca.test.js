@@ -4,8 +4,8 @@ import '@testing-library/jest-dom';
 // (DEC-006-009 · demonstracao) Prova agregada (AC-005-012, fechamento de
 // TRISK-006-003): Header, Footer e o `<head>` de RootLayout renderizados
 // juntos sob a marca fictícia não produzem o texto "BLS" nem referenciam
-// uma imagem da marca padrão — nenhuma das três superfícies escapa à
-// garantia isoladamente provada por elas em TASK-006-003.
+// uma imagem da marca padrão — garantia já provada isoladamente por cada
+// uma.
 
 jest.mock('@/hooks/auth/useLogout', () => ({ useLogout: jest.fn() }));
 jest.mock('@/providers/UnsavedChangesGuardProvider', () => ({
@@ -46,13 +46,16 @@ async function renderizarSuperficies(valorMarca) {
 
   let container;
   let promessaLayout;
+  let metadataCapturada;
   try {
     jest.isolateModules(() => {
       jest.doMock('react', () => reactReal);
       const { Header } = require('@/components/ui/Header');
       const { Footer } = require('@/components/ui/Footer');
       const { ThemeProvider } = require('@/providers/ThemeProvider');
-      const { default: RootLayout } = require('@/app/layout');
+      const layoutModule = require('@/app/layout');
+      const RootLayout = layoutModule.default;
+      metadataCapturada = layoutModule.metadata;
       const nextHeaders = require('next/headers');
       nextHeaders.cookies.mockResolvedValue({ get: () => undefined });
       nextHeaders.headers.mockResolvedValue(new Headers());
@@ -74,14 +77,18 @@ async function renderizarSuperficies(valorMarca) {
     });
 
     const arvoreLayout = await promessaLayout;
-    return { container, arvoreLayout };
+    return { container, arvoreLayout, metadata: metadataCapturada };
   } finally {
     if (marcaOriginal === undefined) delete process.env.NEXT_PUBLIC_MARCA;
     else process.env.NEXT_PUBLIC_MARCA = marcaOriginal;
   }
 }
 
-function textoCompletoDe({ container, arvoreLayout }) {
+// `metadata` (title/description exportados pelo módulo do RootLayout) entra
+// no texto agregado: uma regressão que trocasse o título pela marca padrão
+// não deixaria rastro em `container`/`arvoreLayout` (não é DOM renderizado
+// nem nó do `<head>`) e passaria batida sem isto.
+function textoCompletoDe({ container, arvoreLayout, metadata }) {
   const atributosDom = ['src', 'href', 'alt'];
   const valoresDom = Array.from(container.querySelectorAll('*'))
     .flatMap(el => atributosDom.map(nome => el.getAttribute(nome)))
@@ -91,7 +98,15 @@ function textoCompletoDe({ container, arvoreLayout }) {
     'content',
     'alt',
   ]);
-  return [container.textContent, ...valoresDom, ...atributosLayout].join(' ');
+  const textoMetadata = [metadata?.title, metadata?.description].filter(
+    Boolean
+  );
+  return [
+    container.textContent,
+    ...valoresDom,
+    ...atributosLayout,
+    ...textoMetadata,
+  ].join(' ');
 }
 
 function imagensDe({ container, arvoreLayout }) {

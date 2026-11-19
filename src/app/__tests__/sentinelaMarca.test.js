@@ -21,11 +21,9 @@ import path from 'node:path';
 const DIRETORIOS_VARRIDOS = ['src', 'public'];
 const DIRETORIOS_IGNORADOS = new Set(['node_modules', '.next', 'coverage']);
 
-// PNG/ICO decodificados como UTF-8 produzem bytes de substituição que podem
-// casar "bls" por acidente de byte (falso positivo) — e nunca carregam o
-// literal como texto de propósito. A sentinela só lê como texto as
-// extensões abaixo; o restante (binário conhecido) é ignorado por extensão,
-// nunca por conteúdo.
+// Binários conhecidos (lista abaixo) são ignorados por extensão, nunca por
+// conteúdo: bytes ASCII soltos de um PNG/ICO podem formar "bls" por acaso.
+// Todo arquivo fora desta lista é lido como texto.
 const EXTENSOES_BINARIAS = new Set([
   '.png',
   '.ico',
