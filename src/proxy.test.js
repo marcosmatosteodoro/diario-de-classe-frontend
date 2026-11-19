@@ -87,8 +87,15 @@ describe('config.matcher', () => {
     '/_next/imagex',
     '/api',
     '/apix',
-    // (DEC-006-006 · demonstracao) controle positivo: sem a barra de prefixo
-    // real, `marcas\/.*` não pode casar por substring solta.
+    // (DEC-006-006 · demonstracao) exceção por arquivo real: só o caminho
+    // exato dos 6 arquivos escapa da CSP — qualquer outra coisa sob
+    // `/marcas/`, inexistente ou com sufixo, continua coberta pelo documento.
+    '/marcas/qualquer',
+    '/marcas/exemplo/inexistente.png',
+    '/marcas/exemplo/logo-claro.pngx',
+    '/marcas/exemplo/logo-claro.png/x',
+    '/marcas/exemplo/manifest.jsonx',
+    '/marcas',
     '/marcas-falso/x.png',
   ])('cobre o documento %s', caminho => {
     expect(casa(caminho)).toBe(true);
@@ -110,9 +117,13 @@ describe('config.matcher', () => {
     '/favicon.ico',
     '/_next/static/chunks/a.js',
     '/_next/image',
-    // (DEC-006-006 · demonstracao) imagens e manifesto da marca fictícia,
+    // (DEC-006-006 · demonstracao) os 6 arquivos reais da marca fictícia,
     // pedidos diretamente por Header/layout.jsx (desenho híbrido, DEC-006-002).
     '/marcas/exemplo/logo-claro.png',
+    '/marcas/exemplo/logo-escuro.png',
+    '/marcas/exemplo/icon-192.png',
+    '/marcas/exemplo/icon-512.png',
+    '/marcas/exemplo/icon-maskable.png',
     '/marcas/exemplo/manifest.json',
   ])('exclui o estático ou a API %s', caminho => {
     expect(casa(caminho)).toBe(false);

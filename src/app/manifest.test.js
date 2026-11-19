@@ -64,14 +64,14 @@ const HASHES_MARCA_PADRAO = {
 };
 
 // Cor de fundo do `icon-maskable.png` fictício, usada pelo comando de geração
-// desta TASK (DEC-006-007 · demonstracao) fora da zona segura de 80%.
+// (DEC-006-007 · demonstracao) fora da zona segura de 80%.
 const COR_DE_FUNDO_ICONE_MASCARAVEL_FICTICIO = [13, 148, 136];
 
 // Decodificador PNG mínimo (sem dependência nova — DEC-006-007 · demonstracao):
 // concatena os chunks IDAT, inflaciona com `zlib` e desfaz o filtro
 // por scanline (spec PNG, seção "Filtering") para expor os bytes de pixel.
 // Só RGB (color type 2) e RGBA (6), 8 bits, sem interlace — suficiente para
-// os PNGs gerados por esta TASK.
+// os PNGs gerados pelo comando de geração (DEC-006-007 · demonstracao).
 function paethPredictor(a, b, c) {
   const p = a + b - c;
   const pa = Math.abs(p - a);
