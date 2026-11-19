@@ -125,8 +125,7 @@ describe('Header Component', () => {
   });
 
   // (DEC-006-002 · demonstracao) AC-005-006/AC-005-002: módulo recarregado
-  // com NEXT_PUBLIC_MARCA=exemplo lê caminho/alt próprios da marca fictícia
-  // — molde `carregarConfig` de next.config.test.js:28-43, adaptado:
+  // com NEXT_PUBLIC_MARCA=exemplo lê caminho/alt próprios da marca fictícia —
   // `jest.isolateModules` troca o registro só para esta chamada, com
   // `react` explicitamente realiasado à instância real já carregada pelo
   // arquivo de teste (sem o alias, o dispatcher de hooks do React

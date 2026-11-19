@@ -20,9 +20,9 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
-// (DEC-006-002 · demonstracao) Título e ícone do head lidos do registro —
-// com a marca padrão, idênticos ao literal de hoje; `manifest`/`theme-color`
-// continuam literais (fora do registro, resolvidos pelo rewrite — DEC-006-004).
+// (DEC-006-002 · demonstracao) Título e ícone do head lidos do registro;
+// `manifest`/`theme-color` continuam literais (fora do registro, resolvidos
+// pelo rewrite — DEC-006-004).
 const marca = resolverMarca(process.env.NEXT_PUBLIC_MARCA);
 
 export const metadata = {

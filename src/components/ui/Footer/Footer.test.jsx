@@ -29,22 +29,41 @@ describe('Footer', () => {
 });
 
 // (DEC-006-002 · demonstracao) AC-005-007/AC-005-001: nome lido do registro
-// — com a marca padrão, idêntico ao literal de hoje.
+// — módulo recarregado sem `NEXT_PUBLIC_MARCA` (mesmo isolamento do describe
+// "marca fictícia" abaixo, na direção oposta): sem isolar, um ambiente com a
+// variável setada (ex.: `.env` do front com `NEXT_PUBLIC_MARCA=exemplo`)
+// faria este caso herdar a marca fictícia do módulo já carregado por outro
+// describe deste arquivo.
 describe('marca padrão', () => {
+  const MARCA_ORIGINAL = process.env.NEXT_PUBLIC_MARCA;
+  const reactReal = require('react');
+
+  afterEach(() => {
+    if (MARCA_ORIGINAL === undefined) delete process.env.NEXT_PUBLIC_MARCA;
+    else process.env.NEXT_PUBLIC_MARCA = MARCA_ORIGINAL;
+  });
+
   it('renders copyright text', () => {
-    const { getByText } = render(<Footer />);
+    delete process.env.NEXT_PUBLIC_MARCA;
+    let utils;
+    jest.isolateModules(() => {
+      jest.doMock('react', () => reactReal);
+      const { Footer: FooterPadrao } = require('./index');
+      utils = render(<FooterPadrao />);
+    });
+    const { getByText } = utils;
+
     expect(getByText(/BLS Idiomas/i)).toBeInTheDocument();
   });
 });
 
 // (DEC-006-002 · demonstracao) AC-005-007/AC-005-002: módulo recarregado com
-// NEXT_PUBLIC_MARCA=exemplo lê o nome da marca fictícia — molde
-// `carregarConfig` de next.config.test.js:28-43, adaptado: `jest.isolateModules`
-// troca o registro só para esta chamada, com `react` explicitamente
-// realiasado à instância real já carregada pelo arquivo de teste (sem o
-// alias, o dispatcher de hooks do React recarregado fica desconectado do
-// `react-dom` usado por `render`, e `useState`/`useEffect` do Footer
-// recarregado explodem com "Invalid hook call").
+// NEXT_PUBLIC_MARCA=exemplo lê o nome da marca fictícia —
+// `jest.isolateModules` troca o registro só para esta chamada, com `react`
+// explicitamente realiasado à instância real já carregada pelo arquivo de
+// teste (sem o alias, o dispatcher de hooks do React recarregado fica
+// desconectado do `react-dom` usado por `render`, e `useState`/`useEffect`
+// do Footer recarregado explodem com "Invalid hook call").
 describe('marca fictícia', () => {
   const MARCA_ORIGINAL = process.env.NEXT_PUBLIC_MARCA;
   const reactReal = require('react');

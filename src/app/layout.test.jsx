@@ -37,8 +37,7 @@ function findHeadChildren(element) {
   return Array.isArray(children) ? children : [children];
 }
 
-// Molde de `carregarConfig` (next.config.test.js:28-43), adaptado: recarrega
-// `./layout` com `NEXT_PUBLIC_MARCA` setada/ausente (DEC-006-002 ·
+// Recarrega `./layout` com `NEXT_PUBLIC_MARCA` setada/ausente (DEC-006-002 ·
 // demonstracao) e reconecta os mocks de `next/headers` na instância nova do
 // módulo (jest.resetModules() cria mocks novos para toda dependência).
 async function carregarLayout(valorMarca) {
@@ -151,15 +150,24 @@ describe('ícone e manifest por marca', () => {
     };
   }
 
-  it('marca padrão: aponta as meta tags do head para os ícones reais, nunca mais para /bls.png', async () => {
-    cookies.mockResolvedValue({ get: () => undefined });
-    headers.mockResolvedValue(new Headers());
+  // AC-005-016a: unicidade do manifesto é provada por contagem — `find`
+  // aceitaria um segundo `<link rel="manifest">` no head sem reprovar.
+  function countManifestLinks(tree) {
+    return findHeadChildren(tree).filter(
+      child =>
+        child && typeof child === 'object' && child.props?.rel === 'manifest'
+    );
+  }
 
-    const tree = await RootLayout({ children: 'conteudo' });
+  it('marca padrão: aponta as meta tags do head para os ícones reais, nunca mais para /bls.png', async () => {
+    const { default: RootLayoutPadrao } = await carregarLayout(undefined);
+
+    const tree = await RootLayoutPadrao({ children: 'conteudo' });
     const { manifestLink, themeColorMeta, iconLink, appleTouchIconLink } =
       headTags(tree);
 
     expect(manifestLink.props.href).toBe('/manifest.json');
+    expect(countManifestLinks(tree)).toHaveLength(1);
     expect(themeColorMeta.props.content).toBe('#1e293b');
     expect(iconLink.props.href).toMatch(/^\/icon-(192|512)\.png$/);
     expect(appleTouchIconLink.props.href).toMatch(/^\/icon-(192|512)\.png$/);
@@ -175,12 +183,12 @@ describe('ícone e manifest por marca', () => {
     expect(iconLink.props.href).toBe('/marcas/exemplo/icon-192.png');
     expect(appleTouchIconLink.props.href).toBe('/marcas/exemplo/icon-192.png');
     expect(manifestLink.props.href).toBe('/manifest.json');
+    expect(countManifestLinks(tree)).toHaveLength(1);
     expect(themeColorMeta.props.content).toBe('#1e293b');
   });
 });
 
-// (DEC-006-002 · demonstracao) AC-005-008: título da aba lido do registro —
-// com a marca padrão, idêntico ao literal de hoje.
+// (DEC-006-002 · demonstracao) AC-005-008: título da aba lido do registro.
 describe('título da aba por marca', () => {
   it('marca padrão: metadata.title é "Diário de Classe" (idêntico a hoje)', async () => {
     const mod = await carregarLayout(undefined);

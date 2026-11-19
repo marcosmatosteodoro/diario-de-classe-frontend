@@ -5,8 +5,7 @@ import { resolverMarca } from '@/utils/marcas.mjs';
 import { Menu, MoonIcon, SunIcon, X } from 'lucide-react';
 import Image from 'next/image';
 
-// (DEC-006-002 · demonstracao) Caminho/alt lidos do registro — com a marca
-// padrão, idênticos ao literal de hoje.
+// (DEC-006-002 · demonstracao) Caminho/alt lidos do registro.
 const marca = resolverMarca(process.env.NEXT_PUBLIC_MARCA);
 
 export const Header = ({ isExpanded, toggleSidebar }) => {

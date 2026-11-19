@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import packageJson from '../../../../package.json';
 import { resolverMarca } from '@/utils/marcas.mjs';
 
-// (DEC-006-002 · demonstracao) Nome lido do registro — com a marca padrão,
-// idêntico ao literal de hoje.
+// (DEC-006-002 · demonstracao) Nome lido do registro.
 const marca = resolverMarca(process.env.NEXT_PUBLIC_MARCA);
 
 export const Footer = () => {
