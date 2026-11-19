@@ -1,5 +1,10 @@
 // Adiciona configuração turbopack vazia para Next.js 16
 import { OFFLINE_CONTENT_SECURITY_POLICY } from './src/utils/offlineContentSecurityPolicy.mjs';
+import {
+  MARCAS,
+  SUPERFICIES_SEM_REGISTRO,
+  resolverMarca,
+} from './src/utils/marcas.mjs';
 
 // Alimenta `NEXT_PUBLIC_BUILD_ID` — mecanismo `?v=` de invalidação de cache
 // do SW documentado em `public/sw.js`.
@@ -38,6 +43,11 @@ function resolveApiInternalUrl() {
 
 const API_INTERNAL_URL = resolveApiInternalUrl();
 
+// (DEC-006-003 · demonstracao) Seleção e validação sempre, sem checar
+// NODE_ENV: ausente/vazio já é o default (marca padrão); qualquer outro
+// valor lança em dev, build e produção igualmente, antes de abrir porta.
+const MARCA = resolverMarca(process.env.NEXT_PUBLIC_MARCA);
+
 const SECURITY_HEADERS = [
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -71,7 +81,25 @@ const config = {
     proxyTimeout: API_PROXY_TIMEOUT_MS,
     proxyClientMaxBodySize: API_PROXY_MAX_BODY_BYTES,
   },
+  // (DEC-006-004 · demonstracao) rewrites() como { beforeFiles, afterFiles },
+  // condicional à marca: só as superfícies que não leem o registro (sw.js,
+  // offline.html, <link rel="manifest">) precisam de rewrite — Header e
+  // layout.jsx leem o caminho certo direto do registro.
   async rewrites() {
+    if (MARCA === MARCAS.exemplo) {
+      return {
+        beforeFiles: SUPERFICIES_SEM_REGISTRO.map(({ literal, destino }) => ({
+          source: `/${literal}`,
+          destination: destino,
+        })),
+        afterFiles: [
+          {
+            source: '/api/:path*',
+            destination: `${API_INTERNAL_URL}/api/:path*`,
+          },
+        ],
+      };
+    }
     return [
       {
         source: '/api/:path*',

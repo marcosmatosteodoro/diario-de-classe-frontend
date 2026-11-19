@@ -20,6 +20,10 @@ COPY . .
 ARG API_INTERNAL_URL
 ENV API_INTERNAL_URL=$API_INTERNAL_URL
 
+# * ARG/ENV de NEXT_PUBLIC_MARCA — paridade com API_INTERNAL_URL (DEC-006-005 · demonstracao)
+ARG NEXT_PUBLIC_MARCA
+ENV NEXT_PUBLIC_MARCA=$NEXT_PUBLIC_MARCA
+
 # Build the Next.js app
 RUN npm run build
 
@@ -35,12 +39,18 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/next.config.mjs ./
 # next.config.mjs importa este módulo; o next start o carrega em runtime
 COPY --from=builder /app/src/utils/offlineContentSecurityPolicy.mjs ./src/utils/offlineContentSecurityPolicy.mjs
+# * COPY de marcas.mjs — paridade de teste (DEC-006-005 · demonstracao); Docker não é o caminho de publicação real (Vercel)
+COPY --from=builder /app/src/utils/marcas.mjs ./src/utils/marcas.mjs
 COPY --from=builder /app/next-env.d.ts ./
 COPY --from=builder /app/jsconfig.json ./
 
 # O next start carrega o next.config.mjs, que exige a variável em produção
 ARG API_INTERNAL_URL
 ENV API_INTERNAL_URL=$API_INTERNAL_URL
+
+# * ARG/ENV de NEXT_PUBLIC_MARCA — paridade com API_INTERNAL_URL (DEC-006-005 · demonstracao)
+ARG NEXT_PUBLIC_MARCA
+ENV NEXT_PUBLIC_MARCA=$NEXT_PUBLIC_MARCA
 
 # Set environment variable for production
 ENV NODE_ENV=production

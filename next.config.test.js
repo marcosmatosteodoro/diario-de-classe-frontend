@@ -23,7 +23,12 @@ const NEXT_DEFAULT_PROXY_TIMEOUT_MS = 30_000;
 // Literal ancorado: o backend é outro repositório e não está no runner.
 const BACKEND_UPLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
 
-const ENV_KEYS = ['API_INTERNAL_URL', 'NEXT_PUBLIC_API_URL', 'NODE_ENV'];
+const ENV_KEYS = [
+  'API_INTERNAL_URL',
+  'NEXT_PUBLIC_API_URL',
+  'NODE_ENV',
+  'NEXT_PUBLIC_MARCA',
+];
 
 async function carregarConfig(env) {
   const salvo = Object.fromEntries(ENV_KEYS.map(k => [k, process.env[k]]));
@@ -178,6 +183,83 @@ describe('next.config — rewrites e proxy', () => {
   });
 });
 
+describe('next.config — marca', () => {
+  it('sem NEXT_PUBLIC_MARCA, rewrites() é idêntico a hoje (marca padrão)', async () => {
+    const config = await carregarConfig({
+      API_INTERNAL_URL: 'http://x.example:1234',
+      NODE_ENV: 'development',
+    });
+    expect(await config.rewrites()).toEqual([
+      {
+        source: '/api/:path*',
+        destination: 'http://x.example:1234/api/:path*',
+      },
+    ]);
+  });
+
+  it('com NEXT_PUBLIC_MARCA=exemplo, rewrites() mapeia as 6 superfícies sem registro', async () => {
+    const config = await carregarConfig({
+      API_INTERNAL_URL: 'http://x.example:1234',
+      NODE_ENV: 'development',
+      NEXT_PUBLIC_MARCA: 'exemplo',
+    });
+    expect(await config.rewrites()).toEqual({
+      beforeFiles: [
+        {
+          source: '/manifest.json',
+          destination: '/marcas/exemplo/manifest.json',
+        },
+        {
+          source: '/icon-192.png',
+          destination: '/marcas/exemplo/icon-192.png',
+        },
+        {
+          source: '/icon-512.png',
+          destination: '/marcas/exemplo/icon-512.png',
+        },
+        {
+          source: '/icon-maskable.png',
+          destination: '/marcas/exemplo/icon-maskable.png',
+        },
+        { source: '/bls.png', destination: '/marcas/exemplo/logo-claro.png' },
+        {
+          source: '/bls-dark.png',
+          destination: '/marcas/exemplo/logo-escuro.png',
+        },
+      ],
+      afterFiles: [
+        {
+          source: '/api/:path*',
+          destination: 'http://x.example:1234/api/:path*',
+        },
+      ],
+    });
+  });
+
+  it.each(['BLS2', ' exemplo', '   '])(
+    'recusa NEXT_PUBLIC_MARCA=%s em development, citando o nome da variável',
+    async valor => {
+      const promessa = carregarConfig({
+        NODE_ENV: 'development',
+        NEXT_PUBLIC_MARCA: valor,
+      });
+      await expect(promessa).rejects.toThrow('NEXT_PUBLIC_MARCA');
+    }
+  );
+
+  it.each(['BLS2', ' exemplo', '   '])(
+    'recusa NEXT_PUBLIC_MARCA=%s em production também (sem default de dev, DEC-006-003)',
+    async valor => {
+      const promessa = carregarConfig({
+        NODE_ENV: 'production',
+        NEXT_PUBLIC_MARCA: valor,
+        API_INTERNAL_URL: 'http://x.example:1234',
+      });
+      await expect(promessa).rejects.toThrow('NEXT_PUBLIC_MARCA');
+    }
+  );
+});
+
 describe('Dockerfile', () => {
   const linhas = readFileSync(
     path.join(process.cwd(), 'Dockerfile'),
@@ -207,7 +289,23 @@ describe('Dockerfile', () => {
     expect(runner.some(l => /^ENV API_INTERNAL_URL=/.test(l))).toBe(true);
   });
 
-  it('o next.config.mjs carrega só com o que o estágio runner copia', async () => {
+  it('builder declara ARG NEXT_PUBLIC_MARCA antes de RUN npm run build', () => {
+    const iArg = builder.findIndex(l => /^ARG NEXT_PUBLIC_MARCA\s*$/.test(l));
+    const iBuild = builder.findIndex(l => /^RUN npm run build\s*$/.test(l));
+    expect(iArg).toBeGreaterThanOrEqual(0);
+    expect(iBuild).toBeGreaterThan(iArg);
+  });
+
+  it('runner declara ARG e ENV de NEXT_PUBLIC_MARCA', () => {
+    expect(runner.some(l => /^ARG NEXT_PUBLIC_MARCA\s*$/.test(l))).toBe(true);
+    expect(runner.some(l => /^ENV NEXT_PUBLIC_MARCA=/.test(l))).toBe(true);
+  });
+
+  // Simula o estágio runner num diretório temporário, copiando só o que as
+  // linhas `COPY` do runner listam, e importa o next.config.mjs de lá —
+  // prova que o config carrega com o que o Dockerfile realmente copia
+  // (DEC-006-005 · demonstracao), sem depender do restante do repositório.
+  async function importConfigSimulandoRunner(envExtra = {}) {
     // Destino terminado em `/` recebe o arquivo com o nome da origem.
     const destinos = runner
       .map(l => /^COPY --from=builder \/app\/(\S+) (\S+)\s*$/.exec(l))
@@ -220,10 +318,14 @@ describe('Dockerfile', () => {
           .replace(/\/$/, '')
       );
     const raiz = mkdtempSync(path.join(tmpdir(), 'runner-'));
-    const salvo = {
-      API_INTERNAL_URL: process.env.API_INTERNAL_URL,
-      NODE_ENV: process.env.NODE_ENV,
+    const envFinal = {
+      API_INTERNAL_URL: 'http://backend.example:4000',
+      NODE_ENV: 'production',
+      ...envExtra,
     };
+    const salvo = Object.fromEntries(
+      Object.keys(envFinal).map(k => [k, process.env[k]])
+    );
     try {
       for (const d of destinos) {
         if (d === 'node_modules') {
@@ -237,13 +339,14 @@ describe('Dockerfile', () => {
           cpSync(path.join(process.cwd(), d), path.join(raiz, d));
         }
       }
-      process.env.API_INTERNAL_URL = 'http://backend.example:4000';
-      process.env.NODE_ENV = 'production';
+      for (const [k, v] of Object.entries(envFinal)) {
+        process.env[k] = v;
+      }
       jest.resetModules();
       const mod = await import(
         pathToFileURL(path.join(raiz, 'next.config.mjs')).href
       );
-      expect(mod.default.rewrites).toEqual(expect.any(Function));
+      return mod.default;
     } finally {
       for (const [k, v] of Object.entries(salvo)) {
         if (v === undefined) delete process.env[k];
@@ -251,5 +354,17 @@ describe('Dockerfile', () => {
       }
       rmSync(raiz, { recursive: true, force: true });
     }
+  }
+
+  it('o next.config.mjs carrega só com o que o estágio runner copia', async () => {
+    const config = await importConfigSimulandoRunner();
+    expect(config.rewrites).toEqual(expect.any(Function));
+  });
+
+  it('o next.config.mjs carrega com NEXT_PUBLIC_MARCA=exemplo (marcas.mjs copiado pelo runner)', async () => {
+    const config = await importConfigSimulandoRunner({
+      NEXT_PUBLIC_MARCA: 'exemplo',
+    });
+    expect(config.rewrites).toEqual(expect.any(Function));
   });
 });
