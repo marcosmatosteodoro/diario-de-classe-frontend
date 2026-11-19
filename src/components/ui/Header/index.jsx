@@ -1,8 +1,13 @@
 import { useLogout } from '@/hooks/auth/useLogout';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useUnsavedChangesGuard } from '@/providers/UnsavedChangesGuardProvider';
+import { resolverMarca } from '@/utils/marcas.mjs';
 import { Menu, MoonIcon, SunIcon, X } from 'lucide-react';
 import Image from 'next/image';
+
+// (DEC-006-002 · demonstracao) Caminho/alt lidos do registro — com a marca
+// padrão, idênticos ao literal de hoje.
+const marca = resolverMarca(process.env.NEXT_PUBLIC_MARCA);
 
 export const Header = ({ isExpanded, toggleSidebar }) => {
   const { logoutUser, isLoggingOut } = useLogout();
@@ -45,8 +50,8 @@ export const Header = ({ isExpanded, toggleSidebar }) => {
           <div>
             <Image
               className="h-full "
-              src={theme === 'dark' ? '/bls-dark.png' : '/bls.png'}
-              alt="Logo da empresa BLS"
+              src={theme === 'dark' ? marca.logoEscuro : marca.logoClaro}
+              alt={marca.altLogo}
               width={50}
               height={50}
             />

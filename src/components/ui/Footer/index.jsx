@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import packageJson from '../../../../package.json';
+import { resolverMarca } from '@/utils/marcas.mjs';
+
+// (DEC-006-002 · demonstracao) Nome lido do registro — com a marca padrão,
+// idêntico ao literal de hoje.
+const marca = resolverMarca(process.env.NEXT_PUBLIC_MARCA);
 
 export const Footer = () => {
   const [anoAtual, setAnoAtual] = useState(null);
@@ -21,7 +26,9 @@ export const Footer = () => {
     >
       <div className="max-w-6xl mx-auto px-8">
         <div className="text-center">
-          <p className="text-muted">© {anoAtual} BLS Idiomas.</p>
+          <p className="text-muted">
+            © {anoAtual} {marca.nome}.
+          </p>
           <p className="text-sm text-muted">v{packageJson.version}</p>
         </div>
       </div>

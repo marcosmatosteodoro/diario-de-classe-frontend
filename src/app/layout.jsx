@@ -8,6 +8,7 @@ import { NonceProvider } from '@/providers/NonceProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { getKey, parseThemeCookie } from '@/utils/themeCookie';
 import { ServiceWorkerRegister } from '@/components/app/ServiceWorkerRegister';
+import { resolverMarca } from '@/utils/marcas.mjs';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -19,8 +20,13 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+// (DEC-006-002 · demonstracao) Título e ícone do head lidos do registro —
+// com a marca padrão, idênticos ao literal de hoje; `manifest`/`theme-color`
+// continuam literais (fora do registro, resolvidos pelo rewrite — DEC-006-004).
+const marca = resolverMarca(process.env.NEXT_PUBLIC_MARCA);
+
 export const metadata = {
-  title: 'Diário de Classe',
+  title: marca.tituloAba,
   description: 'Sistema de gestão escolar',
 };
 
@@ -39,8 +45,8 @@ export default async function RootLayout({ children }) {
       <head>
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#1e293b" />
-        <link rel="icon" href="/icon-192.png" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="icon" href={marca.icone192} />
+        <link rel="apple-touch-icon" href={marca.icone192} />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}

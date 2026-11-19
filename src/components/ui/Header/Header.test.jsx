@@ -124,6 +124,63 @@ describe('Header Component', () => {
     expect(themeButton.querySelector('svg')).toHaveClass('lucide-sun');
   });
 
+  // (DEC-006-002 · demonstracao) AC-005-006/AC-005-002: módulo recarregado
+  // com NEXT_PUBLIC_MARCA=exemplo lê caminho/alt próprios da marca fictícia
+  // — molde `carregarConfig` de next.config.test.js:28-43, adaptado:
+  // `jest.isolateModules` troca o registro só para esta chamada, com
+  // `react` explicitamente realiasado à instância real já carregada pelo
+  // arquivo de teste (sem o alias, o dispatcher de hooks do React
+  // recarregado fica desconectado do `react-dom` usado por `render`, e
+  // `useTheme`/`useState` do Header/ThemeProvider recarregados explodem com
+  // "Invalid hook call"); reconecta também os mocks manuais de
+  // useLogout/guard na instância nova.
+  describe('marca fictícia', () => {
+    const MARCA_ORIGINAL = process.env.NEXT_PUBLIC_MARCA;
+    const reactReal = require('react');
+
+    afterEach(() => {
+      if (MARCA_ORIGINAL === undefined) delete process.env.NEXT_PUBLIC_MARCA;
+      else process.env.NEXT_PUBLIC_MARCA = MARCA_ORIGINAL;
+    });
+
+    function renderHeaderFicticia({ initialTheme } = {}) {
+      process.env.NEXT_PUBLIC_MARCA = 'exemplo';
+      let utils;
+      jest.isolateModules(() => {
+        jest.doMock('react', () => reactReal);
+        const { Header: HeaderFicticia } = require('./index');
+        const {
+          ThemeProvider: ThemeProviderFicticia,
+        } = require('@/providers/ThemeProvider');
+        require('@/hooks/auth/useLogout').useLogout.mockReturnValue({
+          logoutUser: jest.fn(),
+          isLoggingOut: false,
+        });
+        require('@/providers/UnsavedChangesGuardProvider').useUnsavedChangesGuard.mockReturnValue(
+          { confirmNavigation: () => true }
+        );
+        utils = render(
+          <ThemeProviderFicticia initialTheme={initialTheme}>
+            <HeaderFicticia />
+          </ThemeProviderFicticia>
+        );
+      });
+      return utils;
+    }
+
+    it('deve exibir a logo clara da marca fictícia', () => {
+      renderHeaderFicticia();
+      const logo = screen.getByAltText('Logo da Escola Exemplo de Idiomas');
+      expect(logo).toHaveAttribute('src', '/marcas/exemplo/logo-claro.png');
+    });
+
+    it('deve exibir a logo escura da marca fictícia com initialTheme="dark"', () => {
+      renderHeaderFicticia({ initialTheme: 'dark' });
+      const logo = screen.getByAltText('Logo da Escola Exemplo de Idiomas');
+      expect(logo).toHaveAttribute('src', '/marcas/exemplo/logo-escuro.png');
+    });
+  });
+
   describe('AC-001-001/AC-001-004 (parte a11y): botão hambúrguer do drawer', () => {
     it('com isExpanded=false, renderiza o botão com aria-expanded="false", aria-controls do Sidebar e .tap-target', () => {
       const toggleSidebar = jest.fn();
