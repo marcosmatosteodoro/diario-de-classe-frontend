@@ -47,9 +47,9 @@ export const MARCAS = congelarProfundamente({
 
 export const IDENTIFICADOR_MARCA_FICTICIA = 'exemplo';
 
-// Fonte única com `MARCAS.exemplo`: as 6 superfícies que pedem a imagem/manifesto
-// por literal fixo (precache do service worker, página offline e o
-// `<link rel="manifest">`) e, de brinde, o acesso direto aos dois logos antigos.
+// Fonte única com `MARCAS.exemplo`: os 4 caminhos pedidos por literal fixo
+// (precache do service worker, página offline e o `<link rel="manifest">`) e
+// o acesso direto aos 2 logos antigos (RISK-005-006).
 export const SUPERFICIES_SEM_REGISTRO = congelarProfundamente([
   { literal: 'manifest.json', destino: MARCAS.exemplo.manifesto },
   { literal: 'icon-192.png', destino: MARCAS.exemplo.icone192 },
