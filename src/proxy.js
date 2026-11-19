@@ -23,8 +23,13 @@ export function proxy(request) {
 export const config = {
   matcher: [
     {
+      // (DEC-006-006 · demonstracao) `marcas\/.*` exclui, por prefixo de
+      // pasta, qualquer caminho sob `public/marcas/` (imagens e manifesto da
+      // marca fictícia, pedidos diretamente por Header/layout.jsx com a
+      // marca fictícia selecionada) do CSP/nonce de documento, como qualquer
+      // outra imagem estática.
       source:
-        '/((?!api/|_next/static/|_next/image$|favicon\\.ico$|sw\\.js$|offline\\.html$|manifest\\.json$|(?:bls|bls-dark|icon-192|icon-512|icon-maskable)\\.png$|(?:file|globe|next|vercel|window)\\.svg$).*)',
+        '/((?!api/|_next/static/|_next/image$|favicon\\.ico$|sw\\.js$|offline\\.html$|manifest\\.json$|(?:bls|bls-dark|icon-192|icon-512|icon-maskable)\\.png$|marcas\\/.*|(?:file|globe|next|vercel|window)\\.svg$).*)',
       missing: [
         { type: 'header', key: 'next-router-prefetch' },
         { type: 'header', key: 'purpose', value: 'prefetch' },

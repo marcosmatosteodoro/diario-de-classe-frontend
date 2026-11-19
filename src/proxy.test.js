@@ -87,6 +87,9 @@ describe('config.matcher', () => {
     '/_next/imagex',
     '/api',
     '/apix',
+    // (DEC-006-006 · demonstracao) controle positivo: sem a barra de prefixo
+    // real, `marcas\/.*` não pode casar por substring solta.
+    '/marcas-falso/x.png',
   ])('cobre o documento %s', caminho => {
     expect(casa(caminho)).toBe(true);
   });
@@ -107,6 +110,10 @@ describe('config.matcher', () => {
     '/favicon.ico',
     '/_next/static/chunks/a.js',
     '/_next/image',
+    // (DEC-006-006 · demonstracao) imagens e manifesto da marca fictícia,
+    // pedidos diretamente por Header/layout.jsx (desenho híbrido, DEC-006-002).
+    '/marcas/exemplo/logo-claro.png',
+    '/marcas/exemplo/manifest.json',
   ])('exclui o estático ou a API %s', caminho => {
     expect(casa(caminho)).toBe(false);
   });
