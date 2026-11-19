@@ -20,9 +20,7 @@ const manifestFicticio = JSON.parse(
 
 // Lê width/height reais gravados no chunk IHDR do PNG (bytes 16-19 e 20-23,
 // depois dos 8 bytes de assinatura + 4 de tamanho + 4 do tipo "IHDR") — nunca
-// confia só no `sizes` declarado no manifest, que é exatamente o que a
-// regressão deixava mentir (src apontando de volta para bls.png 225x224 com
-// sizes 192x192/512x512).
+// confia só no `sizes` declarado no manifest.
 function readPngDimensions(filePath) {
   const buffer = fs.readFileSync(filePath);
   return {
