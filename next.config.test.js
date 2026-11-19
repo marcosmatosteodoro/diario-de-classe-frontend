@@ -197,7 +197,7 @@ describe('next.config — marca', () => {
     ]);
   });
 
-  it('com NEXT_PUBLIC_MARCA=exemplo, rewrites() mapeia as 6 superfícies sem registro', async () => {
+  it('com NEXT_PUBLIC_MARCA=exemplo, rewrites() mapeia as 7 superfícies sem registro', async () => {
     const config = await carregarConfig({
       API_INTERNAL_URL: 'http://x.example:1234',
       NODE_ENV: 'development',
@@ -225,6 +225,10 @@ describe('next.config — marca', () => {
         {
           source: '/bls-dark.png',
           destination: '/marcas/exemplo/logo-escuro.png',
+        },
+        {
+          source: '/favicon.ico',
+          destination: '/marcas/exemplo/logo-claro.png',
         },
       ],
       afterFiles: [

@@ -169,8 +169,8 @@ describe('ícone e manifest por marca', () => {
     expect(manifestLink.props.href).toBe('/manifest.json');
     expect(countManifestLinks(tree)).toHaveLength(1);
     expect(themeColorMeta.props.content).toBe('#1e293b');
-    expect(iconLink.props.href).toMatch(/^\/icon-(192|512)\.png$/);
-    expect(appleTouchIconLink.props.href).toMatch(/^\/icon-(192|512)\.png$/);
+    expect(iconLink.props.href).toBe('/icon-192.png');
+    expect(appleTouchIconLink.props.href).toBe('/icon-192.png');
   });
 
   it('marca fictícia: ícone e atalho apontam para /marcas/exemplo/icon-192.png; manifest e theme-color não variam', async () => {

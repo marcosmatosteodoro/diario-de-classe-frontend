@@ -48,8 +48,10 @@ export const MARCAS = congelarProfundamente({
 export const IDENTIFICADOR_MARCA_FICTICIA = 'exemplo';
 
 // Fonte única com `MARCAS.exemplo`: os 4 caminhos pedidos por literal fixo
-// (precache do service worker, página offline e o `<link rel="manifest">`) e
-// o acesso direto aos 2 logos antigos (RISK-005-006).
+// (precache do service worker, página offline e o `<link rel="manifest">`),
+// o acesso direto aos 2 logos antigos (RISK-005-006) e o favicon que o App
+// Router serve por convenção de arquivo (`src/app/favicon.ico`) —
+// reaproveita o mesmo PNG 225×224 de `logoClaro`, sem binário novo.
 export const SUPERFICIES_SEM_REGISTRO = congelarProfundamente([
   { literal: 'manifest.json', destino: MARCAS.exemplo.manifesto },
   { literal: 'icon-192.png', destino: MARCAS.exemplo.icone192 },
@@ -57,6 +59,7 @@ export const SUPERFICIES_SEM_REGISTRO = congelarProfundamente([
   { literal: 'icon-maskable.png', destino: MARCAS.exemplo.iconeMaskable },
   { literal: 'bls.png', destino: MARCAS.exemplo.logoClaro },
   { literal: 'bls-dark.png', destino: MARCAS.exemplo.logoEscuro },
+  { literal: 'favicon.ico', destino: MARCAS.exemplo.logoClaro },
 ]);
 
 /**

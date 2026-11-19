@@ -39,21 +39,31 @@ describe('marca padrão', () => {
   const reactReal = require('react');
 
   afterEach(() => {
+    jest.useRealTimers();
     if (MARCA_ORIGINAL === undefined) delete process.env.NEXT_PUBLIC_MARCA;
     else process.env.NEXT_PUBLIC_MARCA = MARCA_ORIGINAL;
   });
 
-  it('renders copyright text', () => {
+  // Relógio fixo + mountRaw/flush (molde da suíte "ano estável até montar",
+  // linhas 91-129 abaixo): confere o textContent exato, não um `/regex/i`
+  // que aceitaria "BLS Idiomas" sem o ponto final.
+  it('renders copyright text', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-12-31T23:59:59.000-03:00'));
     delete process.env.NEXT_PUBLIC_MARCA;
-    let utils;
+    let footer;
     jest.isolateModules(() => {
       jest.doMock('react', () => reactReal);
       const { Footer: FooterPadrao } = require('./index');
-      utils = render(<FooterPadrao />);
+      footer = mountRaw(<FooterPadrao />);
     });
-    const { getByText } = utils;
+    await footer.flush();
 
-    expect(getByText(/BLS Idiomas/i)).toBeInTheDocument();
+    expect(footer.container.querySelector('p').textContent).toBe(
+      '© 2026 BLS Idiomas.'
+    );
+
+    footer.unmount();
   });
 });
 

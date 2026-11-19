@@ -58,6 +58,7 @@ describe('SUPERFICIES_SEM_REGISTRO', () => {
     ['icon-maskable.png', 'iconeMaskable'],
     ['bls.png', 'logoClaro'],
     ['bls-dark.png', 'logoEscuro'],
+    ['favicon.ico', 'logoClaro'],
   ])(
     'destino de "%s" é a mesma string de MARCAS.exemplo.%s',
     (literal, campo) => {
